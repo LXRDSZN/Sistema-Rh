@@ -18,7 +18,7 @@
       </p>
     </div>
 
-    <div class="side-panel"></div>
+   
   </div>
 </template>
 
@@ -111,13 +111,6 @@ button:hover {
   text-decoration: none;
 }
 
-.side-panel {
-  width: 40%;
-  min-width: 200px;
-  max-width: 400px;
-  height: 100%;
-  background-color: #4f39f6;
-}
 
 @media (max-width: 768px) {
   .container {
@@ -137,10 +130,5 @@ button:hover {
     min-width: 300px;
   }
 
-  .side-panel {
-    flex: 0 0 35vw;
-    min-width: 200px;
-    background-color: #4f39f6;
-  }
 }
 </style>
