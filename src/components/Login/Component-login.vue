@@ -11,16 +11,15 @@
         <input type="password" id="password" v-model="password"/>
 
         <button>Login</button>
-        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>      
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>    
       </form>
-
         <p class="register-text">
           Don't have an account? <a href="#">Register</a>
         </p>
     </div>
-
-   
+    
   </div>
+  <div class="barblue"></div> 
 </template>
 
 <script setup>
@@ -147,7 +146,7 @@ button:hover {
 }
 
 .register-text {
-  margin-top: 1.5rem;
+  margin-top: 3.5rem;
   font-size: 14px;
 }
 
@@ -155,6 +154,15 @@ button:hover {
   color: #000;
   font-weight: bold;
   text-decoration: none;
+}
+.barblue {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 382px; 
+  height: 100vh; 
+  background-color: #4F39F6; 
+  z-index: 10; 
 }
 
 
@@ -175,6 +183,12 @@ button:hover {
     padding: 2rem;
     min-width: 300px;
   }
+}
 
+
+@media (max-width: 1015px) {
+  .barblue {
+      display: none;
+   }
 }
 </style>
