@@ -5,37 +5,83 @@
 
       <form @submit.prevent="login">
         <label>Username:</label>
-        <input type="text" v-model="username" />
+        <input type="text" id="username" v-model="username"/>
 
         <label>Password:</label>
-        <input type="password" v-model="password" />
+        <input type="password" id="password" v-model="password"/>
 
-        <button type="submit">Login</button>
+        <button>Login</button>
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>      
       </form>
 
-      <p class="register-text">
-        Don't have an account? <a href="#">Register</a>
-      </p>
+        <p class="register-text">
+          Don't have an account? <a href="#">Register</a>
+        </p>
     </div>
 
    
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      username: '',
-      password: '',
-    };
-  },
-  methods: {
-    login() {
-      alert(`Usuario: ${this.username}, Contraseña: ${this.password}`);
-    },
-  },
+<script setup>
+//importaciones para la navegabilidad, uso de rutas y notificaciones,
+
+import { ref } from 'vue';
+import { useRouter } from 'vue-router'; // Para redirigir entre rutas
+import axios from 'axios';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+ // Variables reactivas
+const username = ref('');
+const password = ref('');
+
+// Inicializa el toast
+const toast = useToast();
+const router = useRouter(); // Router para redirigir
+
+const login = async () => {
+if (!username.value || !password.value) {
+  toast.error('Por favor, ingresa ambos campos', {
+    position: 'top-right',
+    duration: 5000,
+    dismissible: true,
+  });
+  return;
+}
+
+try {
+  const response = await axios.post('http://localhost:5000/api/auth/login', {
+    usuario: username.value,
+    contrasena: password.value,
+    }, {
+      withCredentials: true, // Permite enviar y recibir cookies
+    });
+
+    if (response.data.message === 'Login exitoso') {
+      // Muestra un mensaje de éxito
+      toast.success('Inicio de sesión exitoso. Bienvenido!', {
+        position: 'top-right',
+        duration: 2000, //duracion de la animacion
+        dismissible: true,
+      });
+
+      // Redirige a la página de Dashboard
+      setTimeout(() => {
+        router.push('/Dashboard'); // Redirigir al panel
+      }, 750);
+    }
+  } catch (error) {
+    const message =
+      error.response?.data?.message || 'Hubo un problema con la conexión';
+    toast.error(message, {
+      position: 'top-right',
+      duration: 5000,
+      dismissible: true,
+    });
+  }
 };
+
 </script>
 
 <style scoped>
