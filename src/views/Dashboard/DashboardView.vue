@@ -1,6 +1,9 @@
+<script setup>
+import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+</script>
 <template>
   <div class="Dashboard">
-    <h1>Vista Para el Dashboard</h1>
+    <sidebar/>
   </div>
 </template>
 

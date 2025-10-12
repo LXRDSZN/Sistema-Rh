@@ -7,3 +7,7 @@ import componentSignUp from '@/components/SignUp/component-SignUp.vue';
     <componentSignUp/>
   </main>
 </template>
+
+<style>
+
+</style>

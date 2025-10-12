@@ -1,6 +1,10 @@
+<script setup>
+import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+</script>
+
 <template>
   <div class="areas">
-    <h1>Vista Para Areas</h1>
+    <sidebar/>
   </div>
 </template>
 

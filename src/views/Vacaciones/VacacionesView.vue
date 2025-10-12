@@ -1,9 +1,11 @@
+<script setup>
+import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+</script>
 <template>
   <div class="vacaciones">
-    <h1>Vista Para Vacaciones</h1>
+    <sidebar/>
   </div>
 </template>
-
 <style>
 @media (min-width: 1024px) {
   .vacaciones {

@@ -1,9 +1,11 @@
+<script setup>
+import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+</script>
 <template>
   <div class="incidencias">
-    <h1>Vista Para Incidencias</h1>
+    <sidebar/>
   </div>
 </template>
-
 <style>
 @media (min-width: 1024px) {
   .incidencias {

@@ -1,6 +1,9 @@
+<script setup>
+import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+</script>
 <template>
   <div class="asistencias">
-    <h1>Vista Para Asistencias</h1>
+    <sidebar/>
   </div>
 </template>
 

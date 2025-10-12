@@ -14,7 +14,7 @@ export const Backend = mongoose.model('Backend', backendSchema);
 // Conexión remota a MongoDB vía ngrok
 export const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://hxck4io:bcb96dbdb1@2.tcp.ngrok.io:18885/sistemaRH', {
+    await mongoose.connect('mongodb://hxck4io:bcb96dbdb1@4.tcp.ngrok.io:11671/sistemaRH', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       authSource: 'admin', // autenticación usando la DB admin
