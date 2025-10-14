@@ -254,4 +254,4 @@ function logout() { /* tu lógica de logout */ }
 .desplegar:focus, .desplegar:active {
   border: 2px solid #845EF7;
 }
-</style>
+</style>1
