@@ -1,9 +1,9 @@
 <template>
   <div class="sidebar">
-    <div class="sidebar-content">
+    <div class="sidebar-content ">
       <!-- Logo/Header: Hexágono (SVG como antes) -->
       <div
-        class="menu-row logo-row desplegar"
+        class="menu-row logo-row desplegar "
         @click="toggleSidebar"
         :aria-label="isOpen ? 'Cerrar menú' : 'Abrir menú'"
         tabindex="0"
@@ -254,4 +254,4 @@ function logout() { /* tu lógica de logout */ }
 .desplegar:focus, .desplegar:active {
   border: 2px solid #845EF7;
 }
-</style>1
+</style>
