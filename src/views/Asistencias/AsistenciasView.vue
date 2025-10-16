@@ -1,18 +1,20 @@
 <script setup>
 import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
+import AsistenciasComponent from '@/components/Asistencias/Asistencias-component.vue';
 </script>
 <template>
-  <div class="asistencias">
+  <div class="asistencias-view">
     <sidebar/>
+    <AsistenciasComponent/>
   </div>
 </template>
 
-<style>
-@media (min-width: 1024px) {
-  .asistencias {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
+<style scoped>
+.asistencias-view {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 </style>

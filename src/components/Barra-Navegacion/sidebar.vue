@@ -9,7 +9,7 @@
         tabindex="0"
         title="Recursos Humanos"
       >
-        <span class="menu-icon">
+        <span class="menu-icon logo-icon">
           <svg width="22" height="22" viewBox="0 0 24 24">
             <path stroke="#fff" stroke-width="2" d="M12 3.5 3.5 8.75v6.5L12 20.5l8.5-5.25v-6.5L12 3.5Z"/>
             <circle cx="12" cy="12" r="2" fill="none" stroke="#fff" stroke-width="2"/>
@@ -117,14 +117,20 @@ function logout() { /* tu lógica de logout */ }
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
 
+/* Reset global para todos los enlaces */
+a, a:link, a:visited, a:hover, a:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .material-symbols-rounded {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   font-family: 'Material Symbols Rounded', sans-serif;
   font-size: 22px;
   color: #d4d9e6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  line-height: 1;
+  user-select: none;
 }
 
 .menu-row.active .material-symbols-rounded,
@@ -156,11 +162,12 @@ function logout() { /* tu lógica de logout */ }
 .menu-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.7em;
   border-radius: 10px;
   min-height: 46px;
   margin: 2px 7px;
-  padding: 0 7px;
+  padding: 0;
   transition: background 0.18s;
   cursor: pointer;
   position: relative;
@@ -172,34 +179,72 @@ function logout() { /* tu lógica de logout */ }
 .menu-link {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.7em;
-  color: inherit;
+  color: #fff;
   text-decoration: none;
   width: 100%;
   height: 100%;
-  padding: 10px 0;
+  padding: 11px 12px;
+  outline: none !important;
+  border: none;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.menu-link:focus,
+.menu-link:active,
+.menu-link:hover {
+  outline: none !important;
+  box-shadow: none !important;
+  text-decoration: none;
+}
+.menu-link:focus-visible {
+  outline: 2px solid #845EF7 !important;
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 .menu-text {
   font-size: 1.18rem;
   font-weight: 400;
   color: #fff;
+  user-select: none;
 }
 .menu-row .arrow {
   margin-left: auto;
   color: #fff8;
   font-size: 1.21em;
   font-weight: 700;
+  user-select: none;
 }
 .menu-icon {
+  width: 22px;
+  height: 22px;
   min-width: 22px;
   min-height: 22px;
+  max-width: 22px;
+  max-height: 22px;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.menu-icon .material-symbols-rounded {
+  width: 22px;
+  height: 22px;
 }
 .logo-row {
   margin-bottom: 14px;
   margin-top: 0;
+  padding: 11px 12px;
+}
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo-icon svg {
+  display: block;
 }
 .logo-txts {
   display: flex;
@@ -211,6 +256,7 @@ function logout() { /* tu lógica de logout */ }
   font-weight: bold;
   color: #fff;
   line-height: 1.1;
+  user-select: none;
 }
 .icons-separator {
   height: 1px;
@@ -223,21 +269,32 @@ function logout() { /* tu lógica de logout */ }
 .sidebar-user-mini {
   margin-top: auto;
   margin-bottom: 24px;
-  padding: 8px 7px;
+  padding: 11px 12px;
   background: #232327;
   border-radius: 10px;
   color: #fff;
   cursor: pointer;
+  display: flex;
   align-items: center;
   gap: 0.7em;
+  outline: none;
+  transition: background 0.18s;
 }
 .sidebar-user-mini:hover {
   background: #845EF7;
+}
+.sidebar-user-mini:focus {
+  outline: none;
+}
+.sidebar-user-mini:focus-visible {
+  outline: 2px solid #845EF7;
+  outline-offset: -2px;
 }
 .user-info {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  user-select: none;
 }
 .sidebar-user-name {
   font-weight: 700;

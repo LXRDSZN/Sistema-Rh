@@ -1,15 +1,29 @@
 <template>
-  <div class="incidencias">
+  <div class="incidencias-content">
     <h1>Vista Para Incidencias</h1>
   </div>
 </template>
 
-<style>
+<style scoped>
+.incidencias-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 60px; /* Espacio para sidebar cerrado */
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2rem;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
 @media (min-width: 1024px) {
-  .incidencias {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
+  .incidencias-content {
+    padding: 3rem;
   }
 }
 </style>
