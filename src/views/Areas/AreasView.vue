@@ -1,6 +1,15 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue';
 import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
 import AreasComponent from '@/components/Areas/Areas-component.vue';
+
+onMounted(() => {
+  document.body.classList.add('areas-page');
+});
+
+onUnmounted(() => {
+  document.body.classList.remove('areas-page');
+});
 </script>
 
 <template>

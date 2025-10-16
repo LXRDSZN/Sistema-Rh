@@ -1,5 +1,51 @@
 @import './base.css';
 
+/* ============================================
+   GLOBAL STYLES - Material Icons
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded', sans-serif;
+  font-size: 20px;
+}
+
+/* ============================================
+   GLOBAL STYLES - Page Backgrounds
+   ============================================ */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Fondo gris para páginas específicas */
+body.dashboard-page,
+body.areas-page,
+body.asistencias-page,
+body.vacaciones-page,
+body.incidencias-page,
+body.contratos-page {
+  background: #E5E7EB;
+  overflow-x: hidden;
+}
+
+body.dashboard-page #app,
+body.areas-page #app,
+body.asistencias-page #app,
+body.vacaciones-page #app,
+body.incidencias-page #app,
+body.contratos-page #app {
+  background: transparent;
+  min-height: 100vh;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
+   GLOBAL STYLES - Default App Container
+   ============================================ */
 #app {
   max-width: 1280px;
   margin: 0 auto;
@@ -31,5 +77,24 @@ a,
     display: grid;
     grid-template-columns: 1fr 1fr;
     padding: 0 2rem;
+  }
+  
+  /* Reset para páginas con sidebar */
+  body.dashboard-page,
+  body.areas-page,
+  body.asistencias-page,
+  body.vacaciones-page,
+  body.incidencias-page,
+  body.contratos-page {
+    display: block;
+  }
+  
+  body.dashboard-page #app,
+  body.areas-page #app,
+  body.asistencias-page #app,
+  body.vacaciones-page #app,
+  body.incidencias-page #app,
+  body.contratos-page #app {
+    display: block;
   }
 }

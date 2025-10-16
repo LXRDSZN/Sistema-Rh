@@ -1,4 +1,11 @@
 <template>
+  <!-- Overlay para cerrar el sidebar al hacer clic fuera -->
+  <div 
+    v-if="isOpen" 
+    class="sidebar-overlay" 
+    @click="closeSidebar"
+  ></div>
+  
   <div class="sidebar">
     <div class="sidebar-content ">
       <!-- Logo/Header: Hexágono (SVG como antes) -->
@@ -110,6 +117,7 @@ const isOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
 function toggleSidebar() { isOpen.value = !isOpen.value }
+function closeSidebar() { isOpen.value = false }
 function isActive(path) { return route.path === path }
 function logout() { /* tu lógica de logout */ }
 </script>
@@ -136,6 +144,28 @@ a, a:link, a:visited, a:hover, a:active {
 .menu-row.active .material-symbols-rounded,
 .menu-row:hover .material-symbols-rounded {
   color: #fff;
+}
+
+/* Overlay para cerrar sidebar */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 199;
+  cursor: pointer;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .sidebar {
