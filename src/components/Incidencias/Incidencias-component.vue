@@ -186,9 +186,10 @@
 .header-left h1 {
   margin: 0;
   font-size: 1.8rem;
-  letter-spacing: 2px;
+  letter-spacing: 5px;
   font-weight: 600;
   color: #2c3e50;
+  text-transform: uppercase;
 }
 .header-right {
   display: flex;
@@ -218,7 +219,6 @@
 .btn-Greporte:active {
   transform: translateY(-1px);
 }
-
 
 .cont-buscar {
   position: relative;
