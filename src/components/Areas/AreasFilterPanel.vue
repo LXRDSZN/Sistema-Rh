@@ -11,12 +11,12 @@
 <template>
   <div class="filter-panel-container">
     <!-- Botón de Filtros -->
-    <button class="filter-icon-btn" @click="toggleFiltros">
+    <button class="filter-icon-btn" @click="toggleFiltros" ref="filterButton">
       <span class="material-symbols-rounded">filter_list</span>
     </button>
     
     <!-- Panel de Filtros -->
-    <div v-if="filtrosAbiertos" class="filters-panel">
+    <div v-if="filtrosAbiertos" class="filters-panel" :style="panelPosition">
       <div class="filters-header">
         <h4>Filtros</h4>
         <button class="clear-filters-btn" @click="limpiarFiltros">
@@ -79,12 +79,18 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, nextTick } from 'vue';
 import { TITULOS, CATEGORIAS, GENEROS } from '@/constants/areas';
+
+// ============================================
+// REFS
+// ============================================
+const filterButton = ref(null);
 
 // ============================================
 // PROPS
 // ============================================
-defineProps({
+const props = defineProps({
   filtrosAbiertos: Boolean,
   filtrosTitulo: Array,
   filtrosCategoria: Array,
@@ -101,6 +107,19 @@ defineProps({
     type: Array,
     default: () => GENEROS
   }
+});
+
+// ============================================
+// COMPUTED
+// ============================================
+const panelPosition = computed(() => {
+  if (!filterButton.value) return {};
+  
+  const rect = filterButton.value.getBoundingClientRect();
+  return {
+    top: `${rect.bottom + 8}px`,
+    right: `${window.innerWidth - rect.right}px`
+  };
 });
 
 // ============================================
@@ -172,15 +191,17 @@ const limpiarFiltros = () => {
 
 /* Panel de Filtros */
 .filters-panel {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
+  position: fixed;
+  top: auto;
+  right: 2rem;
   background: white;
   border: 1px solid #E5E7EB;
   border-radius: 0.75rem;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   padding: 1rem;
   min-width: 250px;
+  max-height: 80vh;
+  overflow-y: auto;
   z-index: 20;
 }
 
