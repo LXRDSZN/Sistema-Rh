@@ -1,25 +1,16 @@
 <template>
   <!-- Overlay para cerrar el sidebar al hacer clic fuera -->
-  <div 
-    v-if="isOpen" 
-    class="sidebar-overlay" 
-    @click="closeSidebar"
-  ></div>
-  
+  <div v-if="isOpen" class="sidebar-overlay" @click="closeSidebar"></div>
+
   <div class="sidebar">
     <div class="sidebar-content ">
       <!-- Logo/Header: Hexágono (SVG como antes) -->
-      <div
-        class="menu-row logo-row desplegar "
-        @click="toggleSidebar"
-        :aria-label="isOpen ? 'Cerrar menú' : 'Abrir menú'"
-        tabindex="0"
-        title="Recursos Humanos"
-      >
+      <div class="menu-row logo-row desplegar " @click="toggleSidebar"
+        :aria-label="isOpen ? 'Cerrar menú' : 'Abrir menú'" tabindex="0" title="Recursos Humanos">
         <span class="menu-icon logo-icon">
           <svg width="22" height="22" viewBox="0 0 24 24">
-            <path stroke="#fff" stroke-width="2" d="M12 3.5 3.5 8.75v6.5L12 20.5l8.5-5.25v-6.5L12 3.5Z"/>
-            <circle cx="12" cy="12" r="2" fill="none" stroke="#fff" stroke-width="2"/>
+            <path stroke="#fff" stroke-width="2" d="M12 3.5 3.5 8.75v6.5L12 20.5l8.5-5.25v-6.5L12 3.5Z" />
+            <circle cx="12" cy="12" r="2" fill="none" stroke="#fff" stroke-width="2" />
           </svg>
         </span>
         <div v-if="isOpen" class="logo-txts">
@@ -27,20 +18,14 @@
           <div class="sidebar-title">Humanos</div>
         </div>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Dashboard')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Dashboard') }">
         <RouterLink to="/Dashboard" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">dashboard</span></span>
           <span v-if="isOpen" class="menu-text">Dashboard</span>
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Configuracion')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Configuracion') }">
         <RouterLink to="/Configuracion" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">settings</span></span>
           <span v-if="isOpen" class="menu-text">Configuración</span>
@@ -48,50 +33,35 @@
         </RouterLink>
       </div>
       <div class="icons-separator" v-if="isOpen"></div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Asistencias')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Asistencias') }">
         <RouterLink to="/Asistencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">event_note</span></span>
           <span v-if="isOpen" class="menu-text">Asistencias</span>
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Documentacion')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Documentacion') }">
         <RouterLink to="/Documentacion" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">description</span></span>
           <span v-if="isOpen" class="menu-text">Documentación</span>
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Vacaciones')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Vacaciones') }">
         <RouterLink to="/Vacaciones" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">wb_sunny</span></span>
           <span v-if="isOpen" class="menu-text">Vacaciones</span>
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Incidencias')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Incidencias') }">
         <RouterLink to="/Incidencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">info</span></span>
           <span v-if="isOpen" class="menu-text">Incidencias</span>
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <div
-        class="menu-row"
-        :class="{active: isActive('/Areas')}"
-      >
+      <div class="menu-row" :class="{ active: isActive('/Areas') }">
         <RouterLink to="/Areas" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">apartment</span></span>
           <span v-if="isOpen" class="menu-text">Áreas</span>
@@ -126,7 +96,11 @@ function logout() { /* tu lógica de logout */ }
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
 
 /* Reset global para todos los enlaces */
-a, a:link, a:visited, a:hover, a:active {
+a,
+a:link,
+a:visited,
+a:hover,
+a:active {
   outline: none !important;
   -webkit-tap-highlight-color: transparent;
 }
@@ -163,6 +137,7 @@ a, a:link, a:visited, a:hover, a:active {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -173,10 +148,12 @@ a, a:link, a:visited, a:hover, a:active {
   height: 100vh;
   background: #232327;
   position: fixed;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   z-index: 200;
   transition: width .3s;
 }
+
 .sidebar-content {
   width: auto;
   min-width: 60px;
@@ -189,6 +166,7 @@ a, a:link, a:visited, a:hover, a:active {
   background: #232327;
   position: relative;
 }
+
 .menu-row {
   display: flex;
   align-items: center;
@@ -202,10 +180,12 @@ a, a:link, a:visited, a:hover, a:active {
   cursor: pointer;
   position: relative;
 }
+
 .menu-row.active,
 .menu-row:hover {
   background: #845EF7;
 }
+
 .menu-link {
   display: flex;
   align-items: center;
@@ -221,6 +201,7 @@ a, a:link, a:visited, a:hover, a:active {
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
 }
+
 .menu-link:focus,
 .menu-link:active,
 .menu-link:hover {
@@ -228,17 +209,20 @@ a, a:link, a:visited, a:hover, a:active {
   box-shadow: none !important;
   text-decoration: none;
 }
+
 .menu-link:focus-visible {
   outline: 2px solid #845EF7 !important;
   outline-offset: -2px;
   border-radius: 8px;
 }
+
 .menu-text {
   font-size: 1.18rem;
   font-weight: 400;
   color: #fff;
   user-select: none;
 }
+
 .menu-row .arrow {
   margin-left: auto;
   color: #fff8;
@@ -246,6 +230,7 @@ a, a:link, a:visited, a:hover, a:active {
   font-weight: 700;
   user-select: none;
 }
+
 .menu-icon {
   width: 22px;
   height: 22px;
@@ -259,28 +244,34 @@ a, a:link, a:visited, a:hover, a:active {
   flex-shrink: 0;
   position: relative;
 }
+
 .menu-icon .material-symbols-rounded {
   width: 22px;
   height: 22px;
 }
+
 .logo-row {
   margin-bottom: 14px;
   margin-top: 0;
   padding: 11px 12px;
 }
+
 .logo-icon {
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .logo-icon svg {
   display: block;
 }
+
 .logo-txts {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
 }
+
 .sidebar-title {
   font-size: 1.2rem;
   font-weight: bold;
@@ -288,6 +279,7 @@ a, a:link, a:visited, a:hover, a:active {
   line-height: 1.1;
   user-select: none;
 }
+
 .icons-separator {
   height: 1px;
   background: #fff3;
@@ -296,6 +288,7 @@ a, a:link, a:visited, a:hover, a:active {
   align-self: flex-start;
   border-radius: 1px;
 }
+
 .sidebar-user-mini {
   margin-top: auto;
   margin-bottom: 24px;
@@ -310,35 +303,44 @@ a, a:link, a:visited, a:hover, a:active {
   outline: none;
   transition: background 0.18s;
 }
+
 .sidebar-user-mini:hover {
   background: #845EF7;
 }
+
 .sidebar-user-mini:focus {
   outline: none;
 }
+
 .sidebar-user-mini:focus-visible {
   outline: 2px solid #845EF7;
   outline-offset: -2px;
 }
+
 .user-info {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
   user-select: none;
 }
+
 .sidebar-user-name {
   font-weight: 700;
 }
+
 .sidebar-user-role {
   font-size: 0.92em;
   color: #a7a7b3;
 }
+
 .desplegar {
   cursor: pointer;
   border: 2px solid transparent;
   transition: border .1s;
 }
-.desplegar:focus, .desplegar:active {
+
+.desplegar:focus,
+.desplegar:active {
   border: 2px solid #845EF7;
 }
 </style>
