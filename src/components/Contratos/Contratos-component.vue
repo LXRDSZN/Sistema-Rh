@@ -1,4 +1,5 @@
 <template>
+
   <div class="contratos-content">
     <!-- Encabezado con título -->
     <div class="header">
@@ -146,15 +147,20 @@ const contratos = ref([
   flex: 1;
   margin-left: 60px;
   min-height: 100vh;
+  width: calc(100vw - 60px);
+  max-width: 100%;
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Header */
 .header {
   padding: 1.5rem 2rem;
   background-color: #f5f5f5;
+  width: 100%;
 }
 
 .header h1 {
@@ -171,6 +177,7 @@ const contratos = ref([
   background-color: #fff;
   border-bottom: 2px solid #e0e0e0;
   padding: 0 2rem;
+  width: 100%;
 }
 
 .tab-button {
@@ -202,6 +209,8 @@ const contratos = ref([
   flex: 1;
   padding: 2rem;
   background-color: #f5f5f5;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .inicio-view {
