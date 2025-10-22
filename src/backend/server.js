@@ -1,40 +1,58 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import connectDB from './models/db.js';
-import authRoutes from './routes/auth.js';    
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { connectDB } from './models/db.js';
+import authRoutes from './routes/auth.js';
+import empleadosRoutes from './routes/empleados.js';
+import config from './config/config.js';
+
+/**
+ * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
+ * 
+ * Este archivo configura y arranca el servidor Express
+ * con todos los middlewares y rutas necesarias.
+ */
 
 const app = express();
-const port = 5000;
 
-// Necesario para ESModules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Conexión a la base de datos MongoDB
+// ========== CONEXIÓN A BASE DE DATOS ==========
 await connectDB();
 
-// Middleware para habilitar CORS
+// ========== MIDDLEWARES ==========
+
+// CORS - Habilitar peticiones desde el frontend
 app.use(cors({
-  origin: 'http://localhost:5173',       // URL de tu frontend
-  credentials: true,                     // Permite enviar cookies
+  origin: config.server.frontendUrl,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware para parsear JSON en el body de las peticiones
+// Parsear JSON en el body de las peticiones
 app.use(express.json());
+
+// Parsear cookies
 app.use(cookieParser());
 
-// Servir carpeta "uploads" como estática
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ========== RUTAS ==========
 
-// Monta las rutas de autenticación en /api
+// Rutas de autenticación
 app.use('/api', authRoutes);
 
-// Inicia el servidor
-app.listen(port, () => {
-  console.log(`✅ Servidor corriendo en el puerto ${port}`);
+// Rutas de empleados
+app.use('/api', empleadosRoutes);
+
+// Ruta de health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// ========== INICIAR SERVIDOR ==========
+app.listen(config.server.port, () => {
+  console.log('\n🚀 ===== SERVIDOR INICIADO =====');
+  console.log(`✅ Servidor corriendo en el puerto ${config.server.port}`);
+  console.log(`🌐 Frontend: ${config.server.frontendUrl}`);
+  console.log(`🔌 API: http://localhost:${config.server.port}/api`);
+  console.log('================================\n');
+});
+

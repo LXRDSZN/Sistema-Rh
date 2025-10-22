@@ -98,28 +98,70 @@
           <span v-if="isOpen" class="arrow">&gt;</span>
         </RouterLink>
       </div>
-      <!-- Usuario abajo -->
-      <div class="menu-row sidebar-user-mini" @click="logout">
+      <!-- Usuario abajo con menú desplegable -->
+      <div class="menu-row sidebar-user-mini" @click="toggleUserMenu">
         <span class="menu-icon"><span class="material-symbols-rounded">group</span></span>
         <div v-if="isOpen" class="user-info">
-          <div class="sidebar-user-name">Guest</div>
-          <div class="sidebar-user-role">Gerente General/Admin</div>
+          <div class="sidebar-user-name">{{ userName }}</div>
+          <div class="sidebar-user-role">{{ formattedRole }}</div>
+          <span class="material-symbols-rounded dropdown-icon" :class="{ rotated: isUserMenuOpen }">
+            expand_more
+          </span>
         </div>
       </div>
+
+      <!-- Menú desplegable de usuario -->
+      <transition name="dropdown">
+        <div v-if="isUserMenuOpen && isOpen" class="user-dropdown-menu">
+          <button @click.stop="handleLogout" class="dropdown-item logout-item">
+            <span class="material-symbols-rounded">logout</span>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth';
+
 const isOpen = ref(false);
+const isUserMenuOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
+const { userName, userRole, logout } = useAuth();
+
+// Formatear el nombre del rol para mostrarlo de manera legible
+const formattedRole = computed(() => {
+  const roleMap = {
+    'ADMIN': 'Administrador',
+    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'JEFE_AREA': 'Jefe de Área',
+    'EMPLEADO': 'Empleado'
+  };
+  return roleMap[userRole.value] || userRole.value;
+});
+
 function toggleSidebar() { isOpen.value = !isOpen.value }
-function closeSidebar() { isOpen.value = false }
+function closeSidebar() { 
+  isOpen.value = false;
+  isUserMenuOpen.value = false;
+}
 function isActive(path) { return route.path === path }
-function logout() { /* tu lógica de logout */ }
+function toggleUserMenu() {
+  if (isOpen.value) {
+    isUserMenuOpen.value = !isUserMenuOpen.value;
+  } else {
+    toggleSidebar();
+  }
+}
+async function handleLogout() { 
+  isUserMenuOpen.value = false;
+  await logout();
+}
 </script>
 
 <style scoped>
@@ -325,6 +367,8 @@ a, a:link, a:visited, a:hover, a:active {
   flex-direction: column;
   line-height: 1.1;
   user-select: none;
+  flex: 1;
+  position: relative;
 }
 .sidebar-user-name {
   font-weight: 700;
@@ -333,6 +377,80 @@ a, a:link, a:visited, a:hover, a:active {
   font-size: 0.92em;
   color: #a7a7b3;
 }
+.dropdown-icon {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px !important;
+  transition: transform 0.3s ease;
+  color: #a7a7b3;
+}
+.dropdown-icon.rotated {
+  transform: translateY(-50%) rotate(180deg);
+}
+.user-dropdown-menu {
+  background: #1a1a1e;
+  border-radius: 8px;
+  margin: 0 12px 12px 12px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2d2d31;
+}
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  text-align: left;
+}
+.dropdown-item:hover {
+  background: #845EF7;
+}
+.dropdown-item .material-symbols-rounded {
+  font-size: 20px;
+  color: #d4d9e6;
+}
+.dropdown-item:hover .material-symbols-rounded {
+  color: #fff;
+}
+.logout-item {
+  color: #ff6b6b;
+}
+.logout-item .material-symbols-rounded {
+  color: #ff6b6b;
+}
+.logout-item:hover {
+  background: #ff6b6b;
+  color: #fff;
+}
+.logout-item:hover .material-symbols-rounded {
+  color: #fff;
+}
+
+/* Animación del dropdown */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.3s ease;
+  transform-origin: top;
+}
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
 .desplegar {
   cursor: pointer;
   border: 2px solid transparent;

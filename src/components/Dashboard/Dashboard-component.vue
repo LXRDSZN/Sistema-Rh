@@ -1,7 +1,15 @@
 <template>
   <div class="dashboard-content">
     <div class="dashboard-header">
-      <h1>Bienvenido.</h1>
+      <h1>Bienvenido, {{ userName }}.</h1>
+      <div class="user-info-badge">
+        <span class="role-badge" :class="userRole.toLowerCase()">{{ userRole }}</span>
+        <span class="permissions-count">{{ totalPermissions }} permisos</span>
+        <button @click="handleLogout" class="logout-btn">
+          <span class="material-symbols-rounded">logout</span>
+          Cerrar sesión
+        </button>
+      </div>
     </div>
 
     <!-- Cards de estadísticas -->
@@ -190,6 +198,30 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useAuth } from '@/composables/useAuth';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+
+const router = useRouter();
+const toast = useToast();
+const { userName, userEmail, userRole, totalPermissions, logout, verifySession } = useAuth();
+
+// Verificar sesión al cargar el dashboard
+onMounted(async () => {
+  const isValid = await verifySession();
+  if (!isValid) {
+    toast.error('Sesión expirada. Por favor inicie sesión nuevamente.');
+    router.push('/login');
+    return;
+  }
+  cargarDatos();
+});
+
+// Función para cerrar sesión
+const handleLogout = async () => {
+  await logout();
+  toast.success('Sesión cerrada exitosamente');
+};
 
 // Estado reactivo
 const stats = ref({
@@ -348,10 +380,6 @@ const cargarDatos = () => {
     { _id: { rangoEdad: '65+', genero: 'Mujer' }, count: 322 }
   ];
 };
-
-onMounted(() => {
-  cargarDatos();
-});
 </script>
 
 <style scoped>
@@ -373,11 +401,86 @@ onMounted(() => {
 }
 
 /* --- Header --- */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
 .dashboard-header h1 {
   font-size: 2rem;
   font-weight: 600;
   color: #1F2937;
-  margin-bottom: 2rem;
+  margin: 0;
+}
+
+.user-info-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.role-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-badge.admin {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.role-badge.jefe_rh {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+.role-badge.jefe_area {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.role-badge.empleado {
+  background: #E0E7FF;
+  color: #6366F1;
+}
+
+.permissions-count {
+  font-size: 0.85rem;
+  color: #6B7280;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #EF4444;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn .material-symbols-rounded {
+  font-size: 18px;
 }
 
 /* ============================================
