@@ -26,62 +26,71 @@ backend/
 ## 🚀 Tecnologías
 
 - **Node.js** - Runtime de JavaScript
-- **Express** - Framework web
-- **PostgreSQL** - Base de datos relacional
-- **JWT** - Autenticación mediante tokens
-- **bcrypt** - Encriptación de contraseñas
+- **Express 5** - Framework web
+- **PostgreSQL** - Base de datos relacional en AWS RDS
+- **pg (node-postgres)** - Cliente PostgreSQL con pool de conexiones
+- **JWT (jsonwebtoken)** - Autenticación mediante tokens
+- **cookie-parser** - Manejo de cookies HTTP
+- **cors** - Cross-Origin Resource Sharing
+- **zod** - Validación de esquemas y datos de entrada
 
 ## 🔧 Configuración
 
-### Variables de Entorno
+### Configuración centralizada
 
-El sistema usa variables de entorno para configuración. Puedes crear un archivo `.env` con:
+El sistema usa un archivo de configuración centralizado en `config/config.js` que gestiona todas las variables.
 
-```env
-# Servidor
-PORT=5000
-FRONTEND_URL=http://localhost:5173
+**Archivo:** `src/backend/config/config.js`
 
-# JWT
-JWT_SECRET=tu_clave_secreta_super_segura
-JWT_EXPIRES_IN=8h
-
-# Base de datos AWS RDS
-DB_USER=general_user
-DB_HOST=basededatosrds1762.co1e4mase4yn.us-east-1.rds.amazonaws.com
-DB_NAME=recursos_humanos_db
-DB_PASSWORD=conBeto156079
-DB_PORT=5432
-```
+Las configuraciones incluyen:
+- Puerto del servidor (5000)
+- URL del frontend para CORS
+- Secreto y expiración de JWT (8 horas)
+- Configuración de cookies
+- Credenciales de base de datos
 
 ### Conexión a Base de Datos
 
-El sistema está configurado para conectarse a **AWS RDS PostgreSQL** en producción.
+El sistema está configurado para conectarse a **AWS RDS PostgreSQL** en producción usando un **usuario con permisos limitados**.
 
+**Configuración actual:**
+- **Usuario**: `app_user` (permisos limitados, no superusuario)
 - **Host**: `basededatosrds1762.co1e4mase4yn.us-east-1.rds.amazonaws.com`
 - **Base de datos**: `recursos_humanos_db`
 - **Puerto**: 5432
-- **SSL**: Habilitado
+- **SSL**: Habilitado (rejectUnauthorized: false)
+
+> 🛡️ **Seguridad:** Se usa un usuario de aplicación con permisos limitados (solo CRUD en tablas específicas) en lugar del superusuario, siguiendo mejores prácticas de seguridad.
 
 ## 📝 Características
 
 ### Autenticación
-- Login con email y contraseña
+- Login con email y contraseña (texto plano temporalmente)
 - Registro de nuevos usuarios
-- Tokens JWT con expiración configurable
-- Cookies HTTP-only para seguridad
+- Tokens JWT con expiración de 8 horas
+- Cookies HTTP-only para almacenar tokens de forma segura
+- Verificación de tokens en rutas protegidas
 
 ### Autorización
 - Sistema de roles (ADMIN, JEFE_RH, JEFE_AREA, EMPLEADO)
-- Sistema de permisos granular
+- Sistema de permisos granular basado en BD
 - Middlewares de protección de rutas
+- Control de acceso por rol y por permiso específico
+
+### Gestión de Empleados
+- API REST completa para empleados
+- Consulta de empleados con información de área y puesto
+- Actualización de asignaciones de puesto
+- Listado de áreas y puestos disponibles
+- Integración con base de datos real (no mock data)
 
 ### Seguridad
-- Contraseñas hasheadas con bcrypt
-- Tokens JWT seguros
-- CORS configurado
-- Cookies HTTP-only
-- Validación de esquemas
+- Tokens JWT seguros con secret configurable
+- CORS configurado para frontend específico
+- Cookies HTTP-only (no accesibles desde JavaScript)
+- Validación de esquemas con Zod
+- Usuario de BD con permisos limitados
+- Queries parametrizadas (prevención de SQL injection)
 
 ## 🔐 Middlewares de Seguridad
 
@@ -133,20 +142,41 @@ Request → Routes → Middleware → Controller → Model → Database
 Response ← Controller ← Model ← Database
 ```
 
-## 🧹 Limpieza y Organización
+## 📡 Endpoints disponibles
 
-Este backend ha sido limpiado y organizado para:
+### Autenticación (`/api`)
+```
+POST   /register    - Registrar nuevo usuario
+POST   /login       - Iniciar sesión (retorna JWT en cookie)
+POST   /logout      - Cerrar sesión (limpia cookie)
+POST   /verify      - Verificar validez del token actual
+```
 
-✅ Eliminar archivos duplicados
-✅ Centralizar configuraciones
-✅ Mejorar la documentación
-✅ Separar responsabilidades
-✅ Facilitar el mantenimiento
+### Empleados (`/api/empleados`)
+```
+GET    /               - Listar todos los empleados con área y puesto
+GET    /:id            - Obtener empleado específico por ID
+PUT    /:id            - Actualizar asignación de área/puesto
+GET    /areas          - Listar todas las áreas disponibles
+GET    /puestos        - Listar todos los puestos disponibles
+```
 
-## 📚 Próximos Pasos
+## 🧹 Cambios recientes
 
-- [ ] Agregar variables de entorno con dotenv
-- [ ] Implementar logging con Winston o Morgan
-- [ ] Agregar tests unitarios
-- [ ] Implementar rate limiting
-- [ ] Agregar documentación de API (Swagger)
+### v1.0 - Refactorización y limpieza
+✅ Migración de usuario de BD a `app_user` (permisos limitados)
+✅ Eliminación de dependencias no utilizadas (bcrypt, bcryptjs, dotenv, aws-sdk)
+✅ Centralización de configuraciones en `config/config.js`
+✅ Reestructuración de controladores (auth, empleados)
+✅ Conexión real a base de datos (eliminación de mock data)
+✅ Implementación de API REST completa para empleados
+✅ Mejora de documentación y estructura del proyecto
+✅ Limpieza de archivos obsoletos
+
+## 📚 Notas importantes
+
+- **Contraseñas:** Actualmente se almacenan en texto plano (decisión temporal del equipo)
+- **Permisos BD:** Usuario `app_user` solo tiene acceso CRUD limitado
+- **JWT:** Tokens válidos por 8 horas, almacenados en cookies HTTP-only
+- **CORS:** Configurado para `http://localhost:5173` (frontend)
+- **SSL:** Conexión a AWS RDS con SSL habilitado
