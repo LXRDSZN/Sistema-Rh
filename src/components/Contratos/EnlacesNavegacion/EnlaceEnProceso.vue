@@ -1,5 +1,13 @@
 <template>
     <div class="enlace-enproceso">
+        <!-- Header con flecha y título -->
+        <div class="top-header">
+            <button class="btn-back" @click="volverInicio">
+                <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <h1>Contratos - En Proceso</h1>
+        </div>
+
         <div class="content-box">
             <h2 class="title">CONTRATOS EN PROCESO</h2>
 
@@ -74,7 +82,12 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['revisar-contrato']);
+const emit = defineEmits(['volver-inicio', 'revisar-contrato']);
+
+// Función para volver al inicio
+const volverInicio = () => {
+    emit('volver-inicio');
+};
 
 const filters = ref({
     nombre: '',
@@ -121,11 +134,48 @@ const revisarContrato = (contrato) => {
     margin: 0 auto;
 }
 
+/* Header con flecha */
+.top-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    background-color: transparent;
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.btn-back:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-back .material-symbols-rounded {
+    font-size: 26px;
+}
+
+.top-header h1 {
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
 .content-box {
     background-color: white;
     border: 3px solid #17a2b8;
     border-radius: 12px;
     padding: 2rem;
+    margin: 0 1.5rem;
 }
 
 .title {

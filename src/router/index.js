@@ -25,8 +25,23 @@ const router = createRouter({
       component: () => import('../views/Asistencias/AsistenciasView.vue')
     },
     {
-      path: '/Documentacion',
-      name: 'Documentacion',
+      path: '/Contratos',
+      name: 'Contratos',
+      component: () => import('../views/Contratos/ContratosView.vue')
+    },
+    {
+      path: '/Contratos/crear',
+      name: 'ContratosCrear',
+      component: () => import('../views/Contratos/ContratosView.vue')
+    },
+    {
+      path: '/Contratos/estadisticas',
+      name: 'ContratosEstadisticas',
+      component: () => import('../views/Contratos/ContratosView.vue')
+    },
+    {
+      path: '/Contratos/otra',
+      name: 'ContratosOtra',
       component: () => import('../views/Contratos/ContratosView.vue')
     },
     {

@@ -7,7 +7,7 @@
   ></div>
   
   <div class="sidebar">
-    <div class="sidebar-content ">
+    <div class="sidebar-content" :class="{ 'is-open': isOpen }">
       <!-- Logo/Header: Hexágono (SVG como antes) -->
       <div
         class="menu-row logo-row desplegar "
@@ -34,7 +34,7 @@
         <RouterLink to="/Dashboard" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">dashboard</span></span>
           <span v-if="isOpen" class="menu-text">Dashboard</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -44,10 +44,10 @@
         <RouterLink to="/Configuracion" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">settings</span></span>
           <span v-if="isOpen" class="menu-text">Configuración</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
-      <div class="icons-separator" v-if="isOpen"></div>
+      <div class="icons-separator"></div>
       <div
         class="menu-row"
         :class="{active: isActive('/Asistencias')}"
@@ -55,19 +55,41 @@
         <RouterLink to="/Asistencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">event_note</span></span>
           <span v-if="isOpen" class="menu-text">Asistencias</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
+      <!-- Contratos con menú desplegable -->
       <div
         class="menu-row"
-        :class="{active: isActive('/Documentacion')}"
+        :class="{active: isActive('/Contratos') || isContratosMenuOpen}"
+        @click="toggleContratosMenu"
       >
-        <RouterLink to="/Documentacion" class="menu-link">
+        <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">description</span></span>
-          <span v-if="isOpen" class="menu-text">Documentación</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
-        </RouterLink>
+          <span v-if="isOpen" class="menu-text">Contratos</span>
+          <span v-if="isOpen" class="material-symbols-rounded dropdown-icon" :class="{ rotated: isContratosMenuOpen }">
+            expand_more
+          </span>
+        </div>
       </div>
+
+      <!-- Menú desplegable de Contratos -->
+      <transition name="dropdown">
+        <div v-if="isContratosMenuOpen && isOpen" class="submenu-dropdown">
+          <RouterLink to="/Contratos" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Inicio</span>
+          </RouterLink>
+          <RouterLink to="/Contratos/crear" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Crear contrato</span>
+          </RouterLink>
+          <RouterLink to="/Contratos/estadisticas" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Estadísticas</span>
+          </RouterLink>
+          <RouterLink to="/Contratos/otra" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Otra pantalla</span>
+          </RouterLink>
+        </div>
+      </transition>
       <div
         class="menu-row"
         :class="{active: isActive('/Vacaciones')}"
@@ -75,7 +97,7 @@
         <RouterLink to="/Vacaciones" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">wb_sunny</span></span>
           <span v-if="isOpen" class="menu-text">Vacaciones</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -85,7 +107,7 @@
         <RouterLink to="/Incidencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">info</span></span>
           <span v-if="isOpen" class="menu-text">Incidencias</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -95,7 +117,7 @@
         <RouterLink to="/Areas" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">apartment</span></span>
           <span v-if="isOpen" class="menu-text">Áreas</span>
-          <span v-if="isOpen" class="arrow">&gt;</span>
+          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <!-- Usuario abajo con menú desplegable -->
@@ -130,6 +152,7 @@ import { useAuth } from '@/composables/useAuth';
 
 const isOpen = ref(false);
 const isUserMenuOpen = ref(false);
+const isContratosMenuOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
 const { userName, userRole, logout } = useAuth();
@@ -149,6 +172,7 @@ function toggleSidebar() { isOpen.value = !isOpen.value }
 function closeSidebar() { 
   isOpen.value = false;
   isUserMenuOpen.value = false;
+  isContratosMenuOpen.value = false;
 }
 function isActive(path) { return route.path === path }
 function toggleUserMenu() {
@@ -157,6 +181,16 @@ function toggleUserMenu() {
   } else {
     toggleSidebar();
   }
+}
+function toggleContratosMenu() {
+  if (isOpen.value) {
+    isContratosMenuOpen.value = !isContratosMenuOpen.value;
+  } else {
+    toggleSidebar();
+  }
+}
+function closeContratosMenu() {
+  isContratosMenuOpen.value = false;
 }
 async function handleLogout() { 
   isUserMenuOpen.value = false;
@@ -237,12 +271,17 @@ a, a:link, a:visited, a:hover, a:active {
   justify-content: center;
   gap: 0.7em;
   border-radius: 10px;
-  min-height: 46px;
+  height: 46px;
   margin: 2px 7px;
   padding: 0;
   transition: background 0.18s;
   cursor: pointer;
   position: relative;
+}
+
+/* Cuando el sidebar está abierto, alinear a la izquierda */
+.sidebar-content.is-open .menu-row {
+  justify-content: flex-start;
 }
 .menu-row.active,
 .menu-row:hover {
@@ -262,6 +301,12 @@ a, a:link, a:visited, a:hover, a:active {
   border: none;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+/* Agregar padding extra solo cuando el sidebar está abierto */
+.sidebar-content.is-open .menu-link {
+  padding-right: 40px;
 }
 .menu-link:focus,
 .menu-link:active,
@@ -282,11 +327,12 @@ a, a:link, a:visited, a:hover, a:active {
   user-select: none;
 }
 .menu-row .arrow {
-  margin-left: auto;
-  color: #fff8;
-  font-size: 1.21em;
-  font-weight: 700;
+  position: absolute;
+  right: 12px;
+  color: #d4d9e6;
+  font-size: 22px;
   user-select: none;
+  transition: color 0.2s ease;
 }
 .menu-icon {
   width: 22px;
@@ -309,6 +355,7 @@ a, a:link, a:visited, a:hover, a:active {
   margin-bottom: 14px;
   margin-top: 0;
   padding: 11px 12px;
+  min-height: 70px;
 }
 .logo-icon {
   display: flex;
@@ -333,9 +380,8 @@ a, a:link, a:visited, a:hover, a:active {
 .icons-separator {
   height: 1px;
   background: #fff3;
-  margin: 10px 0 10px 7px;
-  width: 80%;
-  align-self: flex-start;
+  margin: 10px 7px;
+  width: calc(100% - 14px);
   border-radius: 1px;
 }
 .sidebar-user-mini {
@@ -379,16 +425,45 @@ a, a:link, a:visited, a:hover, a:active {
 }
 .dropdown-icon {
   position: absolute;
-  right: 0;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 20px !important;
+  font-size: 22px !important;
   transition: transform 0.3s ease;
-  color: #a7a7b3;
+  color: #d4d9e6;
 }
 .dropdown-icon.rotated {
   transform: translateY(-50%) rotate(180deg);
 }
+
+/* Menú desplegable de Contratos */
+.submenu-dropdown {
+  background: #1a1a1e;
+  border-radius: 8px;
+  margin: 0 12px 8px 12px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2d2d31;
+}
+
+.submenu-dropdown .dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.submenu-dropdown .dropdown-item:hover {
+  background: #845EF7;
+}
+
 .user-dropdown-menu {
   background: #1a1a1e;
   border-radius: 8px;
