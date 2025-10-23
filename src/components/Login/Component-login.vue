@@ -13,7 +13,6 @@
           <input type="password" id="password" v-model="password" autocomplete="current-password" />
 
           <button type="submit">Login</button>
-          <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         </form>
 
         <p class="register-text">
