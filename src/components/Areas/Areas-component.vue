@@ -46,8 +46,8 @@
     <EmployeeEditModal 
       :is-open="modalAbierto"
       :empleado="empleadoSeleccionado"
-      :departamentos="departamentos"
-      :titulos="titulos"
+      :departamentos="areasOptions"
+      :titulos="puestosOptions"
       :categorias="categorias"
       @cerrar="cerrarModal"
       @guardar="guardarCambios"
@@ -59,7 +59,8 @@
 </template>
 
 <script setup>
-import { DEPARTAMENTOS, TITULOS, CATEGORIAS, GENEROS } from '@/constants/areas';
+import { computed } from 'vue';
+import { CATEGORIAS, GENEROS } from '@/constants/areas';
 import { useAreasData } from '@/composables/areas/useAreasData';
 import { useAreasFilters } from '@/composables/areas/useAreasFilters';
 import { useAreasExport } from '@/composables/areas/useAreasExport';
@@ -73,6 +74,10 @@ import EmployeeEditModal from './EmployeeEditModal.vue';
 // ============================================
 const {
   empleados,
+  areas,
+  puestos,
+  isLoading,
+  error,
   modalAbierto,
   empleadoSeleccionado,
   abrirModal,
@@ -82,6 +87,16 @@ const {
   actualizarCategoria,
   guardarCambios
 } = useAreasData();
+
+// ============================================
+// COMPUTED - Options para dropdowns
+// ============================================
+const departamentos = computed(() => areas.value.map(a => a.nombre));
+const areasOptions = computed(() => areas.value.map(a => a.nombre));
+const puestosOptions = computed(() => puestos.value.map(p => p.nombre));
+const titulos = puestosOptions;
+const categorias = CATEGORIAS;
+const generos = GENEROS;
 
 // ============================================
 // COMPOSABLES - Filters
@@ -108,14 +123,6 @@ const {
 // COMPOSABLES - Export
 // ============================================
 const { exportarDatos } = useAreasExport();
-
-// ============================================
-// CONSTANTS
-// ============================================
-const departamentos = DEPARTAMENTOS;
-const titulos = TITULOS;
-const categorias = CATEGORIAS;
-const generos = GENEROS;
 </script>
 
 <style scoped>

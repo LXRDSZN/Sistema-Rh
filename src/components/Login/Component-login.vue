@@ -13,7 +13,6 @@
           <input type="password" id="password" v-model="password" autocomplete="current-password" />
 
           <button type="submit">Login</button>
-          <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         </form>
 
         <p class="register-text">
@@ -30,7 +29,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { useAuth } from '@/composables/useAuth';
 import { useToast } from 'vue-toast-notification';
 import 'vue-toast-notification/dist/theme-sugar.css';
 
@@ -40,6 +39,7 @@ const errorMessage = ref('');
 
 const toast = useToast();
 const router = useRouter();
+const { login: authLogin, isLoading } = useAuth();
 
 const login = async () => {
   errorMessage.value = '';
@@ -51,29 +51,22 @@ const login = async () => {
     return;
   }
 
-  try {
-    const response = await axios.post(
-      'http://localhost:5000/api/auth/login',
-      { usuario: username.value, contrasena: password.value },
-      { withCredentials: true }
-    );
+  const result = await authLogin(username.value, password.value);
 
-    if (response.data.message === 'Login exitoso') {
-      toast.success('Inicio de sesión exitoso. ¡Bienvenido!', {
-        position: 'top-right',
-        duration: 2000,
-        dismissible: true
-      });
-      setTimeout(() => router.push('/Dashboard'), 750);
-    } else {
-      const msg = response.data?.message || 'No se pudo iniciar sesión';
-      errorMessage.value = msg;
-      toast.error(msg, { position: 'top-right', duration: 5000, dismissible: true });
-    }
-  } catch (error) {
-    const msg = error.response?.data?.message || 'Hubo un problema con la conexión';
-    errorMessage.value = msg;
-    toast.error(msg, { position: 'top-right', duration: 5000, dismissible: true });
+  if (result.success) {
+    toast.success('Inicio de sesión exitoso. ¡Bienvenido!', {
+      position: 'top-right',
+      duration: 2000,
+      dismissible: true
+    });
+    setTimeout(() => router.push('/Dashboard'), 750);
+  } else {
+    errorMessage.value = result.message;
+    toast.error(result.message, { 
+      position: 'top-right', 
+      duration: 5000, 
+      dismissible: true 
+    });
   }
 };
 </script>

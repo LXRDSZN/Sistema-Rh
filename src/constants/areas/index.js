@@ -14,7 +14,7 @@ export const DEPARTAMENTOS = [
   'Asistencias',
   'Incidencias',
   'Vacaciones',
-  'Documentación'
+  'Areas'
 ];
 
 /**
