@@ -1,29 +1,48 @@
-import mongoose from "mongoose";
+import pkg from 'pg';
+import config from '../config/config.js';
 
-// Esquema
-const backendSchema = new mongoose.Schema({
-  nombre:   { type: String, required: true },
-  creadoEn: { type: Date,   default: Date.now },
-}, {
-  collection: 'users' // colección donde se guardarán los documentos
-});
+const { Pool } = pkg;
 
-// Modelo
-export const Backend = mongoose.model('Backend', backendSchema);
+/**
+ * CONFIGURACIÓN DE BASE DE DATOS
+ * 
+ * Conexión a PostgreSQL en AWS RDS (producción)
+ */
 
-// Conexión remota a MongoDB vía ngrok
+// Pool de conexiones a AWS RDS
+const pool = new Pool(config.database);
+
+export const db = pool;
+
+/**
+ * Función para testear y establecer la conexión a PostgreSQL
+ * @returns {Promise<boolean>} true si la conexión fue exitosa
+ */
 export const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://hxck4io:bcb96dbdb1@8.tcp.ngrok.io:16813/sistemaRH', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      authSource: 'admin', // autenticación usando la DB admin
-    });
-    console.log("✅ BD remota conectada a sistemaRH y esquema Backend registrado");
+    const client = await db.connect();
+    console.log(`✅ PostgreSQL conectado exitosamente a AWS RDS`);
+    console.log(`📍 Host: ${config.database.host}`);
+    console.log(`🗄️  Base de datos: ${config.database.database}`);
+    
+    // Test query para verificar conexión
+    const result = await client.query('SELECT NOW()');
+    console.log("🕐 Hora del servidor:", result.rows[0].now);
+    
+    client.release();
+    return true;
   } catch (error) {
-    console.error("❌ Error conectando a Mongo:", error.message);
+    console.error("❌ Error conectando a PostgreSQL:", error.message);
+    return false;
   }
 };
 
-// Exportación correcta
-export default connectDB;
+/**
+ * Helper para ejecutar queries de manera simplificada
+ * @param {string} text - Query SQL
+ * @param {Array} params - Parámetros de la query
+ * @returns {Promise} Resultado de la query
+ */
+export const query = (text, params) => db.query(text, params);
+
+export default db;
