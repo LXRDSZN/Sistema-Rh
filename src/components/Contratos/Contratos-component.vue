@@ -98,7 +98,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { useSidebar } from '@/composables/useSidebar';
 import EnlaceActivos from './EnlacesNavegacion/EnlaceActivos.vue';
 import EnlaceAVencer from './EnlacesNavegacion/EnlaceAVencer.vue';
 import EnlaceVencidos from './EnlacesNavegacion/EnlaceVencidos.vue';
@@ -110,6 +111,7 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = ref('inicio');
 const searchQuery = ref('');
+const { contentMarginLeft, contentWidth } = useSidebar();
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
@@ -242,15 +244,16 @@ const handleRevisarContrato = (contrato) => {
 
 .contratos-content {
   flex: 1;
-  margin-left: 60px;
   min-height: 100vh;
-  width: calc(100vw - 60px);
   background-color: #e0e0e0;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow-x: hidden;
   padding: 2rem;
+  transition: all 0.3s ease;
+  margin-left: v-bind(contentMarginLeft);
+  width: v-bind(contentWidth);
 }
 
 .inicio-view {
@@ -520,6 +523,11 @@ const handleRevisarContrato = (contrato) => {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .contratos-content {
+    margin-left: 60px !important;
+    width: calc(100vw - 60px) !important;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
   }
