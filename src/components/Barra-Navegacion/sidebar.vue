@@ -1,18 +1,18 @@
 <template>
   <!-- Overlay para cerrar el sidebar al hacer clic fuera -->
   <div 
-    v-if="isOpen" 
+    v-if="isSidebarOpen" 
     class="sidebar-overlay" 
     @click="closeSidebar"
   ></div>
   
   <div class="sidebar">
-    <div class="sidebar-content" :class="{ 'is-open': isOpen }">
+    <div class="sidebar-content" :class="{ 'is-open': isSidebarOpen }">
       <!-- Logo/Header: Hexágono (SVG como antes) -->
       <div
         class="menu-row logo-row desplegar "
         @click="toggleSidebar"
-        :aria-label="isOpen ? 'Cerrar menú' : 'Abrir menú'"
+        :aria-label="isSidebarOpen ? 'Cerrar menú' : 'Abrir menú'"
         tabindex="0"
         title="Recursos Humanos"
       >
@@ -22,7 +22,7 @@
             <circle cx="12" cy="12" r="2" fill="none" stroke="#fff" stroke-width="2"/>
           </svg>
         </span>
-        <div v-if="isOpen" class="logo-txts">
+        <div v-if="isSidebarOpen" class="logo-txts">
           <div class="sidebar-title">Recursos</div>
           <div class="sidebar-title">Humanos</div>
         </div>
@@ -33,8 +33,8 @@
       >
         <RouterLink to="/Dashboard" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">dashboard</span></span>
-          <span v-if="isOpen" class="menu-text">Dashboard</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
+          <span v-if="isSidebarOpen" class="menu-text">Dashboard</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -43,21 +43,46 @@
       >
         <RouterLink to="/Configuracion" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">settings</span></span>
-          <span v-if="isOpen" class="menu-text">Configuración</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
+          <span v-if="isSidebarOpen" class="menu-text">Configuración</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div class="icons-separator"></div>
+      <!-- Asistencias con menú desplegable -->
       <div
         class="menu-row"
-        :class="{active: isActive('/Asistencias')}"
+        :class="{active: isActive('/Asistencias') || isAsistenciasMenuOpen}"
+        @click="toggleAsistenciasMenu"
       >
-        <RouterLink to="/Asistencias" class="menu-link">
+        <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">event_note</span></span>
-          <span v-if="isOpen" class="menu-text">Asistencias</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
-        </RouterLink>
+          <span v-if="isSidebarOpen" class="menu-text">Asistencias</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded dropdown-icon" :class="{ rotated: isAsistenciasMenuOpen }">
+            expand_more
+          </span>
+        </div>
       </div>
+
+      <!-- Menú desplegable de Asistencias -->
+      <transition name="dropdown">
+        <div v-if="isAsistenciasMenuOpen && isSidebarOpen" class="submenu-dropdown">
+          <RouterLink to="/Asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Inicio</span>
+          </RouterLink>
+          <RouterLink to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Justificantes</span>
+          </RouterLink>
+          <RouterLink to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Reporte de Asistencias</span>
+          </RouterLink>
+          <RouterLink to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Reporte de Visitas</span>
+          </RouterLink>
+          <RouterLink to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Reporte Analítico</span>
+          </RouterLink>
+        </div>
+      </transition>
       <!-- Contratos con menú desplegable -->
       <div
         class="menu-row"
@@ -66,8 +91,8 @@
       >
         <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">description</span></span>
-          <span v-if="isOpen" class="menu-text">Contratos</span>
-          <span v-if="isOpen" class="material-symbols-rounded dropdown-icon" :class="{ rotated: isContratosMenuOpen }">
+          <span v-if="isSidebarOpen" class="menu-text">Contratos</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded dropdown-icon" :class="{ rotated: isContratosMenuOpen }">
             expand_more
           </span>
         </div>
@@ -75,7 +100,7 @@
 
       <!-- Menú desplegable de Contratos -->
       <transition name="dropdown">
-        <div v-if="isContratosMenuOpen && isOpen" class="submenu-dropdown">
+        <div v-if="isContratosMenuOpen && isSidebarOpen" class="submenu-dropdown">
           <RouterLink to="/Contratos" class="dropdown-item" @click.stop="closeContratosMenu">
             <span>Inicio</span>
           </RouterLink>
@@ -96,8 +121,8 @@
       >
         <RouterLink to="/Vacaciones" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">wb_sunny</span></span>
-          <span v-if="isOpen" class="menu-text">Vacaciones</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
+          <span v-if="isSidebarOpen" class="menu-text">Vacaciones</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -106,8 +131,8 @@
       >
         <RouterLink to="/Incidencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">info</span></span>
-          <span v-if="isOpen" class="menu-text">Incidencias</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
+          <span v-if="isSidebarOpen" class="menu-text">Incidencias</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <div
@@ -116,14 +141,14 @@
       >
         <RouterLink to="/Areas" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">apartment</span></span>
-          <span v-if="isOpen" class="menu-text">Áreas</span>
-          <span v-if="isOpen" class="material-symbols-rounded arrow">chevron_right</span>
+          <span v-if="isSidebarOpen" class="menu-text">Áreas</span>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
       <!-- Usuario abajo con menú desplegable -->
       <div class="menu-row sidebar-user-mini" @click="toggleUserMenu">
         <span class="menu-icon"><span class="material-symbols-rounded">group</span></span>
-        <div v-if="isOpen" class="user-info">
+        <div v-if="isSidebarOpen" class="user-info">
           <div class="sidebar-user-name">{{ userName }}</div>
           <div class="sidebar-user-role">{{ formattedRole }}</div>
           <span class="material-symbols-rounded dropdown-icon" :class="{ rotated: isUserMenuOpen }">
@@ -134,7 +159,7 @@
 
       <!-- Menú desplegable de usuario -->
       <transition name="dropdown">
-        <div v-if="isUserMenuOpen && isOpen" class="user-dropdown-menu">
+        <div v-if="isUserMenuOpen && isSidebarOpen" class="user-dropdown-menu">
           <button @click.stop="handleLogout" class="dropdown-item logout-item">
             <span class="material-symbols-rounded">logout</span>
             <span>Cerrar sesión</span>
@@ -149,10 +174,12 @@
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
+import { useSidebar } from '@/composables/useSidebar';
 
-const isOpen = ref(false);
+const { isSidebarOpen, toggleSidebar: toggleSidebarComposable } = useSidebar();
 const isUserMenuOpen = ref(false);
 const isContratosMenuOpen = ref(false);
+const isAsistenciasMenuOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
 const { userName, userRole, logout } = useAuth();
@@ -168,22 +195,25 @@ const formattedRole = computed(() => {
   return roleMap[userRole.value] || userRole.value;
 });
 
-function toggleSidebar() { isOpen.value = !isOpen.value }
+function toggleSidebar() { 
+  toggleSidebarComposable();
+}
 function closeSidebar() { 
-  isOpen.value = false;
+  isSidebarOpen.value = false;
   isUserMenuOpen.value = false;
   isContratosMenuOpen.value = false;
+  isAsistenciasMenuOpen.value = false;
 }
 function isActive(path) { return route.path === path }
 function toggleUserMenu() {
-  if (isOpen.value) {
+  if (isSidebarOpen.value) {
     isUserMenuOpen.value = !isUserMenuOpen.value;
   } else {
     toggleSidebar();
   }
 }
 function toggleContratosMenu() {
-  if (isOpen.value) {
+  if (isSidebarOpen.value) {
     isContratosMenuOpen.value = !isContratosMenuOpen.value;
   } else {
     toggleSidebar();
@@ -191,6 +221,16 @@ function toggleContratosMenu() {
 }
 function closeContratosMenu() {
   isContratosMenuOpen.value = false;
+}
+function toggleAsistenciasMenu() {
+  if (isSidebarOpen.value) {
+    isAsistenciasMenuOpen.value = !isAsistenciasMenuOpen.value;
+  } else {
+    toggleSidebar();
+  }
+}
+function closeAsistenciasMenu() {
+  isAsistenciasMenuOpen.value = false;
 }
 async function handleLogout() { 
   isUserMenuOpen.value = false;

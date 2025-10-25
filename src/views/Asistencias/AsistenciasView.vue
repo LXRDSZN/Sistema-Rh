@@ -1,20 +1,12 @@
 <script setup>
 import sidebar from '@/components/Barra-Navegacion/sidebar.vue';
 import AsistenciasComponent from '@/components/Asistencias/Asistencias-component.vue';
-import AsistenciasJustificantes from '@/components/Asistencias/Asistencias-Justificantes.vue'
-import AsistenciasRepAsi from '@/components/Asistencias/Asistencias-RepAsistencias.vue';
-import AsistenciasRepVisitas from '@/components/Asistencias/Asistencias-RepVisitas.vue';
-import AsistenciasRepAnalitico from '@/components/Asistencias/Asistencias-RepAnalitico.vue';
 </script>
 
 <template>
   <div class="asistencias-view">
     <sidebar/>
-    <!-- <AsistenciasComponent/> -->
-    <AsistenciasJustificantes/>
-    <!--<AsistenciasRepAsi/>-->
-    <!--<AsistenciasRepVisitas/>-->
-     <!--<AsistenciasRepAnalitico/>-->
+    <AsistenciasComponent/>
   </div>
 </template>
 

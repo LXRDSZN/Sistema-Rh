@@ -503,18 +503,15 @@ const verDetalle = (item) => {
 .justificaciones-content {
   flex: 1;
   padding: 2rem;
-  margin-left: 60px;
-  margin-right: 15px;
   display: flex;
   align-items: flex-start;
-  width: 85vw;
-  height: 100vw;
+  width: 100%;
   box-sizing: border-box;
   background-color: #E4E4E7;
 }
 
 .content-inner {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   background-color: #E4E4E7;
 }

@@ -25,6 +25,26 @@ const router = createRouter({
       component: () => import('../views/Asistencias/AsistenciasView.vue')
     },
     {
+      path: '/Asistencias/justificantes',
+      name: 'AsistenciasJustificantes',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
+      path: '/Asistencias/reporte-asistencias',
+      name: 'AsistenciasReporteAsistencias',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
+      path: '/Asistencias/reporte-visitas',
+      name: 'AsistenciasReporteVisitas',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
+      path: '/Asistencias/reporte-analitico',
+      name: 'AsistenciasReporteAnalitico',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
       path: '/Contratos',
       name: 'Contratos',
       component: () => import('../views/Contratos/ContratosView.vue')
