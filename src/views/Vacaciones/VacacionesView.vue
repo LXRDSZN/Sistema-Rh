@@ -12,8 +12,10 @@ import VacacionesComponent from '@/components/Vacaciones/Vacaciones-component.vu
 .vacaciones-view {
   display: flex;
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
   margin: 0;
   padding: 0;
+  background-color: #E4E4E7;
+  box-sizing: border-box;
 }
 </style>
