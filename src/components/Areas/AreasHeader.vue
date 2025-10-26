@@ -50,15 +50,25 @@
     </div>
 
     <!-- Botón de Registrar -->
-    <button class="register-btn">
+    <button class="register-btn"  @click="abrirModal">
       <span class="material-symbols-rounded">lock</span>
       Registrar incidencia
     </button>
+
+    <!-- Mostrar el formulario como modal -->
+    <IncidenciasFormulario
+      v-if="mostrarModal"
+      @cerrar="cerrarModal"
+    />
+
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { DEPARTAMENTOS } from '@/constants/areas';
+// Importar el componente del formulario de incidencias
+import IncidenciasFormulario from '@/components/Incidencias/Incidencias-Formulario.vue';
 
 // ============================================
 // PROPS
@@ -93,6 +103,20 @@ const toggleAreaDropdown = () => {
 const seleccionarArea = (area) => {
   emit('seleccionarArea', area);
 };
+
+// No mostrar el formulario registrar incidencias por defecto
+const mostrarModal = ref(false);
+
+// Abre el formulario registrar incidencias
+const abrirModal = () => {
+  mostrarModal.value = true; // ahora el modal se muestra
+};
+
+// Oculta el formulario registrar incidencias
+const cerrarModal = () => {
+  mostrarModal.value = false; // ahora el modal se oculta
+};
+
 </script>
 
 <style scoped>
