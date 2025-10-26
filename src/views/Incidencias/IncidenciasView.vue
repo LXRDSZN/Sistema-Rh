@@ -8,6 +8,7 @@ import IncidenciasComponent from '@/components/Incidencias/Incidencias-component
     <IncidenciasComponent/>
   </div>
 </template>
+
 <style scoped>
 .incidencias-view {
   display: flex;
@@ -15,7 +16,6 @@ import IncidenciasComponent from '@/components/Incidencias/Incidencias-component
   width: 100vw;
   margin: 0;
   padding: 0;
-  background-color: #E4E4E7;
   box-sizing: border-box;
 }
 </style>

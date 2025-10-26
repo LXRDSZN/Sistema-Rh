@@ -59,6 +59,20 @@ export default {
           area: 'Documentación',
           nombre: 'Lalito Ramírez',
           status: 'Pendiente'
+        },
+        {
+          id: 5,
+          asunto: 'Falta injustificada del área de Documentación',
+          area: 'Documentación',
+          nombre: 'Lalito Ramírez',
+          status: 'Pendiente'
+        },
+        {
+          id: 4,
+          asunto: 'Falta injustificada del área de Documentación',
+          area: 'Documentación',
+          nombre: 'Lalito Ramírez',
+          status: 'Pendiente'
         }
 
       ]
@@ -98,16 +112,16 @@ export default {
       this.incidencias = this.incidencias.filter(i => i.id !== id);
     },
     seleccionarFecha(valor) {
-  // Formatear fecha a "DD/MM/YYYY"
-  const fecha = new Date(valor);
-  const dia = String(fecha.getDate()).padStart(2, '0');
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-  const anio = fecha.getFullYear();
-  this.fechaReporte = `${dia}/${mes}/${anio}`;
-
-  // Cerrar el menú después de seleccionar
-  this.menu = false;
-},
+      const fecha = new Date(valor);
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const anio = fecha.getFullYear();
+      this.fechaReporte = `${dia}/${mes}/${anio}`;
+      this.menu = false;
+    },
+    limpiarFecha() {
+      this.fechaReporte = null;
+    }
 
   }
 };
@@ -128,87 +142,102 @@ export default {
   Generar reporte
 </v-btn>
 
-<!-- Modal de reporte -->
-<v-dialog v-model="reporteDialog" max-width="480" transition="dialog-bottom-transition">
-  <v-card class="reporte-card pa-5">
-
-    <!-- Botón de cierre (parte superior derecha) -->
-    <div class="d-flex justify-end mb-2">
-      <v-btn icon variant="text" @click="reporteDialog = false" class="close-btn">
-        <v-icon>mdi-close</v-icon>
+<!-- Modal de reporte mejorado -->
+<v-dialog
+  v-model="reporteDialog"
+  max-width="420"
+  transition="dialog-bottom-transition"
+  persistent
+>
+  <v-card
+    class="reporte-card-elegante pa-6"
+    elevation="8"
+  >
+    <!-- Botón de cierre -->
+    <div class="d-flex justify-end">
+      <v-btn icon variant="text" class="cerrar-modal" @click="reporteDialog = false">
+        <v-icon size="22">mdi-close</v-icon>
       </v-btn>
     </div>
 
-    <v-divider class="mb-4"></v-divider>
-
     <!-- Contenido -->
-    <v-card-text>
-      <label class="text-subtitle-2 font-weight-medium mb-2 d-block">Selecciona la fecha:</label>
+    <v-card-text class="text-center">
 
+      <label class="label-modal">Seleccione una fecha:</label>
       <v-menu
-        v-model="menu"
-        :close-on-content-click="false"
-        transition="scale-transition"
-        offset-y
-        min-width="auto"
-      >
-        <template #activator="{ props }">
-          <v-text-field
-            v-model="fechaReporte"
-            label="Seleccionar fecha"
-            prepend-icon="mdi-calendar"
-            readonly
-            v-bind="props"
-            variant="outlined"
-            density="comfortable"
-          ></v-text-field>
-        </template>
-        <v-date-picker 
-        v-model="fechaReporte"
+  v-model="menu"
+  :close-on-content-click="false"
+  transition="scale-transition"
+  offset-y
+  min-width="auto"
+>
+  <template #activator="{ props }">
+    <v-text-field
+      v-model="fechaReporte"
+      placeholder="MM/DD/YYYY"
+      prepend-inner-icon="mdi-calendar"
+      :append-inner-icon="fechaReporte ? 'mdi-close-circle' : ''"
+      @click:append-inner.stop="limpiarFecha"
+      readonly
+      v-bind="props"
+      variant="outlined"
+      density="comfortable"
+      class="mb-6 campo-fecha"
+      :class="{ 'fecha-activa': !!fechaReporte }"
+    />
+  </template>
+
+  <v-date-picker
+    v-model="fechaReporte"
     @update:model-value="seleccionarFecha"
-    scrollable
-        ></v-date-picker>
-      </v-menu>
+    color="primary"
+  ></v-date-picker>
+</v-menu>
 
-      <!-- Botones de tipo de reporte -->
-      <div class="tipo-reporte mt-6">
-        <label class="text-subtitle-2 font-weight-medium mb-2 d-block">Tipo de reporte:</label>
-        <div class="btn-tipo-reporte">
-          <v-btn
-            :class="{'activo': tipoReporte === 'PDF'}"
-            variant="flat"
-            rounded="xl"
-            color="white"
-            @click="tipoReporte = 'PDF'"
-          >
-            <v-icon left color="black">mdi-file-pdf-box</v-icon>
-            <span class="text-black font-weight-medium">PDF</span>
-          </v-btn>
+      <label class="label-modal mb-2">Generar como:</label>
 
-          <v-btn
-            :class="{'activo': tipoReporte === 'EXCEL'}"
-            variant="flat"
-            rounded="xl"
-            color="white"
-            @click="tipoReporte = 'EXCEL'"
-          >
-            <v-icon left color="black">mdi-microsoft-excel</v-icon>
-            <span class="text-black font-weight-medium">Excel</span>
-          </v-btn>
-        </div>
+      <div class="botones-tipo">
+        <v-btn
+          :class="['btn-tipo', tipoReporte === 'PDF' ? 'activo-pdf' : '']"
+          variant="flat"
+          rounded="xl"
+          size="large"
+          @click="tipoReporte = 'PDF'"
+        >
+          <v-icon left>mdi-file-pdf-box</v-icon>
+          PDF
+        </v-btn>
+
+        <v-btn
+          :class="['btn-tipo', tipoReporte === 'EXCEL' ? 'activo-excel' : '']"
+          variant="flat"
+          rounded="xl"
+          size="large"
+          @click="tipoReporte = 'EXCEL'"
+        >
+          <v-icon left>mdi-microsoft-excel</v-icon>
+          EXCEL
+        </v-btn>
       </div>
     </v-card-text>
 
-    <!-- Botón de generar -->
-    <v-card-actions class="mt-2">
-      <v-spacer></v-spacer>
-      <v-btn color="primary" rounded="lg" @click="generarReporte">
+    <!-- Botón generar -->
+    <v-card-actions class="justify-center mt-4">
+      <v-btn
+        color="primary"
+        rounded="xl"
+        size="large"
+        elevation="4"
+        class="btn-generar"
+        @click="generarReporte"
+      >
         <v-icon left>mdi-file-document-outline</v-icon>
-        Generar
+        Generar reporte
       </v-btn>
     </v-card-actions>
   </v-card>
 </v-dialog>
+
         
         <div class="cont-buscar">
           <span class="material-symbols-rounded search-icon">search</span>
@@ -298,7 +327,7 @@ export default {
       </div>
     </div>
 
-    <!-- Lista de incidencias -->
+    
      <!-- Lista de incidencias -->
 <div class="lista-incidencias">
   <div
@@ -324,14 +353,6 @@ export default {
         </span>
       </p>
     </div>
-
-    <v-btn
-      icon
-      class="btn-eliminar"
-      @click="eliminarIncidencia(incidencia.id)"
-    >
-      <v-icon>mdi-delete</v-icon>
-    </v-btn>
   </div>
 
   <div v-if="incidenciasFiltradas.length === 0" class="no-incidencias">
@@ -351,16 +372,21 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
 
 .incidencias-content {
-  flex: 1;
-  padding: 2rem;
-  margin-left: 60px; /* Espacio para sidebar cerrado */
+   flex: 1;
   min-height: 100vh;
+  background-color: #E4E4E7;
   display: flex;
-  align-items: flex-start;
-  padding-top: 2rem;
-
-  flex-direction: column; /*Hace que se apilen en columnas los componentes divs y header*/
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  
+  margin-left: 60px;
+  width: calc(100% - 60px);
 }
+
+
 
 /* ------ Estilos del header ----*/
 .header {
@@ -444,48 +470,115 @@ export default {
   cursor: pointer;
 }
 
-
-
-/* Ventana*/
-.reporte-card {
-  border-radius: 50px;
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.15);
-  background-color: #ffffff;
+/* -- Ventana generar reporte estilos --*/
+.v-overlay__scrim {
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+.reporte-card-elegante {
+  border-radius: 20px;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
 }
-
-.close-btn {
-  color: #6b7280;
-  transition: color 0.2s ease, transform 0.2s ease;
+.cerrar-modal {
+  color: #9ca3af !important;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
-.close-btn:hover {
-  color: #ef4444;
+.cerrar-modal:hover {
+  color: #ef4444 !important;
   transform: rotate(90deg);
 }
+.label-modal {
+  display: block;
+  text-align: left;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
 
-.btn-tipo-reporte {
+/* ----------- Estilos del campo de fecha ----------- */
+.campo-fecha :deep(.v-field__outline__start),
+.campo-fecha :deep(.v-field__outline__end) {
+  border-color: #d1d5db !important;
+  transition: all 0.25s ease;
+}
+
+/* Hover */
+.campo-fecha:hover :deep(.v-field__outline__start),
+.campo-fecha:hover :deep(.v-field__outline__end) {
+  border-color: #6366f1 !important;
+}
+
+/* Cuando hay fecha seleccionada */
+.fecha-activa :deep(.v-field__outline__start),
+.fecha-activa :deep(.v-field__outline__end) {
+  border-color: #7c3aed !important; /* morado */
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+}
+
+.fecha-activa :deep(input) {
+  color: #7c3aed !important;
+  font-weight: 600;
+}
+
+/* Iconos del campo */
+.campo-fecha ::v-deep(.v-field__prepend-inner .v-icon),
+.fecha-activa ::v-deep(.v-field__prepend-inner .v-icon) {
+  color: #6b7280 !important;
+}
+.campo-fecha ::v-deep(.v-field__append-inner .v-icon),
+.fecha-activa ::v-deep(.v-field__append-inner .v-icon) {
+  color: #9ca3af !important;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+.campo-fecha ::v-deep(.v-field__append-inner .v-icon:hover),
+.fecha-activa ::v-deep(.v-field__append-inner .v-icon:hover) {
+  color: #ef4444 !important;
+}
+
+.botones-tipo {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-top: 0.5rem;
 }
 
-.btn-tipo-reporte .v-btn {
-  min-width: 110px;
-  background-color: #ffffff !important;
+.btn-tipo {
+  background-color: #f9fafb !important;
+  color: #111827 !important;
   border: 1px solid #d1d5db !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  transition: all 0.2s ease;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.25s ease;
 }
-.btn-tipo-reporte .v-btn:hover {
-  background-color: #f3f4f6 !important;
+.btn-tipo:hover {
   transform: scale(1.05);
 }
-.btn-tipo-reporte .v-btn.activo {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+.activo-pdf {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
 }
-
+.activo-excel {
+  background-color: #dcfce7 !important;
+  border-color: #16a34a !important;
+  color: #166534 !important;
+}
+/* Botón ancho y llamativo */
+.btn-generar {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  color: white !important;
+  font-weight: 600;
+  padding: 0.6rem 2rem;
+  transition: all 0.3s ease;
+}
+.btn-generar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(99, 102, 241, 0.4);
+}
 
 
 /* ------ Estilos de las tarjetas de estado ----*/
@@ -664,19 +757,6 @@ export default {
   color: #166534;
 }
 
-/* Botón eliminar */
-.btn-eliminar {
-  background-color: #ef4444 !important;
-  color: #fff !important;
-  border-radius: 10px;
-  margin-left: 1rem;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-.btn-eliminar:hover {
-  background-color: #dc2626 !important;
-  transform: scale(1.15);
-}
-
 /* Mensaje cuando no hay incidencias */
 .no-incidencias {
   text-align: center;
@@ -688,10 +768,6 @@ export default {
   color: #414141;
   margin-bottom: 0.5rem;
 }
-
-
-
-
 
 @media (min-width: 1024px) {
   .incidencias-content {
