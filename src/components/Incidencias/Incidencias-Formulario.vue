@@ -1,5 +1,32 @@
 <script setup>
+  import { ref } from 'vue'
+
+  const fileName = ref('Subir archivo')
+  const fileInput = ref(null)
+  const isLoading = ref(false)
+
+  const triggerFile = () => {
+    fileInput.value.click()
+  }
+
+  const handleFile = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      isLoading.value = true
+      fileName.value = file.name
+
+      // Simula la carga del archivo (3 segundos)
+      setTimeout(() => {
+        isLoading.value = false
+      }, 3000)
+    } else {
+      fileName.value = 'Subir archivo'
+    }
+  }
 </script>
+
+
+
 
 <template>
   <div class="incidencias-formulario" @click.self="$emit('cerrar')">
@@ -44,11 +71,13 @@
 
         <div class="form-group">
           <label>Subir acta emitida</label>
-          <div class="upload-box">
+          <input type="file" ref="fileInput" @change="handleFile" style="display:none" />
+          <button type="button" class="upload-btn" @click="triggerFile" :disabled="isLoading">
             <span class="material-symbols-rounded">upload_file</span>
-            <button type="button" class="upload-btn">Subir archivo</button>
-          </div>
+            {{ isLoading ? 'Cargando...' : fileName }}
+          </button>
         </div>
+
 
         <div class="form-footer">
           <button type="submit" class="btn-reportar">Reportar</button>
@@ -144,8 +173,9 @@ label {
   align-items: center;
   gap: 12px;
 }
-
 .upload-btn {
+  position: relative;
+  overflow: hidden;
   background: #6c47ff;
   color: #fff;
   border: none;
@@ -153,21 +183,57 @@ label {
   padding: 10px 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.3s ease;
 }
 
-.upload-btn:hover {
+.upload-btn:disabled {
+  cursor: default;
+}
+
+/* Efecto de “llenado de agua” */
+.upload-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 0;
+  transition: width 3s ease; /* dura lo mismo que la carga */
+  border-radius: 8px;
+}
+
+/* Cuando se está cargando, llena el botón */
+.upload-btn:disabled::before {
+  width: 100%;
+}
+
+/* Icono y texto por encima del pseudo-elemento */
+.upload-btn span,
+.upload-btn span + * {
+  position: relative;
+  z-index: 1;
+}
+
+.upload-btn:hover:not(:disabled) {
   background: #5938d1;
-  transform: translateY(-2px);
 }
 
 .material-symbols-rounded {
   font-size: 24px;
-  color: #6c47ff;
+  color: #fff;
 }
+
+
+
+
+
+
+
 
 /* Pie del formulario */
 .form-footer {
@@ -186,37 +252,15 @@ label {
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.btn-reportar::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -75%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
-  transform: skewX(-25deg);
-  transition: all 0.7s ease;
-}
-
-.btn-reportar:hover::before {
-  left: 125%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-reportar:hover {
-  background: #5938d1;
-  transform: translateY(-2px);
-  box-shadow: 0 0 10px rgba(92, 63, 235, 0.4);
+  transform: scale(1.05); /* se agranda un poco */
+  box-shadow: 0 8px 20px rgba(108, 71, 255, 0.4); /* sombra suave */
 }
+
+
 
 /* Animación entrada */
 @keyframes fadeIn {
