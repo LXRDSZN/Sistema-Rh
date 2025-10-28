@@ -92,6 +92,10 @@
       <!-- Vista de Crear Contrato -->
       <EnlaceCrearContrato v-else-if="activeTab === 'crear'" 
         @volver-inicio="activeTab = 'inicio'" />
+
+      <!-- Vista de Otra Pantalla -->
+      <OtraPantalla v-else-if="activeTab === 'otra'" 
+        @volver-inicio="activeTab = 'inicio'" />
     </div>
   </div>
 </template>
@@ -106,6 +110,7 @@ import EnlaceVencidos from './EnlacesNavegacion/EnlaceVencidos.vue';
 import EnlaceEnProceso from './EnlacesNavegacion/EnlaceEnProceso.vue';
 import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
+import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
 
 const route = useRoute();
 const router = useRouter();
