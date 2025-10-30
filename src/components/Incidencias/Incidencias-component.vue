@@ -12,10 +12,10 @@ export default {
       nombreItems: [
       'Pedro Pérez', 
       'Lalito Ramírez'
-      ],
+    ],
       statusItems: [
-      'Pendiente',
-      'Revisado'
+       'Pendiente',
+       'Revisado'
       ],
 
       selectedArea: null,
@@ -29,11 +29,6 @@ export default {
       tipoReporte: null,
       tipoReporteItems: ['PDF', 'EXCEL'],
       menu:false, // para el date picker
-
-      incidenciaSeleccionada: null,
-      dialogIncidencia: false,
-      dialogRechazo: false,
-      motivoRechazo: '',
 
       // Lista estática de incidencias
       incidencias: [
@@ -73,7 +68,7 @@ export default {
           status: 'Pendiente'
         },
         {
-          id: 6,
+          id: 4,
           asunto: 'Falta injustificada del área de Documentación',
           area: 'Documentación',
           nombre: 'Lalito Ramírez',
@@ -126,38 +121,7 @@ export default {
     },
     limpiarFecha() {
       this.fechaReporte = null;
-    },
-    //Metodos para el modal detalles de incidencia
-    abrirIncidencia(incidencia) {
-      this.incidenciaSeleccionada = incidencia;
-      this.dialogIncidencia = true;
-    },
-    aprobarIncidencia() {
-      this.incidenciaSeleccionada.status = 'Revisado';
-      this.incidenciaSeleccionada.motivo = '';
-      this.dialogIncidencia = false;
-      this.incidenciaSeleccionada = null;
-    },
-    rechazarIncidencia() {
-      this.dialogIncidencia = false;
-      this.dialogRechazo = true;
-    },
-    confirmarRechazo() {
-      if (!this.motivoRechazo.trim()) {
-        this.$emit('mostrar-toast', {
-          color: 'error',
-          mensaje: 'Por favor ingresa una razón del rechazo.',
-        });
-        return;
-      }
-
-      this.incidenciaSeleccionada.status = 'Rechazada';
-      this.incidenciaSeleccionada.motivo = this.motivoRechazo;
-
-      this.dialogRechazo = false;
-      this.motivoRechazo = '';
-      this.incidenciaSeleccionada = null;
-    },
+    }
 
   }
 };
@@ -173,62 +137,62 @@ export default {
 
       <div class="header-right">
         <!-- Botón Generar Reporte -->
-  <v-btn class="btn-Greporte" @click="abrirReporte">
-    <span class="material-symbols-rounded">description</span>
-    Generar reporte
-  </v-btn>
+<v-btn class="btn-Greporte" @click="abrirReporte">
+  <span class="material-symbols-rounded">description</span>
+  Generar reporte
+</v-btn>
 
-  <!-- Modal de reporte mejorado -->
-  <v-dialog
-    v-model="reporteDialog"
-    max-width="420"
-    transition="dialog-bottom-transition"
-    persistent
+<!-- Modal de reporte mejorado -->
+<v-dialog
+  v-model="reporteDialog"
+  max-width="420"
+  transition="dialog-bottom-transition"
+  persistent
+>
+  <v-card
+    class="reporte-card-elegante pa-6"
+    elevation="8"
   >
-    <v-card
-      class="reporte-card-elegante pa-6"
-      elevation="8"
-    >
-      <!-- Botón de cierre -->
-      <div class="d-flex justify-end">
-        <v-btn icon variant="text" class="cerrar-modal" @click="reporteDialog = false">
-          <v-icon size="22">mdi-close</v-icon>
-        </v-btn>
-      </div>
+    <!-- Botón de cierre -->
+    <div class="d-flex justify-end">
+      <v-btn icon variant="text" class="cerrar-modal" @click="reporteDialog = false">
+        <v-icon size="22">mdi-close</v-icon>
+      </v-btn>
+    </div>
 
-      <!-- Contenido -->
-      <v-card-text class="text-center">
+    <!-- Contenido -->
+    <v-card-text class="text-center">
 
-        <label class="label-modal">Seleccione una fecha:</label>
-        <v-menu
-    v-model="menu"
-    :close-on-content-click="false"
-    transition="scale-transition"
-    offset-y
-    min-width="auto"
-  >
-    <template #activator="{ props }">
-      <v-text-field
-        v-model="fechaReporte"
-        placeholder="MM/DD/YYYY"
-        prepend-inner-icon="mdi-calendar"
-        :append-inner-icon="fechaReporte ? 'mdi-close-circle' : ''"
-        @click:append-inner.stop="limpiarFecha"
-        readonly
-        v-bind="props"
-        variant="outlined"
-        density="comfortable"
-        class="mb-6 campo-fecha"
-        :class="{ 'fecha-activa': !!fechaReporte }"
-      />
-    </template>
-
-    <v-date-picker
+      <label class="label-modal">Seleccione una fecha:</label>
+      <v-menu
+  v-model="menu"
+  :close-on-content-click="false"
+  transition="scale-transition"
+  offset-y
+  min-width="auto"
+>
+  <template #activator="{ props }">
+    <v-text-field
       v-model="fechaReporte"
-      @update:model-value="seleccionarFecha"
-      color="primary"
-    ></v-date-picker>
-  </v-menu>
+      placeholder="MM/DD/YYYY"
+      prepend-inner-icon="mdi-calendar"
+      :append-inner-icon="fechaReporte ? 'mdi-close-circle' : ''"
+      @click:append-inner.stop="limpiarFecha"
+      readonly
+      v-bind="props"
+      variant="outlined"
+      density="comfortable"
+      class="mb-6 campo-fecha"
+      :class="{ 'fecha-activa': !!fechaReporte }"
+    />
+  </template>
+
+  <v-date-picker
+    v-model="fechaReporte"
+    @update:model-value="seleccionarFecha"
+    color="primary"
+  ></v-date-picker>
+</v-menu>
 
       <label class="label-modal mb-2">Generar como:</label>
 
@@ -364,40 +328,33 @@ export default {
     </div>
 
     
-    <!-- Lista de incidencias -->
+     <!-- Lista de incidencias -->
 <div class="lista-incidencias">
   <div
-  v-for="(incidencia, index) in incidenciasFiltradas"
-  :key="incidencia.id"
-  class="incidencia-card"
-  @click="abrirIncidencia(incidencia)"
-  style="cursor:pointer"
->
-  <div class="incidencia-num">{{ index + 1 }}</div>
-  <div class="incidencia-info">
-    <p class="asunto">{{ incidencia.asunto }}</p>
-    <p class="detalles">
-      <strong>Área:</strong> {{ incidencia.area }} —
-      <strong>Nombre:</strong> {{ incidencia.nombre }} —
-      <strong>Estado:</strong>
-      <span
-        :class="[
-          'status-tag',
-          incidencia.status === 'Pendiente'
-            ? 'pendiente'
-            : incidencia.status === 'Rechazada'
-            ? 'rechazada'
-            : 'revisado'
-        ]"
-      >
-        {{ incidencia.status }}
-      </span>
-    </p> 
+    v-for="(incidencia, index) in incidenciasFiltradas"
+    :key="incidencia.id"
+    class="incidencia-card"
+  >
+    <div class="incidencia-num">{{ index + 1 }}</div>
+
+    <div class="incidencia-info">
+      <p class="asunto">{{ incidencia.asunto }}</p>
+      <p class="detalles">
+        <strong>Área:</strong> {{ incidencia.area }} —
+        <strong>Nombre:</strong> {{ incidencia.nombre }} —
+        <strong>Estado:</strong>
+        <span
+          :class="[
+            'status-tag',
+            incidencia.status === 'Pendiente' ? 'pendiente' : 'revisado'
+          ]"
+        >
+          {{ incidencia.status }}
+        </span>
+      </p>
+    </div>
   </div>
-</div>
 
-
-<!-- Se muestra en caso de no encontrar incidencias -->
   <div v-if="incidenciasFiltradas.length === 0" class="no-incidencias">
     <span class="material-symbols-rounded">check_circle</span>
     <p>No hay solicitudes de revisión pendientes</p>
@@ -405,115 +362,7 @@ export default {
   </div>
 </div>
 
-<!-- Modal de información de la incidencia -->
-
-<v-dialog v-model="dialogIncidencia" max-width="520">
-  <v-card class="pa-6 rounded-xl" elevation="8">
-    <v-card-title class="text-h6 text-center d-flex align-center justify-center mb-2">
-      <span>Detalles de la incidencia</span>
-    </v-card-title>
-
-    <v-divider class="mb-4"></v-divider>
-
-    <v-card-text v-if="incidenciaSeleccionada">
-      <v-list density="compact">
-        <v-list-item>
-          <v-list-item-title>
-            <strong>Asunto:</strong> {{ incidenciaSeleccionada.asunto }}
-          </v-list-item-title>
-        </v-list-item>
-        <v-list-item>
-          <v-list-item-title>
-            <strong>Área:</strong> {{ incidenciaSeleccionada.area }}
-          </v-list-item-title>
-        </v-list-item>
-        <v-list-item>
-          <v-list-item-title>
-            <strong>Nombre:</strong> {{ incidenciaSeleccionada.nombre }}
-          </v-list-item-title>
-        </v-list-item>
-        <v-list-item>
-          <v-list-item-title>
-            <strong>Estado actual:</strong>
-            <span
-              :class="[
-                'status-tag',
-                incidenciaSeleccionada.status === 'Pendiente'
-                  ? 'pendiente'
-                  : incidenciaSeleccionada.status === 'Rechazada'
-                  ? 'rechazada'
-                  : 'revisado'
-              ]"
-            >
-              {{ incidenciaSeleccionada.status }}
-            </span>
-          </v-list-item-title>
-        </v-list-item>
-      </v-list>
-
-      <!-- Motivo del rechazo dentro del modal -->
-      <div
-        v-if="incidenciaSeleccionada.status === 'Rechazada' && incidenciaSeleccionada.motivo"
-        class="motivo-box mt-4"
-      >
-        <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-        <div>
-          <strong>Motivo del rechazo:</strong>
-          <p>{{ incidenciaSeleccionada.motivo }}</p>
-        </div>
-      </div>
-    </v-card-text>
-
-    <v-card-actions
-      v-if="incidenciaSeleccionada && incidenciaSeleccionada.status === 'Pendiente'"
-      class="justify-center mt-4"
-    >
-      <v-btn color="success" rounded="xl" @click="aprobarIncidencia">
-        <v-icon left>mdi-check-circle</v-icon> Aprobar
-      </v-btn>
-      <v-btn color="error" rounded="xl" @click="rechazarIncidencia">
-        <v-icon left>mdi-close-circle</v-icon> Rechazar
-      </v-btn>
-    </v-card-actions>
-
-
-  </v-card>
-</v-dialog>
-
-
-<!-- Modal de rechazo -->
-<v-dialog v-model="dialogRechazo" max-width="450">
-  <v-card class="pa-5 rounded-xl" elevation="8">
-    <v-card-title class="text-h6 text-center mb-2">
-      <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-      Escribe el motivo del rechazo
-    </v-card-title>
-
-    <v-divider class="mb-3"></v-divider>
-
-    <v-card-text>
-      <v-textarea
-        v-model="motivoRechazo"
-        label="Motivo del rechazo"
-        auto-grow
-        outlined
-        clearable
-        rows="3"
-      ></v-textarea>
-    </v-card-text>
-
-    <v-card-actions class="justify-center">
-      <v-btn color="primary" rounded="xl" @click="confirmarRechazo">
-        Confirmar
-      </v-btn>
-      <v-btn text @click="dialogRechazo = false">
-        Cancelar
-      </v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
-
-
+ 
 
   </div>
 </template>
@@ -523,7 +372,7 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
 
 .incidencias-content {
-  flex: 1;
+   flex: 1;
   min-height: 100vh;
   background-color: #E4E4E7;
   display: flex;
@@ -536,6 +385,8 @@ export default {
   margin-left: 60px;
   width: calc(100% - 60px);
 }
+
+
 
 /* ------ Estilos del header ----*/
 .header {
@@ -905,10 +756,6 @@ export default {
   background-color: #dcfce7;
   color: #166534;
 }
-.status-tag.rechazada {
-  background-color: #f8d7da;
-  color: #721c24;
-}
 
 /* Mensaje cuando no hay incidencias */
 .no-incidencias {
@@ -921,40 +768,6 @@ export default {
   color: #414141;
   margin-bottom: 0.5rem;
 }
-
-/* --- Estilo para el motivo del rechazo dentro del modal --- */
-.motivo-box {
-  display: flex;
-  align-items: flex-start;
-  background: #fee2e2;
-  border-left: 5px solid #ef4444;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
-  color: #991b1b;
-  max-height: 200px; /* evita que crezca demasiado */
-  overflow-y: auto; /* agrega scroll si es muy largo */
-  word-wrap: break-word; /* evita que se salga del contenedor */
-  white-space: pre-wrap; /* conserva saltos de línea y adapta el texto */
-  line-height: 1.4;
-}
-
-.motivo-box p {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.95rem;
-  overflow-wrap: break-word;
-}
-
-.motivo-box::-webkit-scrollbar {
-  width: 6px;
-}
-.motivo-box::-webkit-scrollbar-thumb {
-  background-color: #f87171;
-  border-radius: 8px;
-}
-
-
-
 
 @media (min-width: 1024px) {
   .incidencias-content {

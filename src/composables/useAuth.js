@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
@@ -6,10 +6,6 @@ import { useRouter } from 'vue-router';
 const user = ref(null);
 const isAuthenticated = ref(false);
 const isLoading = ref(false);
-
-// Estado del temporizador de inactividad
-let inactivityTimer = null;
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutos en milisegundos
 
 export function useAuth() {
   const router = useRouter();
@@ -33,7 +29,6 @@ export function useAuth() {
       if (response.data.success) {
         user.value = response.data.user;
         isAuthenticated.value = true;
-        resetInactivityTimer(); // Iniciar temporizador al hacer login
         return { success: true, message: response.data.message };
       }
 
@@ -61,67 +56,8 @@ export function useAuth() {
     } finally {
       user.value = null;
       isAuthenticated.value = false;
-      stopInactivityTimer();
       router.push('/');
     }
-  };
-
-  /**
-   * Reiniciar temporizador de inactividad
-   */
-  const resetInactivityTimer = () => {
-    // Limpiar temporizador existente
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
-    }
-
-    // Solo crear nuevo temporizador si el usuario está autenticado
-    if (isAuthenticated.value) {
-      inactivityTimer = setTimeout(() => {
-        console.log('Sesión cerrada por inactividad');
-        logout();
-      }, INACTIVITY_TIMEOUT);
-    }
-  };
-
-  /**
-   * Detener temporizador de inactividad
-   */
-  const stopInactivityTimer = () => {
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = null;
-    }
-  };
-
-  /**
-   * Iniciar monitoreo de actividad del usuario
-   */
-  const startActivityMonitoring = () => {
-    // Eventos que resetean el temporizador
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    const handleActivity = () => {
-      if (isAuthenticated.value) {
-        resetInactivityTimer();
-      }
-    };
-
-    // Agregar listeners a todos los eventos
-    events.forEach(event => {
-      window.addEventListener(event, handleActivity, true);
-    });
-
-    // Iniciar temporizador por primera vez
-    resetInactivityTimer();
-
-    // Retornar función para limpiar listeners
-    return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, handleActivity, true);
-      });
-      stopInactivityTimer();
-    };
   };
 
   /**
@@ -137,13 +73,11 @@ export function useAuth() {
       if (response.data.success) {
         user.value = response.data.user;
         isAuthenticated.value = true;
-        resetInactivityTimer(); // Reiniciar temporizador al verificar sesión
         return true;
       }
     } catch (error) {
       user.value = null;
       isAuthenticated.value = false;
-      stopInactivityTimer();
     }
     return false;
   };
@@ -246,11 +180,6 @@ export function useAuth() {
     login,
     logout,
     verifySession,
-    
-    // Monitoreo de inactividad
-    startActivityMonitoring,
-    resetInactivityTimer,
-    stopInactivityTimer,
     
     // Verificación de permisos
     hasPermission,

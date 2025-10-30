@@ -31,7 +31,6 @@
       <div
         class="menu-row"
         :class="{active: isActive('/Dashboard')}"
-        :title="!isSidebarOpen ? 'Dashboard' : ''"
       >
         <RouterLink to="/Dashboard" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">dashboard</span></span>
@@ -43,7 +42,6 @@
       <div
         class="menu-row"
         :class="{active: isActive('/Configuracion')}"
-        :title="!isSidebarOpen ? 'Configuración' : ''"
       >
         <RouterLink to="/Configuracion" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">settings</span></span>
@@ -59,7 +57,6 @@
         class="menu-row"
         :class="{active: isActive('/Asistencias') || isAsistenciasMenuOpen}"
         @click="toggleAsistenciasMenu"
-        :title="!isSidebarOpen ? 'Asistencias' : ''"
       >
         <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">event_note</span></span>
@@ -96,7 +93,6 @@
         class="menu-row"
         :class="{active: isActive('/Contratos') || isContratosMenuOpen}"
         @click="toggleContratosMenu"
-        :title="!isSidebarOpen ? 'Contratos' : ''"
       >
         <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">description</span></span>
@@ -128,8 +124,8 @@
       <!-- Vacaciones con menú desplegable (Historial y Solicitudes) -->
       <div
         class="menu-row"
-        :class="{active: isActive('/Vacaciones')}"
-        :title="!isSidebarOpen ? 'Vacaciones' : ''"
+        :class="{active: isActive('/Vacaciones') || isVacacionesMenuOpen}"
+        @click="toggleVacacionesMenu"
       >
         <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">wb_sunny</span></span>
@@ -158,7 +154,6 @@
       <div
         class="menu-row"
         :class="{active: isActive('/Incidencias')}"
-        :title="!isSidebarOpen ? 'Incidencias' : ''"
       >
         <RouterLink to="/Incidencias" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">info</span></span>
@@ -170,7 +165,6 @@
       <div
         class="menu-row"
         :class="{active: isActive('/Areas')}"
-        :title="!isSidebarOpen ? 'Áreas' : ''"
       >
         <RouterLink to="/Areas" class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">apartment</span></span>
@@ -180,7 +174,7 @@
       </div>
 
       <!-- Usuario abajo con menú desplegable -->
-      <div class="menu-row sidebar-user-mini" @click="toggleUserMenu" :title="!isSidebarOpen ? 'Usuario' : ''">
+      <div class="menu-row sidebar-user-mini" @click="toggleUserMenu">
         <span class="menu-icon"><span class="material-symbols-rounded">group</span></span>
         <div v-if="isSidebarOpen" class="user-info">
           <div class="sidebar-user-name">{{ userName }}</div>
