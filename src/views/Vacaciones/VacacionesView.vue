@@ -15,7 +15,7 @@ import VacacionesComponent from '@/components/Vacaciones/Vacaciones-component.vu
   width: 100vw;
   margin: 0;
   padding: 0;
-  background-color: #E4E4E7;
+  background-color: #3a3ab3;
   box-sizing: border-box;
 }
 </style>

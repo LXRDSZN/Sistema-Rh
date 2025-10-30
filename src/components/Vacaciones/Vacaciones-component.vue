@@ -1,129 +1,153 @@
 <template>
   <div class="vacaciones-content">
-    <!-- Header: título y botón en la misma línea -->
-    <header class="header">
-      <div class="header-left">
-        <h1>Vacaciones</h1>
-      </div>
+    <!-- Mostrar el componente de incidencia en su propia vista cuando showIncidencia sea true -->
+    <VacacionIncidenciaComponent v-if="showIncidencia" @close="closeIncidencia" />
 
-      <div class="header-right">
-        <button class="btn-incident" @click="$emit('open-incidencia')">Registrar Incidencia</button>
-      </div>
-    </header>
+    <!-- Mostrar el componente de solicitud en su propia vista cuando showSolicitud sea true -->
+    <!-- Cambiado a v-else-if para que solo una de las vistas (incidencia o solicitud) se muestre -->
+    <SolicitudComponent
+      v-else-if="showSolicitud"
+      :selected-dates="selectedDates"
+      :day-status="dayStatus"
+      @close="closeSolicitud"
+      @submitted="handleSolicitudSubmitted"
+    />
 
-    <!-- Contenedor principal alineado con el título -->
-    <section class="Container">
-      <div class="card">
-        <!-- Leyenda -->
-        <div class="legend-row">
-          <div class="legend-left">
-            <div class="legend-item">
-              <span class="dot available"></span>
-              <span class="label">Disponible (Días Hábiles)</span>
-            </div>
-
-            <div class="legend-item">
-              <span class="dot approved"></span>
-              <span class="label">Aprobados</span>
-            </div>
-          </div>
-
-          <div class="legend-right">
-            <div class="legend-item">
-              <span class="dot holiday"></span>
-              <span class="label">Festivo</span>
-            </div>
-
-            <div class="legend-item">
-              <span class="dot requested"></span>
-              <span class="label">Solicitados</span>
-            </div>
-
-            <div class="legend-item">
-              <span class="dot to-request"></span>
-              <span class="label">A Solicitar</span>
-            </div>
-          </div>
+    <!-- Vista principal original (sin modificar clases ni estilos). Se envuelve en template para no agregar nodos extra -->
+    <template v-else>
+      <!-- Header: título y botón en la misma línea -->
+      <header class="header">
+        <div class="header-left">
+          <h1>Vacaciones</h1>
         </div>
 
-        <!-- Month / Year pill -->
-        <div class="month-row">
-          <div class="month-pill" role="group" aria-label="Seleccionar mes y año">
-            <button class="pill-left" type="button" @click.prevent="toggleMonth" :aria-expanded="showMonth" aria-haspopup="listbox">
-              <svg class="chev" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span class="pill-text">{{ monthNames[currentMonth].toUpperCase() }}</span>
-            </button>
-
-            <div class="pill-divider" />
-
-            <button class="pill-right" type="button" @click.prevent="toggleYear" :aria-expanded="showYear" aria-haspopup="listbox">
-              <span class="pill-text">{{ currentYear }}</span>
-              <svg class="chev" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-
-            <div v-if="showMonth" class="dropdown months" role="listbox">
-              <div v-for="(m,i) in monthNames" :key="i" class="dd-item" @click="setMonth(i)">{{ m }}</div>
-            </div>
-            <div v-if="showYear" class="dropdown years" role="listbox">
-              <div v-for="y in years" :key="y" class="dd-item" @click="setYear(y)">{{ y }}</div>
-            </div>
-          </div>
+        <div class="header-right">
+          <!-- Cambiado solo el handler: ahora abre el componente -->
+          <button class="btn-incident" @click="openIncidencia">Registrar Incidencia</button>
         </div>
+      </header>
 
-        <!-- Calendario -->
-        <div class="calendar" aria-label="Calendario mensual">
-          <div class="weekday-row" aria-hidden="true">
-            <div v-for="d in weekDays" :key="d" class="weekday">{{ d }}</div>
+      <!-- Contenedor principal alineado con el título -->
+      <section class="Container">
+        <div class="card">
+          <!-- Leyenda -->
+          <div class="legend-row">
+            <div class="legend-left">
+              <div class="legend-item">
+                <span class="dot available"></span>
+                <span class="label">Disponible (Días Hábiles)</span>
+              </div>
+
+              <div class="legend-item">
+                <span class="dot approved"></span>
+                <span class="label">Aprobados</span>
+              </div>
+            </div>
+
+            <div class="legend-right">
+              <div class="legend-item">
+                <span class="dot holiday"></span>
+                <span class="label">Festivo</span>
+              </div>
+
+              <div class="legend-item">
+                <span class="dot requested"></span>
+                <span class="label">Solicitados</span>
+              </div>
+
+              <div class="legend-item">
+                <span class="dot to-request"></span>
+                <span class="label">A Solicitar</span>
+              </div>
+            </div>
           </div>
 
-          <div class="days-grid" role="grid">
-            <div
-              v-for="cell in calendarCells"
-              :key="cell.key"
-              class="day-cell"
-              :class="{ 'other-month': cell.otherMonth }"
-              role="gridcell"
-              :aria-selected="selectedDates.includes(cell.dateKey) ? 'true' : 'false'"
-              @click="onDayClick(cell)"
-              :title="cell.otherMonth ? '' : statusLabel(cell.dateKey)"
-            >
-              <div class="day-box">
-                <div class="day-pill" :class="pillClass(cell.dateKey)">
-                  <span class="day-number">{{ cell.day }}</span>
+          <!-- Month / Year pill -->
+          <div class="month-row">
+            <div class="month-pill" role="group" aria-label="Seleccionar mes y año">
+              <button class="pill-left" type="button" @click.prevent="toggleMonth" :aria-expanded="showMonth" aria-haspopup="listbox">
+                <svg class="chev" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span class="pill-text">{{ monthNames[currentMonth].toUpperCase() }}</span>
+              </button>
+
+              <div class="pill-divider" />
+
+              <button class="pill-right" type="button" @click.prevent="toggleYear" :aria-expanded="showYear" aria-haspopup="listbox">
+                <span class="pill-text">{{ currentYear }}</span>
+                <svg class="chev" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+
+              <div v-if="showMonth" class="dropdown months" role="listbox">
+                <div v-for="(m,i) in monthNames" :key="i" class="dd-item" @click="setMonth(i)">{{ m }}</div>
+              </div>
+              <div v-if="showYear" class="dropdown years" role="listbox">
+                <div v-for="y in years" :key="y" class="dd-item" @click="setYear(y)">{{ y }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calendario -->
+          <div class="calendar" aria-label="Calendario mensual">
+            <div class="weekday-row" aria-hidden="true">
+              <div v-for="d in weekDays" :key="d" class="weekday">{{ d }}</div>
+            </div>
+
+            <div class="days-grid" role="grid">
+              <div
+                v-for="cell in calendarCells"
+                :key="cell.key"
+                class="day-cell"
+                :class="{ 'other-month': cell.otherMonth }"
+                role="gridcell"
+                :aria-selected="selectedDates.includes(cell.dateKey) ? 'true' : 'false'"
+                @click="onDayClick(cell)"
+                :title="cell.otherMonth ? '' : statusLabel(cell.dateKey)"
+              >
+                <div class="day-box">
+                  <div class="day-pill" :class="pillClass(cell.dateKey)">
+                    <span class="day-number">{{ cell.day }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Footer strip with actions (single button with + and text "Solicitar") -->
-        <div class="footer-strip-wrap">
-          <div class="card-footer">
-            <div class="available-info">
-              <strong>{{ availableDaysCount }}</strong> Días Disponibles para Vacaciones
-            </div>
-            <div class="footer-actions">
-              <button
-                class="requestbtn-"
-                @click="requestSelected"
-                :disabled="selectedDates.length === 0"
-                :aria-disabled="selectedDates.length === 0"
-              >
-                <span class="plus">+</span>
-                <span>Solicitar</span>
-              </button>
+          <!-- Footer strip with actions (single button with + and text "Solicitar") -->
+          <div class="footer-strip-wrap">
+            <div class="card-footer">
+              <div class="available-info">
+                <strong>{{ availableDaysCount }}</strong> Días Disponibles para Vacaciones
+              </div>
+              <div class="footer-actions">
+                <button
+                  class="requestbtn-"
+                  @click="requestSelected"
+                  :disabled="selectedDates.length === 0"
+                  :aria-disabled="selectedDates.length === 0"
+                >
+                  <span class="plus">+</span>
+                  <span>Solicitar</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-      </div> <!-- end card -->
-    </section>
+        </div> <!-- end card -->
+      </section>
+    </template>
   </div>
 </template>
 
 <script>
+import VacacionIncidenciaComponent from './Vacacion-incidencia-component/Vacacion-Incidencia.component.vue';
+import SolicitudComponent from './Solicitud-vacaciones-component/Solicitud-component.vue';
+
 export default {
   name: 'Vacaciones',
+  components: {
+    VacacionIncidenciaComponent,
+    SolicitudComponent
+  },
   data() {
     const today = new Date();
     return {
@@ -147,7 +171,13 @@ export default {
       dayStatus: {},
 
       // selección temporal
-      selectedDates: []
+      selectedDates: [],
+
+      // flag para mostrar el componente de incidencia
+      showIncidencia: false,
+
+      // flag para mostrar el componente de solicitud
+      showSolicitud: false
     };
   },
   computed: {
@@ -274,14 +304,30 @@ export default {
       }
     },
 
+    // Nuevo comportamiento: abrir la ventana de Solicitud
     requestSelected() {
       if (!this.selectedDates.length) return;
-      // Simulación: marcar como 'requested' y limpiar selección
+      // Abrimos la vista de Solicitud y le pasamos selectedDates como prop
+      // No modificamos dayStatus aquí: la acción final (confirmar/submit) la manejará la ventana de Solicitud o handleSolicitudSubmitted
+      this.showSolicitud = true;
+    },
+
+    // Handler que se ejecuta cuando la ventana de Solicitud emite 'submitted'
+    handleSolicitudSubmitted(payload) {
+      // payload puede contener datos adicionales (ej. comentario, adjunto, etc.)
+      // Aquí mantenemos la funcionalidad original: marcar las fechas seleccionadas como 'requested' y limpiar la selección
       this.selectedDates.forEach(k => { this.dayStatus[k] = 'requested'; });
       this.selectedDates = [];
-      // En producción reemplaza por llamado a API y notificación
+
+      // Cerrar la ventana de solicitud
+      this.showSolicitud = false;
+
+      // Notificación (simulada). En producción reemplazar con toast o similar
       // eslint-disable-next-line no-alert
       alert('Solicitud enviada (simulado).');
+
+      // Emitir o realizar más acciones con payload si es necesario
+      // console.log('Solicitud payload:', payload);
     },
 
     onGlobalClick(e) {
@@ -291,6 +337,19 @@ export default {
         this.showMonth = false;
         this.showYear = false;
       }
+    },
+
+    // Métodos para abrir/cerrar la vista de incidencia (sin tocar estilos ni clases)
+    openIncidencia() {
+      this.showIncidencia = true;
+    },
+    closeIncidencia() {
+      this.showIncidencia = false;
+    },
+
+    // Métodos para abrir/cerrar la vista de solicitud
+    closeSolicitud() {
+      this.showSolicitud = false;
     }
   },
   mounted() {
