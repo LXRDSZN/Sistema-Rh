@@ -8,7 +8,6 @@
 
 import { ref, onMounted } from 'vue';
 import { getEmpleados, updateEmpleadoAsignacion, getAreas, getPuestos } from '@/services/empleadosService';
-import { DEPARTAMENTOS, TITULOS } from '@/constants/areas';
 
 export function useAreasData() {
   // ============================================
@@ -56,16 +55,11 @@ export function useAreasData() {
   const cargarAreas = async () => {
     try {
       const response = await getAreas();
-      if (response.success && response.data && response.data.length > 0) {
+      if (response.success) {
         areas.value = response.data;
-      } else {
-        // Usar constantes como fallback si la API no retorna datos
-        areas.value = DEPARTAMENTOS.map(nombre => ({ id: nombre, nombre }));
       }
     } catch (err) {
       console.error('Error al cargar áreas:', err);
-      // Usar constantes como fallback en caso de error
-      areas.value = DEPARTAMENTOS.map(nombre => ({ id: nombre, nombre }));
     }
   };
 
@@ -75,16 +69,11 @@ export function useAreasData() {
   const cargarPuestos = async () => {
     try {
       const response = await getPuestos();
-      if (response.success && response.data && response.data.length > 0) {
+      if (response.success) {
         puestos.value = response.data;
-      } else {
-        // Usar constantes como fallback si la API no retorna datos
-        puestos.value = TITULOS.map(nombre => ({ id: nombre, nombre }));
       }
     } catch (err) {
       console.error('Error al cargar puestos:', err);
-      // Usar constantes como fallback en caso de error
-      puestos.value = TITULOS.map(nombre => ({ id: nombre, nombre }));
     }
   };
 
