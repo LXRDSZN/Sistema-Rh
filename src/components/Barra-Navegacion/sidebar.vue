@@ -27,6 +27,7 @@
           <div class="sidebar-title">Humanos</div>
         </div>
       </div>
+
       <div
         class="menu-row"
         :class="{active: isActive('/Dashboard')}"
@@ -37,6 +38,7 @@
           <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
+
       <div
         class="menu-row"
         :class="{active: isActive('/Configuracion')}"
@@ -47,7 +49,9 @@
           <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
+
       <div class="icons-separator"></div>
+
       <!-- Asistencias con menú desplegable -->
       <div
         class="menu-row"
@@ -83,6 +87,7 @@
           </RouterLink>
         </div>
       </transition>
+
       <!-- Contratos con menú desplegable -->
       <div
         class="menu-row"
@@ -115,16 +120,37 @@
           </RouterLink>
         </div>
       </transition>
+
+      <!-- Vacaciones con menú desplegable (Historial y Solicitudes) -->
       <div
         class="menu-row"
-        :class="{active: isActive('/Vacaciones')}"
+        :class="{active: isActive('/Vacaciones') || isVacacionesMenuOpen}"
+        @click="toggleVacacionesMenu"
       >
-        <RouterLink to="/Vacaciones" class="menu-link">
+        <div class="menu-link">
           <span class="menu-icon"><span class="material-symbols-rounded">wb_sunny</span></span>
           <span v-if="isSidebarOpen" class="menu-text">Vacaciones</span>
-          <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
-        </RouterLink>
+          <span v-if="isSidebarOpen" class="material-symbols-rounded dropdown-icon" :class="{ rotated: isVacacionesMenuOpen }">
+            expand_more
+          </span>
+        </div>
       </div>
+
+      <!-- Menú desplegable de Vacaciones -->
+      <transition name="dropdown">
+        <div v-if="isVacacionesMenuOpen && isSidebarOpen" class="submenu-dropdown">
+          <RouterLink to="/Vacaciones" class="dropdown-item" @click.stop="closeVacacionesMenu">
+            <span>Calendario</span>
+          </RouterLink>
+          <RouterLink to="/Vacaciones/Historial-de-vacaciones" class="dropdown-item" @click.stop="closeVacacionesMenu">
+            <span>Historial</span>
+          </RouterLink>
+          <RouterLink to="/Vacaciones/Solicitudes-de-vacaciones" class="dropdown-item" @click.stop="closeVacacionesMenu">
+            <span>Solicitudes</span>
+          </RouterLink>
+        </div>
+      </transition>
+
       <div
         class="menu-row"
         :class="{active: isActive('/Incidencias')}"
@@ -135,6 +161,7 @@
           <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
+
       <div
         class="menu-row"
         :class="{active: isActive('/Areas')}"
@@ -145,6 +172,7 @@
           <span v-if="isSidebarOpen" class="material-symbols-rounded arrow">chevron_right</span>
         </RouterLink>
       </div>
+
       <!-- Usuario abajo con menú desplegable -->
       <div class="menu-row sidebar-user-mini" @click="toggleUserMenu">
         <span class="menu-icon"><span class="material-symbols-rounded">group</span></span>
@@ -180,6 +208,8 @@ const { isSidebarOpen, toggleSidebar: toggleSidebarComposable } = useSidebar();
 const isUserMenuOpen = ref(false);
 const isContratosMenuOpen = ref(false);
 const isAsistenciasMenuOpen = ref(false);
+const isVacacionesMenuOpen = ref(false);
+
 const router = useRouter();
 const route = useRoute();
 const { userName, userRole, logout } = useAuth();
@@ -203,8 +233,10 @@ function closeSidebar() {
   isUserMenuOpen.value = false;
   isContratosMenuOpen.value = false;
   isAsistenciasMenuOpen.value = false;
+  isVacacionesMenuOpen.value = false;
 }
 function isActive(path) { return route.path === path }
+
 function toggleUserMenu() {
   if (isSidebarOpen.value) {
     isUserMenuOpen.value = !isUserMenuOpen.value;
@@ -212,6 +244,7 @@ function toggleUserMenu() {
     toggleSidebar();
   }
 }
+
 function toggleContratosMenu() {
   if (isSidebarOpen.value) {
     isContratosMenuOpen.value = !isContratosMenuOpen.value;
@@ -222,6 +255,7 @@ function toggleContratosMenu() {
 function closeContratosMenu() {
   isContratosMenuOpen.value = false;
 }
+
 function toggleAsistenciasMenu() {
   if (isSidebarOpen.value) {
     isAsistenciasMenuOpen.value = !isAsistenciasMenuOpen.value;
@@ -232,6 +266,18 @@ function toggleAsistenciasMenu() {
 function closeAsistenciasMenu() {
   isAsistenciasMenuOpen.value = false;
 }
+
+function toggleVacacionesMenu() {
+  if (isSidebarOpen.value) {
+    isVacacionesMenuOpen.value = !isVacacionesMenuOpen.value;
+  } else {
+    toggleSidebar();
+  }
+}
+function closeVacacionesMenu() {
+  isVacacionesMenuOpen.value = false;
+}
+
 async function handleLogout() { 
   isUserMenuOpen.value = false;
   await logout();
@@ -476,7 +522,7 @@ a, a:link, a:visited, a:hover, a:active {
   transform: translateY(-50%) rotate(180deg);
 }
 
-/* Menú desplegable de Contratos */
+/* Menú desplegable */
 .submenu-dropdown {
   background: #1a1a1e;
   border-radius: 8px;
