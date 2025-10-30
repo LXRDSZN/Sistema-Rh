@@ -70,6 +70,15 @@ const router = createRouter({
       component: () => import('../views/Vacaciones/VacacionesView.vue')
     },
     {
+      path: '/Vacaciones/Historial-de-vacaciones',
+      name: 'VacacionesHistorial',
+      component: () => import('../views/Vacaciones/VacacionesView.vue')
+    },{
+      path: '/Vacaciones/Solicitudes-de-vacaciones',
+      name: 'VacacionesSolicitudes',
+      component: () => import('../views/Vacaciones/VacacionesView.vue')
+    },
+    {
       path: '/Incidencias',
       name: 'Incidencias',
       component: () => import('../views/Incidencias/IncidenciasView.vue')
