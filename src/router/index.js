@@ -72,11 +72,11 @@ const router = createRouter({
     {
       path: '/Vacaciones/Historial-de-vacaciones',
       name: 'VacacionesHistorial',
-      component: () => import('../views/Vacaciones/VacacionesView.vue')
+      component: () => import('../views/Vacaciones/Historial/HistorialView.vue')
     },{
       path: '/Vacaciones/Solicitudes-de-vacaciones',
       name: 'VacacionesSolicitudes',
-      component: () => import('../views/Vacaciones/VacacionesView.vue')
+      component: () => import('../views/Vacaciones/Solicitudes/SolicitudesView.vue')
     },
     {
       path: '/Incidencias',
