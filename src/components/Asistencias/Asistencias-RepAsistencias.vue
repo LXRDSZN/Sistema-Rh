@@ -28,7 +28,7 @@
   
           <v-text-field
             v-model="searchTerm"
-            placeholder="Buscar Empleado"
+            placeholder="Buscar Área"
             class="search-input-monitor input-white"
             variant="outlined"
             density="compact"
@@ -196,194 +196,131 @@
   </template>
   
   <script setup>
-  import { ref, computed } from 'vue'
-  
-  // Refs
-  const selectedMonth = ref('enero-2024')
-  const selectedArea = ref('contratos')
-  const searchTerm = ref('')
-  const mostrarDetalle = ref(false)
-  
-  // Snackbar
-  const snackbar = ref({
-    show: false,
-    text: '',
-    color: 'success'
-  })
-  
-  const mostrarMensaje = (texto, color = 'success') => {
-    snackbar.value = {
-      show: true,
-      text: texto,
-      color: color
-    }
+import { ref, computed } from 'vue'
+
+// Refs
+const selectedMonth = ref('enero-2024')
+const selectedArea  = ref('todas')   // ← por defecto: Todas las Áreas
+const searchTerm    = ref('')
+const mostrarDetalle = ref(false)
+
+// Snackbar
+const snackbar = ref({ show: false, text: '', color: 'success' })
+const mostrarMensaje = (texto, color = 'success') => {
+  snackbar.value = { show: true, text: texto, color }
+}
+
+// Items para selects
+const monthsItems = [
+  { title: 'Enero 2024', value: 'enero-2024' },
+  { title: 'Febrero 2024', value: 'febrero-2024' },
+  { title: 'Marzo 2024',  value: 'marzo-2024' }
+]
+
+const areasItems = [
+  { title: 'Todas las Áreas', value: 'todas' },  // ← opción agregada
+  { title: 'Contratos',       value: 'contratos' },
+  { title: 'Ventas',          value: 'ventas' },
+  { title: 'Marketing',       value: 'marketing' }
+]
+
+// ================== DATA ==================
+const originalSummaryData = [
+  { area: 'Contratos', totalEmpleados: 15, asistencia: '89%', retardos: 12, faltJustif: 5, faltInjustif: 3 },
+  { area: 'Ventas',    totalEmpleados: 20, asistencia: '92%', retardos: 8,  faltJustif: 3, faltInjustif: 2 },
+  { area: 'Marketing', totalEmpleados: 10, asistencia: '85%', retardos: 15, faltJustif: 7, faltInjustif: 4 }
+]
+
+const summaryData   = ref([...originalSummaryData])
+
+const employeesData = ref([
+  { empleado: 'Julio Peña',      puesto: 'Director comercial', attendance: ['C','A','A','A','FJ','DF','DF','R','A','A','A','A','FJ','A','A','R','A','A','A','F','DF','DF','A','A','A','A','FJ','A','R','A','A'] },
+  { empleado: 'Martha Higadera', puesto: 'Gerente',             attendance: ['I','A','A','F','A','DF','DF','A','R','V','V','V','V','A','A','A','A','R','A','A','DF','DF','A','F','A','A','A','A','A','R','A'] },
+  { empleado: 'Joaquín Pérez',   puesto: 'Key Account Manager', attendance: ['A','A','FJ','A','R','DF','DF','A','A','A','R','A','A','A','F','A','A','A','A','A','DF','DF','R','A','A','A','A','FJ','A','A','A'] },
+  { empleado: 'Rafael Quijada',  puesto: 'Ejecutivo',           attendance: ['A','A','A','A','A','DF','DF','A','A','A','A','F','R','A','A','A','A','A','R','A','DF','DF','A','A','A','F','A','A','A','A','A'] },
+  { empleado: 'Jose Martínez',   puesto: 'Coordinador',         attendance: ['A','A','A','A','A','DF','DF','A','FJ','A','A','A','A','R','A','A','A','A','A','A','DF','DF','A','A','F','A','A','A','A','A','R'] },
+  { empleado: 'Zayra López',     puesto: 'Asistente',           attendance: ['A','A','F','A','A','DF','DF','A','A','A','A','A','A','A','A','R','A','A','A','A','DF','DF','A','A','A','A','FJ','A','A','A','A'] },
+  { empleado: 'Emylin Camargo',  puesto: 'Supervisor',          attendance: ['A','A','A','R','A','DF','DF','A','A','A','FJ','I','A','A','A','A','F','A','A','A','DF','DF','A','R','A','A','A','A','A','A','A'] },
+  { empleado: 'Johana Pérez',    puesto: 'Analista',            attendance: ['A','A','A','F','A','DF','DF','A','A','A','A','A','A','A','R','A','A','A','A','A','DF','DF','A','A','A','FJ','A','A','F','A','A'] },
+  { empleado: 'Fernando Cruz',   puesto: 'Repr. comercial',     attendance: ['A','A','A','A','A','DF','DF','A','A','A','R','A','F','A','A','A','A','A','A','R','DF','DF','A','A','A','A','A','A','A','A','FJ'] },
+  { empleado: 'Jaqueline Ortiz', puesto: 'Coach',               attendance: ['R','A','A','A','A','DF','DF','A','A','F','A','A','A','A','A','A','R','A','A','A','DF','DF','A','A','A','A','A','FJ','A','A','A'] }
+])
+
+// ================== COMPUTED ==================
+const areaSeleccionada = computed(() =>
+  selectedArea.value.charAt(0).toUpperCase() + selectedArea.value.slice(1)
+)
+
+const mesSeleccionado = computed(() => {
+  const meses = {
+    'enero-2024': 'Enero 2024',
+    'febrero-2024': 'Febrero 2024',
+    'marzo-2024':  'Marzo 2024'
   }
-  
-  // Items para selects
-  const monthsItems = [
-    { title: 'Enero 2024', value: 'enero-2024' },
-    { title: 'Febrero 2024', value: 'febrero-2024' },
-    { title: 'Marzo 2024', value: 'marzo-2024' }
-  ]
-  
-  const areasItems = [
-    { title: 'Contratos', value: 'contratos' },
-    { title: 'Ventas', value: 'ventas' },
-    { title: 'Marketing', value: 'marketing' }
-  ]
-  
-  // Computed
-  const areaSeleccionada = computed(() => {
-    return selectedArea.value.charAt(0).toUpperCase() + selectedArea.value.slice(1)
-  })
-  
-  const mesSeleccionado = computed(() => {
-    const meses = {
-      'enero-2024': 'Enero 2024',
-      'febrero-2024': 'Febrero 2024',
-      'marzo-2024': 'Marzo 2024'
-    }
-    return meses[selectedMonth.value] || 'Enero 2024'
-  })
-  
-  const employeesFiltered = computed(() => {
-    if (!searchTerm.value) return employeesData.value
-    
-    const search = searchTerm.value.toLowerCase()
-    return employeesData.value.filter(emp => 
-      emp.empleado.toLowerCase().includes(search) ||
-      emp.puesto.toLowerCase().includes(search)
-    )
-  })
-  
-  // Data
-  const summaryData = ref([
-    {
-      area: 'Contratos',
-      totalEmpleados: 15,
-      asistencia: '89%',
-      retardos: 12,
-      faltJustif: 5,
-      faltInjustif: 3
-    },
-    {
-      area: 'Ventas',
-      totalEmpleados: 20,
-      asistencia: '92%',
-      retardos: 8,
-      faltJustif: 3,
-      faltInjustif: 2
-    },
-    {
-      area: 'Marketing',
-      totalEmpleados: 10,
-      asistencia: '85%',
-      retardos: 15,
-      faltJustif: 7,
-      faltInjustif: 4
-    }
-  ])
-  
-  const employeesData = ref([
-    {
-      empleado: 'Julio Peña',
-      puesto: 'Director comercial',
-      attendance: ['C', 'A', 'A', 'A', 'FJ', 'DF', 'DF', 'R', 'A', 'A', 'A', 'A', 'FJ', 'A', 'A', 'R', 'A', 'A', 'A', 'F', 'DF', 'DF', 'A', 'A', 'A', 'A', 'FJ', 'A', 'R', 'A', 'A']
-    },
-    {
-      empleado: 'Martha Higadera',
-      puesto: 'Gerente',
-      attendance: ['I', 'A', 'A', 'F', 'A', 'DF', 'DF', 'A', 'R', 'V', 'V', 'V', 'V', 'A', 'A', 'A', 'A', 'R', 'A', 'A', 'DF', 'DF', 'A', 'F', 'A', 'A', 'A', 'A', 'A', 'R', 'A']
-    },
-    {
-      empleado: 'Joaquín Pérez',
-      puesto: 'Key Account Manager',
-      attendance: ['A', 'A', 'FJ', 'A', 'R', 'DF', 'DF', 'A', 'A', 'A', 'R', 'A', 'A', 'A', 'F', 'A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'R', 'A', 'A', 'A', 'A', 'FJ', 'A', 'A', 'A']
-    },
-    {
-      empleado: 'Rafael Quijada',
-      puesto: 'Ejecutivo',
-      attendance: ['A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'A', 'F', 'R', 'A', 'A', 'A', 'A', 'A', 'R', 'A', 'DF', 'DF', 'A', 'A', 'A', 'F', 'A', 'A', 'A', 'A', 'A']
-    },
-    {
-      empleado: 'Jose Martínez',
-      puesto: 'Coordinador',
-      attendance: ['A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'FJ', 'A', 'A', 'A', 'A', 'R', 'A', 'A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'F', 'A', 'A', 'A', 'A', 'A', 'R']
-    },
-    {
-      empleado: 'Zayra López',
-      puesto: 'Asistente',
-      attendance: ['A', 'A', 'F', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'R', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'A', 'FJ', 'A', 'A', 'A', 'A']
-    },
-    {
-      empleado: 'Emylin Camargo',
-      puesto: 'Supervisor',
-      attendance: ['A', 'A', 'A', 'R', 'A', 'DF', 'DF', 'A', 'A', 'A', 'FJ', 'I', 'A', 'A', 'A', 'A', 'F', 'A', 'A', 'A', 'DF', 'DF', 'A', 'R', 'A', 'A', 'A', 'A', 'A', 'A', 'A']
-    },
-    {
-      empleado: 'Johana Pérez',
-      puesto: 'Analista',
-      attendance: ['A', 'A', 'A', 'F', 'A', 'DF', 'DF', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'R', 'A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'FJ', 'A', 'A', 'F', 'A', 'A']
-    },
-    {
-      empleado: 'Fernando Cruz',
-      puesto: 'Repr. comercial',
-      attendance: ['A', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'R', 'A', 'F', 'A', 'A', 'A', 'A', 'A', 'A', 'R', 'DF', 'DF', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'FJ']
-    },
-    {
-      empleado: 'Jaqueline Ortiz',
-      puesto: 'Coach',
-      attendance: ['R', 'A', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'F', 'A', 'A', 'A', 'A', 'A', 'A', 'R', 'A', 'A', 'A', 'DF', 'DF', 'A', 'A', 'A', 'A', 'A', 'FJ', 'A', 'A', 'A']
-    }
-  ])
-  
-  // Functions
-  const getStatusClass = (status) => {
-    const classes = {
-      'A': 'status-asistencia',
-      'R': 'status-retardo',
-      'F': 'status-falta',
-      'I': 'status-incidencia',
-      'FJ': 'status-falta-justificada',
-      'DF': 'status-dias-feriados',
-      'V': 'status-vacaciones',
-      'C': 'status-asistencia'
-    }
-    return classes[status] || ''
+  return meses[selectedMonth.value] || 'Enero 2024'
+})
+
+const employeesFiltered = computed(() => {
+  if (!searchTerm.value) return employeesData.value
+  const search = searchTerm.value.toLowerCase()
+  return employeesData.value.filter(emp =>
+    emp.empleado.toLowerCase().includes(search) ||
+    emp.puesto.toLowerCase().includes(search)
+  )
+})
+
+// ================== FUNCTIONS ==================
+const getStatusClass = (status) => {
+  const classes = {
+    'A': 'status-asistencia',
+    'R': 'status-retardo',
+    'F': 'status-falta',
+    'I': 'status-incidencia',
+    'FJ': 'status-falta-justificada',
+    'DF': 'status-dias-feriados',
+    'V': 'status-vacaciones',
+    'C': 'status-asistencia'
   }
-  
-  const aplicarFiltros = () => {
-    mostrarMensaje('Filtros aplicados correctamente')
-  }
-  
-  const verDetalle = (row) => {
-    mostrarDetalle.value = true
-    mostrarMensaje(`Mostrando detalle del área: ${row.area}`, 'info')
-    
-    // Scroll hacia la sección de detalle
-    setTimeout(() => {
-      const detailSection = document.querySelector('.card-registro')
-      if (detailSection) {
-        detailSection.scrollIntoView({ behavior: 'smooth' })
-      }
-    }, 100)
-  }
-  
-  const generarReporte = (row) => {
-    mostrarMensaje(`Generando PDF para: ${row.area}`, 'success')
-    
-    // Simular generación de PDF
-    setTimeout(() => {
-      // En un caso real, aquí iría la lógica para generar el PDF
-      // Por ahora simulamos la descarga
-      const link = document.createElement('a')
-      link.href = '#'
-      link.download = `reporte-${row.area.toLowerCase()}-${selectedMonth.value}.pdf`
-      link.click()
-    }, 1000)
-  }
-  </script>
-  
+  return classes[status] || ''
+}
+
+const aplicarFiltros = () => {
+  const area = (selectedArea.value || 'todas').toLowerCase()
+
+  // 1) Filtrar resumen por área (o mostrar todas)
+  summaryData.value = area === 'todas'
+    ? [...originalSummaryData]
+    : originalSummaryData.filter(a => a.area.toLowerCase() === area)
+
+  // 2) (Mes no aplica en datos de ejemplo; aquí iría el filtro por fecha si agregas campo)
+
+  // 3) Contar coincidencias del buscador (aplica en employeesFiltered)
+  const coincidencias = employeesFiltered.value.length
+
+  const labelArea = area === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
+  mostrarMensaje(`Filtros aplicados: ${labelArea}. Empleados que coinciden: ${coincidencias}`)
+}
+
+const verDetalle = (row) => {
+  mostrarDetalle.value = true
+  mostrarMensaje(`Mostrando detalle del área: ${row.area}`, 'info')
+  setTimeout(() => {
+    const detailSection = document.querySelector('.card-registro')
+    if (detailSection) detailSection.scrollIntoView({ behavior: 'smooth' })
+  }, 100)
+}
+
+const generarReporte = (row) => {
+  mostrarMensaje(`Generando PDF para: ${row.area}`, 'success')
+  setTimeout(() => {
+    const link = document.createElement('a')
+    link.href = '#'
+    link.download = `reporte-${row.area.toLowerCase()}-${selectedMonth.value}.pdf`
+    link.click()
+  }, 1000)
+}
+</script>
+
   <style scoped>
   .reporteasistencias-content {
     flex: 1;
