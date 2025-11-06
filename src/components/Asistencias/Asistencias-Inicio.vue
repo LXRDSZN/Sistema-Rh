@@ -1,7 +1,18 @@
 <template>
   <div class="asistencias-inicio">
+    <!-- Formulario de incidencias -->
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" @incidencia-creada="onIncidenciaCreada" />
+    
+    <!-- Animación de éxito -->
+    <div v-if="showSuccess" class="success-toast">
+      <div class="success-content">✓ Incidencia registrada exitosamente</div>
+    </div>
+    
     <div class="content-inner">
-      <h1>Vista Para Asistencias</h1>
+      <div class="header-section">
+        <h1>Vista Para Asistencias</h1>
+        <button class="btn-incidencia" @click="showIncidencia = true">+ Registrar Incidencia</button>
+      </div>
       
       <!-- Estado Actual -->
       <div class="card">
@@ -132,6 +143,19 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue'
+
+const showIncidencia = ref(false)
+const showSuccess = ref(false)
+
+const onIncidenciaCreada = () => {
+  showSuccess.value = true
+  showIncidencia.value = false
+  setTimeout(() => {
+    showSuccess.value = false
+  }, 3000)
+}
 </script>
 
 <style scoped>
@@ -144,11 +168,78 @@
   max-width: 1400px;
 }
 
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
 h1 {
   font-size: 2rem;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 2rem;
+  margin: 0;
+}
+
+.btn-incidencia {
+  background: linear-gradient(135deg, #4F39F6, #5a4fc7);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 57, 246, 0.2);
+  transition: all 0.3s ease;
+}
+
+.btn-incidencia:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
+}
+
+/* Animación de éxito */
+.success-toast {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 2.7s forwards;
+}
+
+.success-content {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(400px);
+    opacity: 0;
+  }
 }
 
 .card {
@@ -159,7 +250,7 @@ h1 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-h2 {
+h2, .card h2 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #111827;

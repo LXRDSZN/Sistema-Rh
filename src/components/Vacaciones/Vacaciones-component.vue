@@ -1,7 +1,7 @@
 <template>
   <div class="vacaciones-content">
-    <!-- Mostrar el componente de incidencia en su propia vista cuando showIncidencia sea true -->
-    <VacacionIncidenciaComponent v-if="showIncidencia" @close="closeIncidencia" />
+    <!-- Mostrar el formulario de incidencias cuando showIncidencia sea true -->
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="closeIncidencia" @incidencia-creada="onIncidenciaCreada" />
 
     <!-- Mostrar el componente de solicitud en su propia vista cuando showSolicitud sea true -->
     <!-- Cambiado a v-else-if para que solo una de las vistas (incidencia o solicitud) se muestre -->
@@ -141,12 +141,14 @@
 <script>
 import VacacionIncidenciaComponent from './Vacacion-incidencia-component/Vacacion-Incidencia.component.vue';
 import SolicitudComponent from './Solicitud-vacaciones-component/Solicitud-component.vue';
+import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 
 export default {
   name: 'Vacaciones',
   components: {
     VacacionIncidenciaComponent,
-    SolicitudComponent
+    SolicitudComponent,
+    IncidenciasFormulario
   },
   data() {
     const today = new Date();
@@ -339,12 +341,33 @@ export default {
       }
     },
 
-    // Métodos para abrir/cerrar la vista de incidencia (sin tocar estilos ni clases)
+    // Métodos para abrir/cerrar la vista de incidencia
     openIncidencia() {
       this.showIncidencia = true;
     },
     closeIncidencia() {
       this.showIncidencia = false;
+    },
+    onIncidenciaCreada(incidencia) {
+      this.showSuccessAnimation();
+      this.closeIncidencia();
+    },
+    showSuccessAnimation() {
+      // Crear elemento de animación de éxito
+      const successEl = document.createElement('div');
+      successEl.className = 'success-animation';
+      successEl.innerHTML = `
+        <div class="success-content">
+          <div class="checkmark">✓</div>
+          <p>Incidencia registrada exitosamente</p>
+        </div>
+      `;
+      document.body.appendChild(successEl);
+      
+      // Remover después de la animación
+      setTimeout(() => {
+        document.body.removeChild(successEl);
+      }, 3000);
     },
 
     // Métodos para abrir/cerrar la vista de solicitud
@@ -699,5 +722,67 @@ export default {
   .day-pill { width: 40px; height: 34px; }
   .weekday { font-size: 12px; }
   .card-footer { width: 100%; max-width: none; padding: 12px; }
+}
+
+/* Animación de éxito */
+.success-animation {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  animation: popIn 0.4s ease-out, fadeOut 0.4s ease-out 2.6s forwards;
+}
+
+.success-content {
+  background: linear-gradient(135deg, #4F39F6, #5a4fc7);
+  color: white;
+  padding: 2rem 3rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(79, 57, 246, 0.3);
+  text-align: center;
+  min-width: 300px;
+}
+
+.checkmark {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  animation: scaleIn 0.5s ease-out;
+}
+
+.success-content p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+@keyframes popIn {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>
