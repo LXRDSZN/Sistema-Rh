@@ -196,7 +196,7 @@
         </div>
 
         <div class="form-group">
-          <label>Subir documento (Opcional)</label>
+          <label>Subir documento (Opcional).</label>
           <input type="file" ref="fileInput" @change="handleFile" style="display:none" />
           <button type="button" class="upload-btn" @click="triggerFile" :disabled="isLoading">
             <span class="material-symbols-rounded">upload_file</span>
