@@ -1,5 +1,12 @@
 <template>
   <div class="contratos-content">
+    <!-- Formulario de incidencias -->
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" @incidencia-creada="onIncidenciaCreada" />
+    
+    <!-- Animación de éxito -->
+    <div v-if="showSuccess" class="success-toast">
+      <div class="success-content">✓ Incidencia registrada exitosamente</div>
+    </div>
     <!-- Vista de Inicio -->
     <div v-if="activeTab === 'inicio'" class="inicio-view">
       <!-- Encabezado -->
@@ -10,6 +17,9 @@
             <input type="text" placeholder="Buscar" v-model="searchQuery">
             <span class="material-symbols-rounded">search</span>
           </div>
+          <button class="btn-incidencia" @click="showIncidencia = true">
+            + Registrar Incidencia
+          </button>
           <button class="btn-crear-contrato" @click="handleCrearContrato">
             CREAR CONTRATO NUEVO
           </button>
@@ -111,12 +121,23 @@ import EnlaceEnProceso from './EnlacesNavegacion/EnlaceEnProceso.vue';
 import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
 import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
+import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref('inicio');
 const searchQuery = ref('');
+const showIncidencia = ref(false);
+const showSuccess = ref(false);
 const { contentMarginLeft, contentWidth } = useSidebar();
+
+const onIncidenciaCreada = () => {
+  showSuccess.value = true;
+  showIncidencia.value = false;
+  setTimeout(() => {
+    showSuccess.value = false;
+  }, 3000);
+};
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
@@ -311,6 +332,24 @@ const handleRevisarContrato = (contrato) => {
   font-size: 20px;
 }
 
+.btn-incidencia {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #4F39F6, #5a4fc7);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 57, 246, 0.2);
+  transition: all 0.3s ease;
+}
+
+.btn-incidencia:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
+}
+
 .btn-crear-contrato {
   padding: 0.75rem 2rem;
   background-color: #6c5ce7;
@@ -325,6 +364,46 @@ const handleRevisarContrato = (contrato) => {
 
 .btn-crear-contrato:hover {
   background-color: #5f4fd1;
+}
+
+/* Animación de éxito */
+.success-toast {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 2.7s forwards;
+}
+
+.success-content {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+  font-weight: 500;
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(400px);
+    opacity: 0;
+  }
 }
 
 /* Stats Grid */
