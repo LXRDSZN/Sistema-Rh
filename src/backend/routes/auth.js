@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, register, logout, verifyToken } from "../controllers/auth.controllers.js";
+import { login, register, logout, verifyToken, changePassword } from "../controllers/auth.controllers.js";
 import validateSchema from "../middleware/validateSchema.js";
 import { verificarToken } from '../middleware/authMiddleware.js';
 import { loginSchema, signupSchema } from "../middleware/authSchemas.js";
@@ -16,6 +16,7 @@ router.post("/auth/signup", validateSchema(signupSchema), register); // Compatib
 router.post("/logout", verificarToken, logout);
 router.get("/verify", verifyToken);
 router.get("/me", verificarToken, verifyToken);
+router.post("/change-password", verificarToken, changePassword);
 
 export default router;
 

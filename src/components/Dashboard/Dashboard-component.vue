@@ -1,10 +1,22 @@
 <template>
   <div class="dashboard-content">
     <div class="dashboard-header">
-      <h1>Bienvenido, {{ userName }}.</h1>
-      <div class="user-info-badge">
-        <span class="role-badge" :class="userRole.toLowerCase()">{{ userRole }}</span>
-        <span class="permissions-count">{{ totalPermissions }} permisos</span>
+      <div class="header-left">
+        <h1>Bienvenido, {{ userName }}.</h1>
+        <div class="user-info-inline">
+          <span class="role-badge" :class="userRole.toLowerCase()">{{ userRole }}</span>
+          <span class="permissions-count">{{ totalPermissions }} permisos</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button 
+          v-if="userRole !== 'EMPLEADO'" 
+          @click="showRegisterModal = true" 
+          class="register-btn"
+        >
+          <span class="material-symbols-rounded">person_add</span>
+          Registrar Usuario
+        </button>
         <button @click="handleLogout" class="logout-btn">
           <span class="material-symbols-rounded">logout</span>
           Cerrar sesión
@@ -193,6 +205,108 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de Registro de Usuario -->
+    <div v-if="showRegisterModal" class="modal-overlay" @click.self="showRegisterModal = false">
+      <div class="modal-container">
+        <h2 class="modal-title">Registro de Usuario</h2>
+        
+        <form @submit.prevent="handleRegisterUser" class="register-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nombre">Nombre*</label>
+              <input
+                type="text"
+                id="nombre"
+                v-model="newUser.nombre"
+                placeholder="Nombre del empleado"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="apellido_paterno">Apellido Paterno*</label>
+              <input
+                type="text"
+                id="apellido_paterno"
+                v-model="newUser.apellido_paterno"
+                placeholder="Apellido paterno"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="apellido_materno">Apellido Materno</label>
+              <input
+                type="text"
+                id="apellido_materno"
+                v-model="newUser.apellido_materno"
+                placeholder="Apellido materno (opcional)"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="fecha_nacimiento">Fecha de Nacimiento*</label>
+              <input
+                type="date"
+                id="fecha_nacimiento"
+                v-model="newUser.fecha_nacimiento"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sexo">Sexo*</label>
+              <select id="sexo" v-model="newUser.sexo" required>
+                <option value="">Seleccionar...</option>
+                <option value="Hombre">Hombre</option>
+                <option value="Mujer">Mujer</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">Email*</label>
+              <input
+                type="email"
+                id="email"
+                v-model="newUser.email"
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="password">Contraseña Temporal*</label>
+              <input
+                type="password"
+                id="password"
+                v-model="newUser.password"
+                placeholder="Contraseña temporal"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="rol">Rol*</label>
+              <select id="rol" v-model="newUser.rol" required>
+                <option value="">Seleccionar rol...</option>
+                <option v-if="userRole === 'ADMIN'" value="JEFE_RH">Jefe de Recursos Humanos</option>
+                <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_AREA">Jefe de Área</option>
+                <option value="EMPLEADO">Empleado</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn">Guardar Usuario</button>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -221,6 +335,46 @@ onMounted(async () => {
 const handleLogout = async () => {
   await logout();
   toast.success('Sesión cerrada exitosamente');
+};
+
+// Estado del modal y formulario de registro
+const showRegisterModal = ref(false);
+const newUser = ref({
+  nombre: '',
+  apellido_paterno: '',
+  apellido_materno: '',
+  fecha_nacimiento: '',
+  sexo: '',
+  email: '',
+  password: '',
+  rol: ''
+});
+
+// Función para registrar usuario
+const handleRegisterUser = async () => {
+  try {
+    // Aquí puedes agregar la lógica para enviar los datos al backend
+    console.log('Registrando usuario:', newUser.value);
+    
+    // Simulación de registro exitoso
+    toast.success(`Usuario ${newUser.value.nombre} ${newUser.value.apellido_paterno} registrado exitosamente`);
+    
+    // Limpiar formulario y cerrar modal
+    newUser.value = {
+      nombre: '',
+      apellido_paterno: '',
+      apellido_materno: '',
+      fecha_nacimiento: '',
+      sexo: '',
+      email: '',
+      password: '',
+      rol: ''
+    };
+    showRegisterModal.value = false;
+  } catch (error) {
+    console.error('Error al registrar usuario:', error);
+    toast.error('Error al registrar el usuario');
+  }
 };
 
 // Estado reactivo
@@ -408,11 +562,29 @@ const cargarDatos = () => {
   margin-bottom: 2rem;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
 .dashboard-header h1 {
   font-size: 2rem;
   font-weight: 600;
   color: #1F2937;
   margin: 0;
+}
+
+.user-info-inline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .user-info-badge {
@@ -461,26 +633,155 @@ const cargarDatos = () => {
 .logout-btn {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 8px;
-  background: #EF4444;
-  color: white;
+  border-radius: 12px;
+  background: white;
+  color: #EF4444;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .logout-btn:hover {
-  background: #DC2626;
+  background: #FEF2F2;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.15);
 }
 
 .logout-btn .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 20px;
+  color: #EF4444;
+}
+
+.register-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  color: #6366F1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.register-btn:hover {
+  background: #F5F5FF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.15);
+}
+
+.register-btn .material-symbols-rounded {
+  font-size: 20px;
+  color: #6366F1;
+}
+
+/* ============================================
+   MODAL DE REGISTRO
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1F2937;
+  transition: all 0.2s;
+}
+
+.form-group input::placeholder {
+  color: #9CA3AF;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.submit-btn {
+  margin-top: 0.5rem;
+  padding: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  background: #6366F1;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-btn:hover {
+  background: #4F46E5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* ============================================
