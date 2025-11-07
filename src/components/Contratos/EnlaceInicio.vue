@@ -1,60 +1,113 @@
 <template>
     <div class="inicio-view">
-        <!-- Barra de búsqueda y botón -->
-        <div class="top-bar">
+        <!-- Encabezado simplificado -->
+        <div class="header">
+            <h1>Contratos/Inicio</h1>
+        </div>
+
+        <!-- Barra de búsqueda con botón de incidencia (todo en una línea) -->
+        <div class="search-container">
             <div class="search-box">
                 <input type="text" placeholder="Buscar" v-model="searchQuery">
-                <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM18 18l-4-4" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" />
-                </svg>
+                <span class="material-symbols-rounded search-icon">search</span>
             </div>
-            <button class="btn-crear" @click="crearContrato">CREAR CONTRATO NUEVO</button>
+            <button class="btn-incidencia" @click="registrarIncidencia">
+                + Registrar Incidencia
+            </button>
         </div>
 
-        <!-- Tarjetas de estadísticas -->
+        <!-- Tarjetas de estadísticas clickeables (4 en una línea) -->
         <div class="stats-grid">
-            <div class="stat-card green">
-                <p class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</p>
-                <p class="stat-number">{{ stats.activos }}</p>
+            <div class="stat-card activos" @click="cambiarVista('activos')">
+                <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
+                <div class="stat-value">{{ stats.activos }}</div>
             </div>
-            <div class="stat-card orange">
-                <p class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</p>
-                <p class="stat-number">{{ stats.proximosVencer }}</p>
+            <div class="stat-card proximos" @click="cambiarVista('avencer')">
+                <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
+                <div class="stat-value">{{ stats.proximosVencer }}</div>
             </div>
-            <div class="stat-card red">
-                <p class="stat-label">CONTRATOS<br>VENCIDOS</p>
-                <p class="stat-number">{{ stats.vencidos }}</p>
+            <div class="stat-card vencidos" @click="cambiarVista('vencidos')">
+                <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
+                <div class="stat-value">{{ stats.vencidos }}</div>
             </div>
-            <div class="stat-card blue">
-                <p class="stat-label">CONTRATOS<br>EN PROCESO</p>
-                <p class="stat-number">{{ stats.enProceso }}</p>
+            <div class="stat-card proceso" @click="cambiarVista('proceso')">
+                <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
+                <div class="stat-value">{{ stats.enProceso }}</div>
             </div>
         </div>
 
-        <!-- Tabla de contratos -->
-        <div class="contratos-table">
-            <div class="table-header">
-                <span class="col-datos">Datos</span>
-                <span class="col-puesto">Puesto</span>
-                <span class="col-area">Área</span>
-                <span class="col-action"></span>
-            </div>
+        <!-- Sección DESTACADOS -->
+        <div class="destacados-header">
+            <h2>DESTACADOS</h2>
+        </div>
 
-            <div class="table-body">
-                <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="table-row">
-                    <div class="col-datos">
-                        <img :src="contrato.avatar" :alt="contrato.nombre" class="avatar">
-                        <div class="datos-info">
-                            <p class="nombre">{{ contrato.nombre }}</p>
-                            <p class="fase">Fase: {{ contrato.fase }}</p>
-                            <p class="cuenta">{{ contrato.cuenta }}</p>
+        <!-- Contenedor de dos columnas: EMPLEADOS y ASPIRANTES -->
+        <div class="columns-container">
+            <!-- Columna EMPLEADOS -->
+            <div class="column-section">
+                <h3 class="column-title">EMPLEADOS</h3>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="col-datos">Datos</div>
+                        <div class="col-puesto">Puesto</div>
+                        <div class="col-area">Área</div>
+                        <div class="col-action"></div>
+                    </div>
+
+                    <div class="table-body">
+                        <div v-for="empleado in empleadosFiltrados" :key="empleado.id" class="table-row empleado-row">
+                            <div class="col-datos">
+                                <img :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
+                                <div class="datos-info">
+                                    <div class="nombre">{{ empleado.nombre }}</div>
+                                    <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
+                                        empleado.fase }}</div>
+                                </div>
+                            </div>
+                            <div class="col-puesto">{{ empleado.puesto }}</div>
+                            <div class="col-area">{{ empleado.area }}</div>
+                            <div class="col-action">
+                                <button class="btn-revisar empleado" @click="revisarContrato(empleado)">
+                                    REVISAR
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-puesto">{{ contrato.puesto }}</div>
-                    <div class="col-area">{{ contrato.area }}</div>
-                    <div class="col-action">
-                        <button class="btn-revisar" @click="revisarContrato(contrato)">REVISAR</button>
+                </div>
+            </div>
+
+            <!-- Columna ASPIRANTES -->
+            <div class="column-section">
+                <h3 class="column-title">ASPIRANTES</h3>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="col-datos">Datos</div>
+                        <div class="col-puesto">Puesto</div>
+                        <div class="col-area">Área</div>
+                        <div class="col-action"></div>
+                    </div>
+
+                    <div class="table-body">
+                        <div v-for="aspirante in aspirantesFiltrados" :key="aspirante.id"
+                            class="table-row aspirante-row">
+                            <div class="col-datos">
+                                <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
+                                <div class="datos-info">
+                                    <div class="nombre">{{ aspirante.nombre }}</div>
+                                    <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
+                                        aspirante.fase }}</div>
+                                </div>
+                            </div>
+                            <div class="col-puesto">{{ aspirante.puesto }}</div>
+                            <div class="col-area">{{ aspirante.area }}</div>
+                            <div class="col-action">
+                                <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">
+                                    REVISAR
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -65,42 +118,54 @@
 <script setup>
 import { ref, computed } from 'vue';
 
-// Props
+// Props - recibe datos del componente raíz
 const props = defineProps({
     contratos: {
         type: Array,
-        default: () => []
+        required: true
     },
     stats: {
         type: Object,
-        default: () => ({
-            activos: 47,
-            proximosVencer: 9,
-            vencidos: 2,
-            enProceso: 13
-        })
+        required: true
     }
 });
 
-// Emits
-const emit = defineEmits(['crear-contrato', 'revisar-contrato']);
+// Emits - envía eventos al componente raíz
+const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
 
 // Estado local
 const searchQuery = ref('');
 
-// Computed
-const contratosFiltrados = computed(() => {
-    if (!searchQuery.value) {
-        return props.contratos;
-    }
+// Separar contratos por tipo
+const empleados = computed(() =>
+    props.contratos.filter(c => !c.tipo || c.tipo === 'empleado')
+);
+
+const aspirantes = computed(() =>
+    props.contratos.filter(c => c.tipo === 'aspirante')
+);
+
+// Filtrar empleados por búsqueda
+const empleadosFiltrados = computed(() => {
+    if (!searchQuery.value) return empleados.value;
 
     const query = searchQuery.value.toLowerCase();
-    return props.contratos.filter(contrato =>
-        contrato.nombre.toLowerCase().includes(query) ||
-        contrato.fase.toLowerCase().includes(query) ||
-        contrato.cuenta.toLowerCase().includes(query) ||
-        contrato.puesto.toLowerCase().includes(query) ||
-        contrato.area.toLowerCase().includes(query)
+    return empleados.value.filter(c =>
+        c.nombre.toLowerCase().includes(query) ||
+        c.puesto.toLowerCase().includes(query) ||
+        c.area.toLowerCase().includes(query)
+    );
+});
+
+// Filtrar aspirantes por búsqueda
+const aspirantesFiltrados = computed(() => {
+    if (!searchQuery.value) return aspirantes.value;
+
+    const query = searchQuery.value.toLowerCase();
+    return aspirantes.value.filter(c =>
+        c.nombre.toLowerCase().includes(query) ||
+        c.puesto.toLowerCase().includes(query) ||
+        c.area.toLowerCase().includes(query)
     );
 });
 
@@ -112,176 +177,287 @@ const crearContrato = () => {
 const revisarContrato = (contrato) => {
     emit('revisar-contrato', contrato);
 };
+
+const cambiarVista = (vista) => {
+    emit('cambiar-vista', vista);
+};
+
+const registrarIncidencia = () => {
+    emit('registrar-incidencia');
+};
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
+
 .inicio-view {
-    max-width: 1400px;
-    margin: 0 auto;
+    background-color: #d9d9d9;
+    min-height: 100vh;
+    padding: 0;
 }
 
-/* Top Bar */
-.top-bar {
+/* Header - Separado */
+.header {
+    background-color: transparent;
+    padding: 2rem 2rem 1.5rem 2rem;
+    margin-bottom: 0;
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #000;
+    margin: 0;
+}
+
+/* Search Container - En línea */
+.search-container {
+    background-color: white;
+    border: 3px solid #00a8e8;
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 0 2rem 1.5rem 2rem;
     display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
     align-items: center;
+    gap: 1.5rem;
 }
 
 .search-box {
     position: relative;
     flex: 1;
-    max-width: 400px;
 }
 
 .search-box input {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    background-color: #f0f0f5;
+    padding: 1rem 3rem 1rem 1.5rem;
+    border: none;
+    border-radius: 30px;
+    background-color: #e8e8f0;
+    font-size: 1rem;
+    outline: none;
+    color: #666;
+}
+
+.search-box input::placeholder {
+    color: #999;
 }
 
 .search-icon {
     position: absolute;
-    left: 0.75rem;
+    right: 1.5rem;
     top: 50%;
     transform: translateY(-50%);
     color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    pointer-events: none;
 }
 
-.btn-crear {
-    padding: 0.875rem 2rem;
-    background-color: #5b4cdb;
+.btn-incidencia {
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #4F39F6, #5a4fc7);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 10px;
     font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 12px rgba(79, 57, 246, 0.2);
+    transition: all 0.3s ease;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.btn-crear:hover {
-    background-color: #4a3cb8;
+.btn-incidencia:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
+    background: linear-gradient(135deg, #5a4fc7, #4F39F6);
 }
 
-/* Stats Grid */
+.btn-incidencia:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(79, 57, 246, 0.3);
+}
+
+
+/* Stats Grid - 4 columnas en una línea */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin: 0 2rem 1.5rem 2rem;
+    padding: 0;
 }
 
 .stat-card {
+    background: white;
     padding: 2rem;
     border-radius: 12px;
-    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.stat-card.green {
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.activos {
     background-color: #d4edda;
 }
 
-.stat-card.orange {
+.stat-card.proximos {
     background-color: #fff3cd;
 }
 
-.stat-card.red {
+.stat-card.vencidos {
     background-color: #f8d7da;
 }
 
-.stat-card.blue {
+.stat-card.proceso {
     background-color: #d1ecf1;
 }
 
 .stat-label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
-.stat-card.green .stat-label {
-    color: #4caf50;
-}
-
-.stat-card.orange .stat-label {
-    color: #ff9800;
-}
-
-.stat-card.red .stat-label {
-    color: #dc3545;
-}
-
-.stat-card.blue .stat-label {
-    color: #17a2b8;
-}
-
-.stat-number {
-    font-size: 3.5rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    margin: 0;
+    line-height: 1.3;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
 }
 
-.stat-card.green .stat-number {
-    color: #4caf50;
+.stat-card.activos .stat-label {
+    color: #28a745;
 }
 
-.stat-card.orange .stat-number {
+.stat-card.proximos .stat-label {
     color: #ff9800;
 }
 
-.stat-card.red .stat-number {
+.stat-card.vencidos .stat-label {
     color: #dc3545;
 }
 
-.stat-card.blue .stat-number {
+.stat-card.proceso .stat-label {
     color: #17a2b8;
 }
 
-/* Tabla */
-.contratos-table {
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.stat-card.activos .stat-value {
+    color: #28a745;
+}
+
+.stat-card.proximos .stat-value {
+    color: #ff9800;
+}
+
+.stat-card.vencidos .stat-value {
+    color: #dc3545;
+}
+
+.stat-card.proceso .stat-value {
+    color: #17a2b8;
+}
+
+/* Destacados Header */
+.destacados-header {
     background-color: white;
     border-radius: 12px;
+    padding: 1.5rem;
+    margin: 0 2rem 1.5rem 2rem;
+    text-align: center;
+}
+
+.destacados-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #7b68ee;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Columns Container */
+.columns-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 0 2rem 2rem 2rem;
+}
+
+.column-section {
+    background-color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.column-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* Table Container */
+.table-container {
+    background: white;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .table-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 150px;
-    padding: 1rem 1.5rem;
-    background-color: #fafafa;
-    border-bottom: 1px solid #e0e0e0;
-    font-weight: 600;
+    grid-template-columns: 2fr 1fr 1fr 120px;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    font-weight: 700;
     color: #555;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
 }
 
 .table-body {
     display: flex;
     flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
 }
 
 .table-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 150px;
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
+    grid-template-columns: 2fr 1fr 1fr 120px;
+    padding: 1.25rem;
+    border-radius: 12px;
     align-items: center;
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
 }
 
-.table-row:hover {
-    background-color: #f9f9ff;
+.empleado-row {
+    border: 2px solid #28a745;
+    background-color: #f8fff9;
 }
 
-.table-row:last-child {
-    border-bottom: none;
+.empleado-row:hover {
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+    transform: translateY(-2px);
+}
+
+.aspirante-row {
+    border: 2px solid #00bcd4;
+    background-color: #f0fbff;
+}
+
+.aspirante-row:hover {
+    box-shadow: 0 4px 12px rgba(0, 188, 212, 0.2);
+    transform: translateY(-2px);
 }
 
 .col-datos {
@@ -304,71 +480,122 @@ const revisarContrato = (contrato) => {
 }
 
 .nombre {
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
+    font-weight: 700;
+    color: #333;
     font-size: 0.95rem;
 }
 
-.fase {
-    font-size: 0.85rem;
-    color: #666;
-    margin: 0;
+.estado {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.cuenta {
-    font-size: 0.85rem;
+.estado.activo {
+    color: #28a745;
+}
+
+.estado.baja {
+    color: #dc3545;
+}
+
+.estado.revision {
     color: #17a2b8;
-    font-weight: 600;
-    margin: 0;
+}
+
+.estado.evaluacion {
+    color: #ff9800;
 }
 
 .col-puesto,
 .col-area {
     font-weight: 600;
-    color: #2c3e50;
+    color: #333;
+    font-size: 0.9rem;
 }
 
 .btn-revisar {
-    padding: 0.5rem 1.5rem;
-    background-color: white;
-    color: #17a2b8;
-    border: 2px solid #17a2b8;
-    border-radius: 6px;
-    font-weight: 600;
+    padding: 0.6rem 1.5rem;
+    border: 2px solid;
+    border-radius: 8px;
     font-size: 0.85rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    background-color: white;
 }
 
-.btn-revisar:hover {
-    background-color: #17a2b8;
+.btn-revisar.empleado {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-revisar.empleado:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-revisar.aspirante {
+    color: #00bcd4;
+    border-color: #00bcd4;
+}
+
+.btn-revisar.aspirante:hover {
+    background-color: #00bcd4;
     color: white;
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1400px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+}
 
-    .table-header,
-    .table-row {
-        grid-template-columns: 2fr 1fr 1fr 120px;
+@media (max-width: 1024px) {
+    .columns-container {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
-    .top-bar {
-        flex-direction: column;
+    .inicio-view {
+        padding: 0;
     }
 
-    .search-box {
-        max-width: 100%;
+    .header,
+    .search-container,
+    .stats-grid,
+    .destacados-header,
+    .columns-container {
+        margin: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .btn-incidencia {
+        width: 100%;
     }
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .table-header,
+    .table-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .col-datos {
+        grid-column: 1 / -1;
     }
 }
 </style>
