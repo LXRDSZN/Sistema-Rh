@@ -120,7 +120,7 @@ const stats = ref({
 const contratos = ref([
   {
     id: 1,
-    nombre: 'Braulio Torres Arispe',
+    nombre: 'Andres Medina Hernandez',
     tipo: 'empleado',
     estadoTexto: 'ACTIVO',
     estadoClase: 'activo',
@@ -145,7 +145,7 @@ const contratos = ref([
   },
   {
     id: 2,
-    nombre: 'Alejandro Solano',
+    nombre: 'Beto Sanchez Perez',
     tipo: 'empleado',
     estadoTexto: 'BAJA',
     estadoClase: 'baja',
@@ -170,7 +170,7 @@ const contratos = ref([
   },
   {
     id: 3,
-    nombre: 'Juan Carlos Bodoque',
+    nombre: 'Steven Niño Genio',
     tipo: 'empleado',
     estadoTexto: 'ACTIVO',
     estadoClase: 'activo',
@@ -220,7 +220,7 @@ const contratos = ref([
   },
   {
     id: 5,
-    nombre: 'Alejandro Solano',
+    nombre: 'Alejandro Solano Hala',
     tipo: 'aspirante',
     estadoTexto: 'Revisión',
     estadoClase: 'revision',
