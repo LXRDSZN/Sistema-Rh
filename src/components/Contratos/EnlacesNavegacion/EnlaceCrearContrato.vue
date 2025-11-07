@@ -14,7 +14,7 @@
             <!-- Datos Personales -->
             <div class="form-section">
                 <h3 class="subsection-title">Datos Personales</h3>
-                
+
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Fecha de contratación</label>
@@ -25,26 +25,25 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Ingrese el número de solicitud</label>
-                        <input type="text" v-model="formData.numeroSolicitud" 
-                               placeholder="Ingrese el número de solicitud" class="form-input">
+                        <input type="text" v-model="formData.numeroSolicitud"
+                            placeholder="Ingrese el número de solicitud" class="form-input">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Nombre Completo</label>
-                        <input type="text" v-model="formData.nombre" 
-                               placeholder="Nombre" class="form-input">
+                        <input type="text" v-model="formData.nombre" placeholder="Nombre" class="form-input">
                     </div>
                     <div class="form-group">
                         <label>&nbsp;</label>
-                        <input type="text" v-model="formData.apellidoPaterno" 
-                               placeholder="Apellido Paterno" class="form-input">
+                        <input type="text" v-model="formData.apellidoPaterno" placeholder="Apellido Paterno"
+                            class="form-input">
                     </div>
                     <div class="form-group">
                         <label>&nbsp;</label>
-                        <input type="text" v-model="formData.apellidoMaterno" 
-                               placeholder="Apellido Materno" class="form-input">
+                        <input type="text" v-model="formData.apellidoMaterno" placeholder="Apellido Materno"
+                            class="form-input">
                     </div>
                 </div>
 
@@ -111,14 +110,13 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>CURP</label>
-                        <input type="text" v-model="formData.curp" 
-                               placeholder="Ingrese tu CURP (18 caracteres)" 
-                               maxlength="18" class="form-input">
+                        <input type="text" v-model="formData.curp" placeholder="Ingrese tu CURP (18 caracteres)"
+                            maxlength="18" class="form-input">
                     </div>
                     <div class="form-group">
                         <label>NSS</label>
-                        <input type="text" v-model="formData.nss" 
-                               placeholder="Ingrese el Número de seguridad social" class="form-input">
+                        <input type="text" v-model="formData.nss" placeholder="Ingrese el Número de seguridad social"
+                            class="form-input">
                     </div>
                 </div>
             </div>
@@ -126,7 +124,7 @@
             <!-- Puesto de trabajo -->
             <div class="form-section">
                 <h3 class="subsection-title">Puesto de trabajo</h3>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Área</label>
@@ -164,9 +162,7 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Descripción del trabajo</label>
-                        <textarea v-model="formData.descripcionTrabajo" 
-                                  class="form-textarea" 
-                                  rows="4"></textarea>
+                        <textarea v-model="formData.descripcionTrabajo" class="form-textarea" rows="4"></textarea>
                     </div>
                 </div>
             </div>
@@ -174,7 +170,7 @@
             <!-- Jornada de trabajo -->
             <div class="form-section">
                 <h3 class="subsection-title">Jornada de trabajo</h3>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Hora de entrada</label>
@@ -200,7 +196,7 @@
             <!-- Salario y datos bancarios -->
             <div class="form-section">
                 <h3 class="subsection-title">Salario y datos bancarios</h3>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Cantidad (MXN)</label>
@@ -228,8 +224,8 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Título de la cuenta</label>
-                        <input type="text" v-model="formData.tituloCuenta" 
-                               placeholder="Ingrese nombre del titular" class="form-input">
+                        <input type="text" v-model="formData.tituloCuenta" placeholder="Ingrese nombre del titular"
+                            class="form-input">
                     </div>
                     <div class="form-group">
                         <label>Entidad bancaria</label>
@@ -247,14 +243,13 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Número de cuenta</label>
-                        <input type="text" v-model="formData.numeroCuenta" 
-                               placeholder="Ingrese número de cuenta" class="form-input">
+                        <input type="text" v-model="formData.numeroCuenta" placeholder="Ingrese número de cuenta"
+                            class="form-input">
                     </div>
                     <div class="form-group">
                         <label>Clave interbancaria</label>
-                        <input type="text" v-model="formData.clabe" 
-                               placeholder="Ingrese clave interbancaria" 
-                               maxlength="18" class="form-input">
+                        <input type="text" v-model="formData.clabe" placeholder="Ingrese clave interbancaria"
+                            maxlength="18" class="form-input">
                     </div>
                 </div>
             </div>
@@ -342,7 +337,7 @@ const guardarContrato = () => {
         alert('Por favor complete los campos requeridos');
         return;
     }
-    
+
     // Aquí iría la lógica para guardar el contrato
     console.log('Guardando contrato:', formData.value);
     alert('Contrato guardado exitosamente');

@@ -54,76 +54,73 @@
                         <option value="anual">Anual</option>
                     </select>
                 </div>
-            </div>        <!-- Tarjetas de resumen -->
-        <div class="summary-cards">
-            <div class="summary-card green">
-                <p class="card-title">CONTRATOS ACTIVOS</p>
-                <p class="card-number">{{ stats.activos }}</p>
-            </div>
+            </div> <!-- Tarjetas de resumen -->
+            <div class="summary-cards">
+                <div class="summary-card green">
+                    <p class="card-title">CONTRATOS ACTIVOS</p>
+                    <p class="card-number">{{ stats.activos }}</p>
+                </div>
 
-            <div class="summary-card blue">
-                <p class="card-title">SOLICITUDES DE VACANTES</p>
-                <p class="card-number">{{ stats.vacantes }}</p>
-            </div>
-        </div>
-
-        <!-- Grid de gráficos -->
-        <div class="charts-grid">
-            <!-- Gráfico de dona: Distribución por tipo de contrato -->
-            <div class="chart-card">
-                <h3 class="chart-title">Distribución por tipo de contrato</h3>
-                <div class="chart-content">
-                    <canvas ref="donutChart" width="400" height="300"></canvas>
+                <div class="summary-card blue">
+                    <p class="card-title">SOLICITUDES DE VACANTES</p>
+                    <p class="card-number">{{ stats.vacantes }}</p>
                 </div>
             </div>
 
-            <!-- Gráfico de barras: Contratos por área -->
-            <div class="chart-card">
-                <h3 class="chart-title">Contratos por área</h3>
-                <div class="chart-content">
-                    <canvas ref="barChart" width="400" height="300"></canvas>
+            <!-- Grid de gráficos -->
+            <div class="charts-grid">
+                <!-- Gráfico de dona: Distribución por tipo de contrato -->
+                <div class="chart-card">
+                    <h3 class="chart-title">Distribución por tipo de contrato</h3>
+                    <div class="chart-content">
+                        <canvas ref="donutChart" width="400" height="300"></canvas>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Estado del proceso de contratación -->
-            <div class="chart-card">
-                <h3 class="chart-title">Estado del proceso de contratación</h3>
-                <div class="chart-content empty-state">
-                    <p>No hay datos disponibles</p>
+                <!-- Gráfico de barras: Contratos por área -->
+                <div class="chart-card">
+                    <h3 class="chart-title">Contratos por área</h3>
+                    <div class="chart-content">
+                        <canvas ref="barChart" width="400" height="300"></canvas>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Calendario -->
-            <div class="chart-card">
-                <h3 class="chart-title">Mes {{ currentMonth }} {{ currentYear }}</h3>
-                <div class="chart-content">
-                    <div class="calendar">
-                        <div class="calendar-header">
-                            <div v-for="day in diasSemana" :key="day" class="day-name">
-                                {{ day }}
+                <!-- Estado del proceso de contratación -->
+                <div class="chart-card">
+                    <h3 class="chart-title">Estado del proceso de contratación</h3>
+                    <div class="chart-content empty-state">
+                        <p>No hay datos disponibles</p>
+                    </div>
+                </div>
+
+                <!-- Calendario -->
+                <div class="chart-card">
+                    <h3 class="chart-title">Mes {{ currentMonth }} {{ currentYear }}</h3>
+                    <div class="chart-content">
+                        <div class="calendar">
+                            <div class="calendar-header">
+                                <div v-for="day in diasSemana" :key="day" class="day-name">
+                                    {{ day }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="calendar-body">
-                            <div v-for="day in calendarDays" :key="day.date" 
-                                 :class="['calendar-day', { 
-                                     'other-month': day.otherMonth,
-                                     'today': day.isToday
-                                 }]">
-                                {{ day.day }}
+                            <div class="calendar-body">
+                                <div v-for="day in calendarDays" :key="day.date" :class="['calendar-day', {
+                                    'other-month': day.otherMonth,
+                                    'today': day.isToday
+                                }]">
+                                    {{ day.day }}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tooltip para el gráfico de dona -->
-        <div v-if="tooltip.show" 
-             class="chart-tooltip"
-             :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
-            <strong>{{ tooltip.label }}</strong><br>
-            {{ tooltip.value }} empleados
-        </div>
+            <!-- Tooltip para el gráfico de dona -->
+            <div v-if="tooltip.show" class="chart-tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
+                <strong>{{ tooltip.label }}</strong><br>
+                {{ tooltip.value }} empleados
+            </div>
         </div> <!-- Cierre de content-card -->
     </div> <!-- Cierre de enlace-estadisticas -->
 </template>
@@ -180,8 +177,8 @@ const filters = ref({
 // Calendario dinámico
 const today = new Date();
 const currentMonth = computed(() => {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     return months[today.getMonth()];
 });
 const currentYear = today.getFullYear();
@@ -195,22 +192,22 @@ const calendarDays = computed(() => {
     const days = [];
     const firstDay = new Date(añoActual, mesActual, 1).getDay();
     const daysInMonth = new Date(añoActual, mesActual + 1, 0).getDate();
-    
+
     // Días vacíos al inicio
     for (let i = 0; i < firstDay; i++) {
         days.push({ day: null, otherMonth: true, isToday: false, date: null });
     }
-    
+
     // Días del mes
     for (let i = 1; i <= daysInMonth; i++) {
-        days.push({ 
-            day: i, 
-            otherMonth: false, 
+        days.push({
+            day: i,
+            otherMonth: false,
             isToday: i === diaActual && mesActual === today.getMonth() && añoActual === today.getFullYear(),
             date: `${añoActual}-${(mesActual + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`
         });
     }
-    
+
     return days;
 });
 
@@ -227,28 +224,28 @@ const chartAreas = ref([]);
 // Renderizar gráficos
 const renderDonutChart = () => {
     if (!donutChart.value) return;
-    
+
     const canvas = donutChart.value;
     const ctx = canvas.getContext('2d');
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = 90;
     const innerRadius = 60;
-    
+
     // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     const total = distribucionContratos.value.reduce((sum, item) => sum + item.value, 0);
     let currentAngle = -Math.PI / 2;
-    
+
     // Resetear áreas del gráfico
     chartAreas.value = [];
-    
+
     // Dibujar segmentos y etiquetas
     distribucionContratos.value.forEach(item => {
         const sliceAngle = (item.value / total) * 2 * Math.PI;
         const middleAngle = currentAngle + sliceAngle / 2;
-        
+
         // Guardar información del área para detección de hover
         chartAreas.value.push({
             startAngle: currentAngle,
@@ -261,7 +258,7 @@ const renderDonutChart = () => {
             value: item.value,
             color: item.color
         });
-        
+
         // Dibujar segmento
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
@@ -269,30 +266,30 @@ const renderDonutChart = () => {
         ctx.closePath();
         ctx.fillStyle = item.color;
         ctx.fill();
-        
+
         // Calcular posición de la etiqueta (fuera del círculo)
         const labelDistance = radius + 40;
         const labelX = centerX + Math.cos(middleAngle) * labelDistance;
         const labelY = centerY + Math.sin(middleAngle) * labelDistance;
-        
+
         // Dibujar línea desde el segmento hasta la etiqueta
         const lineStartX = centerX + Math.cos(middleAngle) * (radius + 5);
         const lineStartY = centerY + Math.sin(middleAngle) * (radius + 5);
-        
+
         ctx.beginPath();
         ctx.moveTo(lineStartX, lineStartY);
         ctx.lineTo(labelX - (labelX > centerX ? 10 : -10), labelY);
         ctx.strokeStyle = item.color;
         ctx.lineWidth = 2;
         ctx.stroke();
-        
+
         // Dibujar texto de la etiqueta
         ctx.fillStyle = item.color;
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = labelX > centerX ? 'left' : 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText(item.label, labelX, labelY);
-        
+
         currentAngle += sliceAngle;
     });
 };
@@ -300,25 +297,25 @@ const renderDonutChart = () => {
 // Detectar hover en el gráfico de dona
 const handleDonutHover = (event) => {
     if (!donutChart.value) return;
-    
+
     const canvas = donutChart.value;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     let found = false;
-    
+
     for (const area of chartAreas.value) {
         const dx = x - area.centerX;
         const dy = y - area.centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // Verificar si está dentro del anillo
         if (distance >= area.innerRadius && distance <= area.outerRadius) {
             let angle = Math.atan2(dy, dx);
             // Normalizar ángulo
             if (angle < -Math.PI / 2) angle += 2 * Math.PI;
-            
+
             // Verificar si está dentro del segmento
             if (angle >= area.startAngle && angle <= area.endAngle) {
                 tooltip.value = {
@@ -334,7 +331,7 @@ const handleDonutHover = (event) => {
             }
         }
     }
-    
+
     if (!found) {
         tooltip.value.show = false;
         canvas.style.cursor = 'default';
@@ -351,11 +348,11 @@ const handleDonutLeave = () => {
 
 const renderBarChart = () => {
     if (!barChart.value) return;
-    
+
     const ctx = barChart.value.getContext('2d');
     const width = barChart.value.width;
     const height = barChart.value.height;
-    
+
     // Datos del gráfico - Áreas del sistema
     const data = [
         { label: 'Contratos', value: 87 },
@@ -364,31 +361,31 @@ const renderBarChart = () => {
         { label: 'Vacaciones', value: 73 },
         { label: 'Areas', value: 104 }
     ];
-    
+
     const maxValue = Math.max(...data.map(d => d.value));
     const barWidth = 50;
     const spacing = (width - (data.length * barWidth)) / (data.length + 1);
     const chartHeight = height - 60;
-    
+
     // Limpiar canvas
     ctx.clearRect(0, 0, width, height);
-    
+
     // Dibujar barras
     data.forEach((item, index) => {
         const barHeight = (item.value / maxValue) * chartHeight;
         const x = spacing + (index * (barWidth + spacing));
         const y = height - 40 - barHeight;
-        
+
         // Barra
         ctx.fillStyle = '#4caf50';
         ctx.fillRect(x, y, barWidth, barHeight);
-        
+
         // Etiqueta
         ctx.fillStyle = '#666';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(item.label, x + barWidth / 2, height - 20);
-        
+
         // Valor
         ctx.fillStyle = '#2c3e50';
         ctx.font = 'bold 14px Arial';
@@ -400,7 +397,7 @@ const renderBarChart = () => {
 onMounted(() => {
     renderDonutChart();
     renderBarChart();
-    
+
     // Agregar event listeners para el hover en el gráfico de dona
     if (donutChart.value) {
         donutChart.value.addEventListener('mousemove', handleDonutHover);
