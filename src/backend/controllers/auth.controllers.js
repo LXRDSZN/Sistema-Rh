@@ -141,30 +141,60 @@ export const login = async (req, res) => {
  * REGISTER - Registrar nuevo usuario
  */
 export const register = async (req, res) => {
-  const { nombre, apellidoPaterno, apellidoMaterno, email, password, sexo, fechaNacimiento } = req.body;
+  // Soportar ambos formatos: simple (SignUp) y completo (Dashboard)
+  const { 
+    usuario, 
+    email, 
+    contrasena,
+    nombre,
+    apellidoPaterno,
+    apellidoMaterno,
+    password,
+    sexo,
+    fechaNacimiento,
+    rol
+  } = req.body;
+
+  // Normalizar datos - priorizar formato completo
+  const nombreFinal = nombre || usuario;
+  const emailFinal = email;
+  const passwordFinal = password || contrasena;
+  const apellidoPaternoFinal = apellidoPaterno || '';
+  const apellidoMaternoFinal = apellidoMaterno || '';
+  const sexoFinal = sexo || 'M';
+  const fechaNacimientoFinal = fechaNacimiento || '1990-01-01';
+  const rolFinal = rol || 'EMPLEADO';
+
+  console.log('📝 Registrando usuario:', { 
+    nombre: nombreFinal, 
+    email: emailFinal, 
+    rol: rolFinal 
+  });
 
   try {
     // Verificar si el email ya existe
     const emailExists = await db.query(
       'SELECT id FROM usuario WHERE email = $1',
-      [email]
+      [emailFinal]
     );
 
     if (emailExists.rows.length > 0) {
+      console.log('❌ Email ya existe:', emailFinal);
       return res.status(400).json({ 
         success: false,
         message: 'El email ya está registrado' 
       });
     }
 
-    // Guardar password en texto plano
-    const passwordHash = password;
+    // Guardar password en texto plano (como está configurado actualmente)
+    const passwordHash = passwordFinal;
 
     // Iniciar transacción
     const client = await db.connect();
     
     try {
       await client.query('BEGIN');
+      console.log('✅ Transacción iniciada');
 
       // 1. Crear persona
       const personaResult = await client.query(
@@ -175,48 +205,73 @@ export const register = async (req, res) => {
                  (SELECT id FROM estado_civil WHERE nombre = 'Soltero' LIMIT 1),
                  (SELECT id FROM nacionalidad WHERE nombre = 'Mexicana' LIMIT 1))
          RETURNING id`,
-        ['Empleado', nombre, apellidoPaterno, apellidoMaterno || '', fechaNacimiento || '1990-01-01', sexo || 'M']
+        ['Empleado', nombreFinal, apellidoPaternoFinal, apellidoMaternoFinal, fechaNacimientoFinal, sexoFinal]
       );
 
       const personaId = personaResult.rows[0].id;
+      console.log('✅ Persona creada con ID:', personaId);
 
       // 2. Crear usuario
       const usuarioResult = await client.query(
         `INSERT INTO usuario (persona_id, email, password_hash, activo)
          VALUES ($1, $2, $3, true)
          RETURNING id`,
-        [personaId, email, passwordHash]
+        [personaId, emailFinal, passwordHash]
       );
 
       const usuarioId = usuarioResult.rows[0].id;
+      console.log('✅ Usuario creado con ID:', usuarioId);
 
-      // 3. Asignar rol EMPLEADO por defecto
-      await client.query(
+      // 3. Asignar rol
+      const rolResult = await client.query(
         `INSERT INTO usuario_rol (usuario_id, rol_id)
-         SELECT $1, id FROM rol WHERE nombre = 'EMPLEADO'`,
-        [usuarioId]
+         SELECT $1, id FROM rol WHERE nombre = $2
+         RETURNING rol_id`,
+        [usuarioId, rolFinal]
+      );
+
+      if (rolResult.rows.length === 0) {
+        throw new Error(`Rol ${rolFinal} no encontrado en la base de datos`);
+      }
+
+      console.log('✅ Rol asignado:', rolFinal);
+
+      // 4. Crear token JWT para login automático (solo si es desde SignUp)
+      const token = jwt.sign(
+        {
+          usuarioId: usuarioId,
+          personaId: personaId,
+          email: emailFinal,
+          nombre: nombreFinal,
+          rol: rolFinal
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn }
       );
 
       await client.query('COMMIT');
       client.release();
+      console.log('✅ Transacción completada exitosamente');
 
       return res.status(201).json({
         success: true,
         message: 'Usuario registrado exitosamente',
+        token: token,
         user: {
-          email,
-          nombre: `${nombre} ${apellidoPaterno}`
+          email: emailFinal,
+          nombre: nombreFinal
         }
       });
 
     } catch (error) {
       await client.query('ROLLBACK');
       client.release();
+      console.error('❌ Error en transacción:', error);
       throw error;
     }
 
   } catch (error) {
-    console.error('Error en registro:', error);
+    console.error('❌ Error en registro:', error);
     return res.status(500).json({ 
       success: false,
       message: 'Error del servidor al registrar usuario',
@@ -301,7 +356,9 @@ export const verifyToken = async (req, res) => {
  * CAMBIAR CONTRASEÑA - Actualizar contraseña del usuario
  */
 export const changePassword = async (req, res) => {
-  const { email, currentPassword, newPasswordHash } = req.body;
+  const { email, currentPassword, newPassword } = req.body;
+
+  console.log('🔐 Cambio de contraseña solicitado para:', email);
 
   try {
     // Buscar usuario por email
@@ -314,6 +371,7 @@ export const changePassword = async (req, res) => {
 
     // Verificar si existe el usuario
     if (result.rows.length === 0) {
+      console.log('❌ Usuario no encontrado:', email);
       return res.status(404).json({ 
         success: false,
         message: 'Usuario no encontrado' 
@@ -324,6 +382,7 @@ export const changePassword = async (req, res) => {
 
     // Verificar si el usuario está activo
     if (!user.activo) {
+      console.log('❌ Usuario inactivo:', email);
       return res.status(403).json({ 
         success: false,
         message: 'Usuario inactivo. Contacte al administrador.' 
@@ -344,26 +403,40 @@ export const changePassword = async (req, res) => {
     }
 
     if (!passwordMatch) {
+      console.log('❌ Contraseña actual incorrecta para:', email);
       return res.status(401).json({ 
         success: false,
         message: 'La contraseña actual es incorrecta' 
       });
     }
 
+    // Hashear la nueva contraseña en el backend
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    console.log('✅ Contraseña hasheada correctamente');
+
     // Actualizar la contraseña en la base de datos
     await db.query(
       `UPDATE usuario 
        SET password_hash = $1
        WHERE id = $2`,
-      [newPasswordHash, user.id]
+      [hashedPassword, user.id]
     );
 
+    console.log('✅ Contraseña actualizada en BD para usuario ID:', user.id);
+
     // Registrar el cambio en la bitácora
-    await db.query(
-      `INSERT INTO bitacora_accesos (usuario_id, ip, accion, inicio)
-       VALUES ($1, $2, $3, NOW())`,
-      [user.id, req.ip || 'unknown', 'Cambio de contraseña']
-    );
+    try {
+      await db.query(
+        `INSERT INTO bitacora_accesos (usuario_id, ip, user_agent, inicio)
+         VALUES ($1, $2, $3, NOW())`,
+        [user.id, req.ip || 'unknown', req.headers['user-agent'] || 'unknown']
+      );
+      console.log('✅ Cambio registrado en bitácora');
+    } catch (bitacoraError) {
+      console.log('⚠️ Error al registrar en bitácora (no crítico):', bitacoraError.message);
+    }
 
     return res.json({
       success: true,
@@ -371,7 +444,7 @@ export const changePassword = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cambiar contraseña:', error);
+    console.error('❌ Error al cambiar contraseña:', error);
     return res.status(500).json({ 
       success: false,
       message: 'Error al cambiar la contraseña',
