@@ -1,70 +1,85 @@
 <template>
-    <div class="enlace-enproceso">
-        <!-- Header con flecha y título -->
+    <div class="proceso-view">
+        <!-- Header con flecha de regreso y título -->
         <div class="top-header">
-            <button class="btn-back" @click="volverInicio">
+            <button class="btn-volver" @click="volverInicio">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <h1>Contratos - En Proceso</h1>
+            <h1>Contratos/Proceso</h1>
         </div>
 
-        <div class="content-box">
-            <h2 class="title">CONTRATOS EN PROCESO</h2>
+        <!-- Barra de búsqueda con avatar -->
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" placeholder="Buscar" v-model="searchQuery">
+                <span class="material-symbols-rounded search-icon">search</span>
+            </div>
+            <div class="user-avatar">
+                <span class="material-symbols-rounded">person</span>
+            </div>
+        </div>
 
-            <!-- Filtros -->
-            <div class="filters-row">
-                <div class="filter-group">
-                    <label>Nombre</label>
-                    <select v-model="filters.nombre" class="filter-select">
-                        <option value="">Ingresa nombre</option>
-                        <option v-for="nombre in nombresUnicos" :key="nombre" :value="nombre">
-                            {{ nombre }}
-                        </option>
-                    </select>
-                </div>
+        <!-- Título de sección -->
+        <div class="section-title">
+            <h2>CONTRATOS EN PROCESO</h2>
+        </div>
 
-                <div class="filter-group">
-                    <label>Área</label>
-                    <select v-model="filters.area" class="filter-select">
-                        <option value="">Seleccione área</option>
-                        <option v-for="area in areasUnicas" :key="area" :value="area">
-                            {{ area }}
-                        </option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Fecha</label>
-                    <select v-model="filters.fecha" class="filter-select">
-                        <option value="">Seleccione la fecha</option>
-                        <option value="reciente">Más reciente</option>
-                        <option value="antiguo">Más antiguo</option>
-                    </select>
-                </div>
+        <!-- Filtros -->
+        <div class="filters-container">
+            <div class="filter-group">
+                <label>Nombre</label>
+                <select v-model="filtroNombre" class="filter-select">
+                    <option value="">Ingresa nombre</option>
+                    <option v-for="nombre in nombresUnicos" :key="nombre" :value="nombre">
+                        {{ nombre }}
+                    </option>
+                </select>
             </div>
 
-            <!-- Tabla -->
-            <div class="tabla-header">
-                <span class="col-datos">Datos</span>
-                <span class="col-puesto">Puesto</span>
-                <span class="col-area">Área</span>
-                <span class="col-action"></span>
+            <div class="filter-group">
+                <label>Área</label>
+                <select v-model="filtroArea" class="filter-select">
+                    <option value="">Seleccione área</option>
+                    <option v-for="area in areasUnicas" :key="area" :value="area">
+                        {{ area }}
+                    </option>
+                </select>
             </div>
 
-            <div class="tabla-body">
-                <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="tabla-row">
+            <div class="filter-group">
+                <label>Fecha</label>
+                <select v-model="filtroFecha" class="filter-select">
+                    <option value="">Seleccione la fecha</option>
+                    <option value="reciente">Más reciente</option>
+                    <option value="antigua">Más antigua</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabla de contratos -->
+        <div class="contratos-table">
+            <div class="table-header">
+                <div class="col-datos">Datos</div>
+                <div class="col-puesto">Puesto</div>
+                <div class="col-area">Área</div>
+                <div class="col-action"></div>
+            </div>
+
+            <div class="table-body">
+                <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="table-row">
                     <div class="col-datos">
                         <img :src="contrato.avatar" :alt="contrato.nombre" class="avatar">
                         <div class="datos-info">
-                            <p class="nombre">{{ contrato.nombre }}</p>
-                            <p class="fase">Fase: {{ contrato.fase }}</p>
-                            <p class="cuenta">{{ contrato.cuenta }}</p>
+                            <div class="nombre">{{ contrato.nombre }}</div>
+                            <div class="estado">{{ contrato.estadoTexto || contrato.fase }}</div>
                         </div>
                     </div>
                     <div class="col-puesto">{{ contrato.puesto }}</div>
                     <div class="col-area">{{ contrato.area }}</div>
                     <div class="col-action">
-                        <button class="btn-revisar" @click="revisarContrato(contrato)">REVISAR</button>
+                        <button class="btn-revisar" @click="revisarContrato(contrato)">
+                            REVISAR
+                        </button>
                     </div>
                 </div>
             </div>
@@ -75,123 +90,205 @@
 <script setup>
 import { ref, computed } from 'vue';
 
+// Props
 const props = defineProps({
     contratos: {
         type: Array,
-        default: () => []
+        required: true
     }
 });
 
-const emit = defineEmits(['volver-inicio', 'revisar-contrato']);
+// Emits
+const emit = defineEmits(['revisar-contrato', 'volver-inicio']);
 
-// Función para volver al inicio
-const volverInicio = () => {
-    emit('volver-inicio');
-};
+// Estado local
+const searchQuery = ref('');
+const filtroNombre = ref('');
+const filtroArea = ref('');
+const filtroFecha = ref('');
 
-const filters = ref({
-    nombre: '',
-    area: '',
-    fecha: ''
-});
-
+// Obtener nombres únicos para el filtro
 const nombresUnicos = computed(() => {
     return [...new Set(props.contratos.map(c => c.nombre))];
 });
 
+// Obtener áreas únicas para el filtro
 const areasUnicas = computed(() => {
     return [...new Set(props.contratos.map(c => c.area))];
 });
 
+// Filtrar contratos
 const contratosFiltrados = computed(() => {
-    let resultado = [...props.contratos];
+    let result = props.contratos;
 
-    if (filters.value.nombre) {
-        resultado = resultado.filter(c => c.nombre === filters.value.nombre);
+    // Filtro por búsqueda
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(c =>
+            c.nombre.toLowerCase().includes(query) ||
+            c.puesto.toLowerCase().includes(query) ||
+            c.area.toLowerCase().includes(query)
+        );
     }
 
-    if (filters.value.area) {
-        resultado = resultado.filter(c => c.area === filters.value.area);
+    // Filtro por nombre
+    if (filtroNombre.value) {
+        result = result.filter(c => c.nombre === filtroNombre.value);
     }
 
-    if (filters.value.fecha === 'reciente') {
-        resultado = resultado.sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
-    } else if (filters.value.fecha === 'antiguo') {
-        resultado = resultado.sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
+    // Filtro por área
+    if (filtroArea.value) {
+        result = result.filter(c => c.area === filtroArea.value);
     }
 
-    return resultado;
+    // Ordenar por fecha si se selecciona
+    if (filtroFecha.value === 'reciente') {
+        result = [...result].sort((a, b) =>
+            new Date(b.fechaInicio) - new Date(a.fechaInicio)
+        );
+    } else if (filtroFecha.value === 'antigua') {
+        result = [...result].sort((a, b) =>
+            new Date(a.fechaInicio) - new Date(b.fechaInicio)
+        );
+    }
+
+    return result;
 });
 
+// Métodos
 const revisarContrato = (contrato) => {
     emit('revisar-contrato', contrato);
+};
+
+const volverInicio = () => {
+    emit('volver-inicio');
 };
 </script>
 
 <style scoped>
-.enlace-enproceso {
-    max-width: 1400px;
-    margin: 0 auto;
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
+
+.proceso-view {
+    background-color: #d9d9d9;
+    min-height: 100vh;
+    padding: 2rem;
 }
 
-/* Header con flecha */
+/* Top Header */
 .top-header {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1.5rem 1.5rem 1rem 1.5rem;
-    background-color: transparent;
+    margin-bottom: 1.5rem;
 }
 
-.btn-back {
+.btn-volver {
     background: none;
     border: none;
-    color: #333;
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease;
+    transition: transform 0.2s;
 }
 
-.btn-back:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+.btn-volver:hover {
+    transform: translateX(-4px);
 }
 
-.btn-back .material-symbols-rounded {
-    font-size: 26px;
+.btn-volver .material-symbols-rounded {
+    font-size: 2rem;
+    color: #333;
 }
 
 .top-header h1 {
-    color: #333;
-    font-size: 1.2rem;
+    font-size: 1.75rem;
     font-weight: 600;
+    color: #000;
     margin: 0;
 }
 
-.content-box {
+/* Search Section */
+.search-section {
     background-color: white;
-    border: 3px solid #17a2b8;
     border-radius: 12px;
     padding: 2rem;
-    margin: 0 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
-.title {
-    color: #17a2b8;
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 1rem 3rem 1rem 1.5rem;
+    border: none;
+    border-radius: 30px;
+    background-color: #e8e8f0;
+    font-size: 1rem;
+    outline: none;
+    color: #666;
+}
+
+.search-icon {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.user-avatar {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-avatar .material-symbols-rounded {
+    font-size: 40px;
+    color: white;
+}
+
+/* Section Title */
+.section-title {
+    background-color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-title h2 {
     font-size: 1.5rem;
     font-weight: 700;
-    margin: 0 0 2rem 0;
-    letter-spacing: 0.5px;
+    color: #00bcd4;
+    margin: 0;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
-/* Filtros */
-.filters-row {
+/* Filters Container */
+.filters-container {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 2rem;
 }
 
 .filter-group {
@@ -201,59 +298,77 @@ const revisarContrato = (contrato) => {
 }
 
 .filter-group label {
+    font-size: 1rem;
     font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.95rem;
+    color: #333;
 }
 
 .filter-select {
-    padding: 0.75rem;
-    border: 1px solid #e0e0e0;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #00bcd4;
     border-radius: 8px;
+    background-color: white;
     font-size: 0.95rem;
-    background-color: #f9f9f9;
+    color: #999;
     cursor: pointer;
-    transition: border-color 0.3s ease;
+    outline: none;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%2300bcd4' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 3rem;
+}
+
+.filter-select:hover {
+    border-color: #0097a7;
 }
 
 .filter-select:focus {
-    outline: none;
-    border-color: #17a2b8;
-    background-color: white;
+    border-color: #0097a7;
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.1);
 }
 
-/* Tabla */
-.tabla-header {
+/* Table */
+.contratos-table {
+    background-color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 150px;
-    padding: 1rem 1.5rem;
-    background-color: #fafafa;
+    padding: 1rem;
+    background-color: #f0f0f0;
     border-radius: 8px;
-    margin-bottom: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #555;
     font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
 }
 
-.tabla-body {
+.table-body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.tabla-row {
+.table-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 150px;
     padding: 1.5rem;
-    background-color: #fafafa;
+    border: 2px solid #00bcd4;
     border-radius: 12px;
+    background-color: #f0fbff;
     align-items: center;
     transition: all 0.3s ease;
 }
 
-.tabla-row:hover {
-    background-color: #f0f9fa;
-    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.15);
+.table-row:hover {
+    box-shadow: 0 4px 12px rgba(0, 188, 212, 0.2);
+    transform: translateY(-2px);
 }
 
 .col-datos {
@@ -263,8 +378,8 @@ const revisarContrato = (contrato) => {
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
+    width: 55px;
+    height: 55px;
     border-radius: 50%;
     object-fit: cover;
 }
@@ -276,72 +391,66 @@ const revisarContrato = (contrato) => {
 }
 
 .nombre {
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
+    font-weight: 700;
+    color: #333;
     font-size: 0.95rem;
 }
 
-.fase {
+.estado {
     font-size: 0.85rem;
     color: #666;
-    margin: 0;
-}
-
-.cuenta {
-    font-size: 0.85rem;
-    color: #17a2b8;
-    font-weight: 600;
-    margin: 0;
 }
 
 .col-puesto,
 .col-area {
     font-weight: 600;
-    color: #2c3e50;
+    color: #333;
+    font-size: 0.9rem;
 }
 
 .btn-revisar {
     padding: 0.6rem 1.5rem;
     background-color: white;
-    color: #17a2b8;
-    border: 2px solid #17a2b8;
+    color: #00bcd4;
+    border: 2px solid #00bcd4;
     border-radius: 8px;
-    font-weight: 600;
     font-size: 0.85rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
 }
 
 .btn-revisar:hover {
-    background-color: #17a2b8;
+    background-color: #00bcd4;
     color: white;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-    .filters-row {
+    .filters-container {
         grid-template-columns: 1fr;
     }
 
-    .tabla-header,
-    .tabla-row {
+    .table-header,
+    .table-row {
         grid-template-columns: 2fr 1fr 1fr 120px;
     }
 }
 
 @media (max-width: 768px) {
-    .content-box {
-        padding: 1.5rem;
+    .search-section {
+        flex-direction: column;
     }
 
-    .tabla-header {
-        display: none;
-    }
-
-    .tabla-row {
+    .table-header,
+    .table-row {
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 0.5rem;
+    }
+
+    .col-datos {
+        grid-column: 1 / -1;
     }
 }
 </style>
