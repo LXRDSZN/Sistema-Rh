@@ -75,8 +75,13 @@
 
     <!-- Otras vistas -->
     <div v-else class="other-view">
+      <!-- Vista de Detalle del Aspirante -->
+      <DetalleAspirante v-if="activeTab === 'detalle'" 
+        :aspirante="aspiranteSeleccionado" 
+        @cerrar="activeTab = 'inicio'" />
+
       <!-- Vista de Activos -->
-      <EnlaceActivos v-if="activeTab === 'activos'" :contratos="contratosActivos"
+      <EnlaceActivos v-else-if="activeTab === 'activos'" :contratos="contratosActivos"
         @revisar-contrato="handleRevisarContrato" 
         @volver-inicio="activeTab = 'inicio'" />
 
@@ -122,6 +127,7 @@ import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
 import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
+import DetalleAspirante from './DetalleAspiranteRefactored.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -129,6 +135,7 @@ const activeTab = ref('inicio');
 const searchQuery = ref('');
 const showIncidencia = ref(false);
 const showSuccess = ref(false);
+const aspiranteSeleccionado = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
 
 const onIncidenciaCreada = () => {
@@ -177,39 +184,69 @@ const stats = ref({
 const contratos = ref([
   {
     id: 1,
-    nombre: 'Jaecon Dan',
-    fase: 'Aplicado',
+    nombre: 'Braulio Torres Arispe',
+    fase: 'Evaluación',
     cuenta: 'CUENTA EJECUTIVA',
     puesto: 'GERENTE',
-    area: 'ASISTENCIAS',
+    area: 'VACACIONES',
     avatar: 'https://i.pravatar.cc/150?img=1',
     estado: 'activo',
     fechaInicio: '2024-01-15',
-    fechaVencimiento: '2025-12-31'
+    fechaVencimiento: '2025-12-31',
+    curp: 'TOAB961211HSLRRR08',
+    rfc: 'TOAB961211ABC',
+    nss: '12345678901',
+    fechaNacimiento: '12/11/1996',
+    sexo: 'Masculino',
+    nacionalidad: 'Mexicana',
+    telefono: '555-123-4567',
+    domicilio: 'Calle Ejemplo #123, Col. Centro',
+    estadoProceso: 'EN REVISIÓN',
+    fechaRegistro: '2025-08-16'
   },
   {
     id: 2,
-    nombre: 'Maria Lopez',
-    fase: 'En revisión',
+    nombre: 'Alejandro Solano',
+    fase: 'Revisión',
     cuenta: 'CUENTA EJECUTIVA',
-    puesto: 'SUPERVISOR',
-    area: 'RECURSOS HUMANOS',
+    puesto: 'GERENTE',
+    area: 'ASISTENCIAS',
     avatar: 'https://i.pravatar.cc/150?img=2',
     estado: 'avencer',
     fechaInicio: '2024-03-10',
-    fechaVencimiento: '2025-11-15'
+    fechaVencimiento: '2025-11-15',
+    curp: 'SOAL901205HDFNLX09',
+    rfc: 'SOAL901205XYZ',
+    nss: '98765432109',
+    fechaNacimiento: '05/12/1990',
+    sexo: 'Masculino',
+    nacionalidad: 'Mexicana',
+    telefono: '555-987-6543',
+    domicilio: 'Av. Principal #456, Col. Norte',
+    estadoProceso: 'EN REVISIÓN',
+    fechaRegistro: '2025-07-20'
   },
   {
     id: 3,
-    nombre: 'Carlos Rodriguez',
-    fase: 'Finalizado',
+    nombre: 'Juan Carlos Bodeque',
+    fase: 'Evaluación',
     cuenta: 'CUENTA CORPORATIVA',
-    puesto: 'ANALISTA',
-    area: 'FINANZAS',
+    puesto: 'GERENTE',
+    area: 'CONTRATOS',
     avatar: 'https://i.pravatar.cc/150?img=3',
     estado: 'vencido',
     fechaInicio: '2023-06-20',
-    fechaVencimiento: '2024-06-20'
+    fechaVencimiento: '2024-06-20',
+    curp: 'BOJC880315HMCDNR07',
+    rfc: 'BOJC880315DEF',
+    nss: '45678901234',
+    fechaNacimiento: '15/03/1988',
+    sexo: 'Masculino',
+    nacionalidad: 'Mexicana',
+    telefono: '555-456-7890',
+    domicilio: 'Boulevard Central #789, Col. Sur',
+    estadoProceso: 'FINALIZADO',
+    fechaRegistro: '2025-06-10'
   },
   {
     id: 4,
@@ -260,6 +297,8 @@ const handleCrearContrato = () => {
 
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
+  aspiranteSeleccionado.value = contrato;
+  activeTab.value = 'detalle';
 };
 
 
