@@ -1,0 +1,351 @@
+<template>
+    <div class="tab-panel">
+        <div class="proceso-container">
+            <!-- Información de Etapas -->
+            <div class="etapas-info">
+                <div class="etapa-item">
+                    <span class="etapa-label">Etapa</span>
+                    <span class="etapa-value">XXXXXXXXX</span>
+                </div>
+                <div class="etapa-item">
+                    <span class="etapa-label">Fecha</span>
+                    <span class="etapa-value">XXXXXXXXX</span>
+                </div>
+                <div class="etapa-item">
+                    <span class="etapa-label">Resultado de entrevista</span>
+                    <span class="etapa-value">XXXXXXXXX</span>
+                </div>
+                <div class="etapa-item">
+                    <span class="etapa-label">Resultado de examen</span>
+                    <span class="etapa-value">XXXXXXXXX</span>
+                </div>
+                <div class="etapa-item">
+                    <span class="etapa-label">Evaluador Asignado</span>
+                    <span class="etapa-value">XXXXXXXXX</span>
+                </div>
+            </div>
+
+            <!-- Línea de Progreso -->
+            <div class="progreso-linea">
+                <div class="progreso-step completado">
+                    <div class="step-circle">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <span class="step-label">Registro</span>
+                </div>
+                <div class="progreso-conexion completado"></div>
+                
+                <div class="progreso-step completado">
+                    <div class="step-circle">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <span class="step-label">Revisión</span>
+                </div>
+                <div class="progreso-conexion completado"></div>
+                
+                <div class="progreso-step completado">
+                    <div class="step-circle">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <span class="step-label">Entrevista</span>
+                </div>
+                <div class="progreso-conexion completado"></div>
+                
+                <div class="progreso-step completado">
+                    <div class="step-circle">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <span class="step-label">Evaluación</span>
+                </div>
+                <div class="progreso-conexion pendiente"></div>
+                
+                <div class="progreso-step pendiente">
+                    <div class="step-circle">
+                        <span class="material-symbols-rounded">check</span>
+                    </div>
+                    <span class="step-label">Contratación</span>
+                </div>
+            </div>
+
+            <!-- Sección de Comentarios y Historial -->
+            <div class="comentarios-historial-grid">
+                <!-- Comentarios -->
+                <div class="comentarios-box">
+                    <h4>Comentarios</h4>
+                    <textarea placeholder="Agregar un Comentario..."></textarea>
+                    <button class="btn-comentar">COMENTAR</button>
+                </div>
+
+                <!-- Historial -->
+                <div class="historial-box">
+                    <div class="historial-item">
+                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
+                    </div>
+                    <div class="historial-item">
+                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
+                    </div>
+                    <div class="historial-item">
+                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="proceso-acciones">
+                <button class="btn-actualizar">Actualizar estado</button>
+                <button class="btn-mover">Mover a siguiente etapa</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+defineProps({
+    aspirante: {
+        type: Object,
+        required: true
+    }
+});
+</script>
+
+<style scoped>
+.tab-panel {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.proceso-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.etapas-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.etapa-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.etapa-label {
+    font-weight: 600;
+    color: #333;
+    min-width: 200px;
+}
+
+.etapa-value {
+    color: #666;
+}
+
+.progreso-linea {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem 0;
+    position: relative;
+}
+
+.progreso-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+.step-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #4caf50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    transition: all 0.3s ease;
+}
+
+.progreso-step.pendiente .step-circle {
+    background-color: #e0e0e0;
+    color: #999;
+}
+
+.step-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #333;
+    text-align: center;
+}
+
+.progreso-conexion {
+    flex: 1;
+    height: 4px;
+    background-color: #4caf50;
+    margin: 0 -10px;
+    margin-bottom: 25px;
+}
+
+.progreso-conexion.pendiente {
+    background-color: #e0e0e0;
+}
+
+.comentarios-historial-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.comentarios-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comentarios-box h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.comentarios-box textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.btn-comentar {
+    align-self: flex-start;
+    padding: 0.6rem 1.5rem;
+    background-color: transparent;
+    border: 1px solid #7c4dff;
+    color: #7c4dff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-comentar:hover {
+    background-color: #7c4dff;
+    color: white;
+}
+
+.historial-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.historial-item {
+    padding: 0.8rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.historial-text {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.proceso-acciones {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1rem;
+}
+
+.btn-actualizar,
+.btn-mover {
+    padding: 0.8rem 2rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-actualizar {
+    background-color: #4caf50;
+    color: white;
+}
+
+.btn-actualizar:hover {
+    background-color: #45a049;
+}
+
+.btn-mover {
+    background-color: transparent;
+    border: 2px solid #7c4dff;
+    color: #7c4dff;
+}
+
+.btn-mover:hover {
+    background-color: #7c4dff;
+    color: white;
+}
+
+@media (max-width: 1024px) {
+    .comentarios-historial-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .progreso-linea {
+        overflow-x: auto;
+        padding: 1rem;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+
+    .proceso-acciones {
+        flex-direction: column;
+    }
+
+    .btn-actualizar,
+    .btn-mover {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .tab-panel {
+        padding: 1rem;
+    }
+
+    .etapa-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .etapa-label {
+        min-width: auto;
+    }
+
+    .progreso-linea {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .progreso-conexion {
+        display: none;
+    }
+}
+</style>

@@ -1,82 +1,38 @@
 <template>
     <div class="inicio-view">
-        <!-- Encabezado con título -->
+        <!-- Encabezado simplificado -->
         <div class="header">
             <h1>Contratos/Inicio</h1>
         </div>
 
-        <!-- Barra de búsqueda -->
+        <!-- Barra de búsqueda con botón de incidencia (todo en una línea) -->
         <div class="search-container">
             <div class="search-box">
                 <input type="text" placeholder="Buscar" v-model="searchQuery">
                 <span class="material-symbols-rounded search-icon">search</span>
             </div>
+            <button class="btn-incidencia" @click="registrarIncidencia">
+                + Registrar Incidencia
+            </button>
         </div>
 
-        <!-- Tarjetas de estadísticas -->
+        <!-- Tarjetas de estadísticas clickeables (4 en una línea) -->
         <div class="stats-grid">
             <div class="stat-card activos" @click="cambiarVista('activos')">
-                <div class="stat-content">
-                    <div class="stat-text">
-                        <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
-                    </div>
-                    <div class="stat-icon-container">
-                        <svg class="stat-icon" viewBox="0 0 64 64" fill="none">
-                            <rect x="12" y="8" width="40" height="48" rx="2" fill="currentColor" opacity="0.2" />
-                            <path d="M16 16h32M16 24h32M16 32h24M16 40h20" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                        <div class="stat-number">{{ stats.activos }}</div>
-                    </div>
-                </div>
+                <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
+                <div class="stat-value">{{ stats.activos }}</div>
             </div>
-
             <div class="stat-card proximos" @click="cambiarVista('avencer')">
-                <div class="stat-content">
-                    <div class="stat-text">
-                        <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
-                    </div>
-                    <div class="stat-icon-container">
-                        <svg class="stat-icon" viewBox="0 0 64 64" fill="none">
-                            <rect x="12" y="8" width="40" height="48" rx="2" fill="currentColor" opacity="0.2" />
-                            <path d="M16 16h32M16 24h32M16 32h24M16 40h20" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                        <div class="stat-number">{{ stats.proximosVencer }}</div>
-                    </div>
-                </div>
+                <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
+                <div class="stat-value">{{ stats.proximosVencer }}</div>
             </div>
-
             <div class="stat-card vencidos" @click="cambiarVista('vencidos')">
-                <div class="stat-content">
-                    <div class="stat-text">
-                        <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
-                    </div>
-                    <div class="stat-icon-container">
-                        <svg class="stat-icon" viewBox="0 0 64 64" fill="none">
-                            <rect x="12" y="8" width="40" height="48" rx="2" fill="currentColor" opacity="0.2" />
-                            <path d="M16 16h32M16 24h32M16 32h24M16 40h20" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                        <div class="stat-number">{{ stats.vencidos }}</div>
-                    </div>
-                </div>
+                <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
+                <div class="stat-value">{{ stats.vencidos }}</div>
             </div>
-
             <div class="stat-card proceso" @click="cambiarVista('proceso')">
-                <div class="stat-content">
-                    <div class="stat-text">
-                        <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
-                    </div>
-                    <div class="stat-icon-container">
-                        <svg class="stat-icon" viewBox="0 0 64 64" fill="none">
-                            <rect x="12" y="8" width="40" height="48" rx="2" fill="currentColor" opacity="0.2" />
-                            <path d="M16 16h32M16 24h32M16 32h24M16 40h20" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                        <div class="stat-number">{{ stats.enProceso }}</div>
-                    </div>
-                </div>
+                <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
+                <div class="stat-value">{{ stats.enProceso }}</div>
             </div>
         </div>
 
@@ -105,7 +61,8 @@
                                 <img :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
                                 <div class="datos-info">
                                     <div class="nombre">{{ empleado.nombre }}</div>
-                                    <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto }}</div>
+                                    <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
+                                        empleado.fase }}</div>
                                 </div>
                             </div>
                             <div class="col-puesto">{{ empleado.puesto }}</div>
@@ -139,7 +96,8 @@
                                 <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
                                 <div class="datos-info">
                                     <div class="nombre">{{ aspirante.nombre }}</div>
-                                    <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto }}</div>
+                                    <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
+                                        aspirante.fase }}</div>
                                 </div>
                             </div>
                             <div class="col-puesto">{{ aspirante.puesto }}</div>
@@ -160,7 +118,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 
-// Props
+// Props - recibe datos del componente raíz
 const props = defineProps({
     contratos: {
         type: Array,
@@ -172,15 +130,15 @@ const props = defineProps({
     }
 });
 
-// Emits
-const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista']);
+// Emits - envía eventos al componente raíz
+const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
 
 // Estado local
 const searchQuery = ref('');
 
-// Separar contratos en empleados y aspirantes
+// Separar contratos por tipo
 const empleados = computed(() =>
-    props.contratos.filter(c => c.tipo === 'empleado')
+    props.contratos.filter(c => !c.tipo || c.tipo === 'empleado')
 );
 
 const aspirantes = computed(() =>
@@ -212,12 +170,20 @@ const aspirantesFiltrados = computed(() => {
 });
 
 // Métodos
+const crearContrato = () => {
+    emit('crear-contrato');
+};
+
 const revisarContrato = (contrato) => {
     emit('revisar-contrato', contrato);
 };
 
 const cambiarVista = (vista) => {
     emit('cambiar-vista', vista);
+};
+
+const registrarIncidencia = () => {
+    emit('registrar-incidencia');
 };
 </script>
 
@@ -227,12 +193,14 @@ const cambiarVista = (vista) => {
 .inicio-view {
     background-color: #d9d9d9;
     min-height: 100vh;
-    padding: 2rem;
+    padding: 0;
 }
 
-/* Header */
+/* Header - Separado */
 .header {
-    margin-bottom: 1.5rem;
+    background-color: transparent;
+    padding: 2rem 2rem 1.5rem 2rem;
+    margin-bottom: 0;
 }
 
 .header h1 {
@@ -242,18 +210,21 @@ const cambiarVista = (vista) => {
     margin: 0;
 }
 
-/* Search Container */
+/* Search Container - En línea */
 .search-container {
     background-color: white;
     border: 3px solid #00a8e8;
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 1.5rem;
+    margin: 0 2rem 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .search-box {
     position: relative;
-    width: 100%;
+    flex: 1;
 }
 
 .search-box input {
@@ -267,6 +238,10 @@ const cambiarVista = (vista) => {
     color: #666;
 }
 
+.search-box input::placeholder {
+    color: #999;
+}
+
 .search-icon {
     position: absolute;
     right: 1.5rem;
@@ -275,28 +250,57 @@ const cambiarVista = (vista) => {
     color: #666;
     font-size: 24px;
     cursor: pointer;
+    pointer-events: none;
 }
 
-/* Stats Grid */
+.btn-incidencia {
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #4F39F6, #5a4fc7);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(79, 57, 246, 0.2);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-incidencia:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
+    background: linear-gradient(135deg, #5a4fc7, #4F39F6);
+}
+
+.btn-incidencia:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(79, 57, 246, 0.3);
+}
+
+
+/* Stats Grid - 4 columnas en una línea */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin: 0 2rem 1.5rem 2rem;
+    padding: 0;
 }
 
 .stat-card {
     background: white;
-    padding: 1.5rem;
+    padding: 2rem;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .stat-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card.activos {
@@ -315,17 +319,12 @@ const cambiarVista = (vista) => {
     background-color: #d1ecf1;
 }
 
-.stat-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .stat-label {
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.3;
     text-transform: uppercase;
+    margin-bottom: 1rem;
 }
 
 .stat-card.activos .stat-label {
@@ -344,52 +343,25 @@ const cambiarVista = (vista) => {
     color: #17a2b8;
 }
 
-.stat-icon-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.stat-icon {
-    width: 50px;
-    height: 50px;
-}
-
-.stat-card.activos .stat-icon {
-    color: #28a745;
-}
-
-.stat-card.proximos .stat-icon {
-    color: #ff9800;
-}
-
-.stat-card.vencidos .stat-icon {
-    color: #dc3545;
-}
-
-.stat-card.proceso .stat-icon {
-    color: #17a2b8;
-}
-
-.stat-number {
-    font-size: 2rem;
+.stat-value {
+    font-size: 2.5rem;
     font-weight: 700;
+    text-align: center;
 }
 
-.stat-card.activos .stat-number {
+.stat-card.activos .stat-value {
     color: #28a745;
 }
 
-.stat-card.proximos .stat-number {
+.stat-card.proximos .stat-value {
     color: #ff9800;
 }
 
-.stat-card.vencidos .stat-number {
+.stat-card.vencidos .stat-value {
     color: #dc3545;
 }
 
-.stat-card.proceso .stat-number {
+.stat-card.proceso .stat-value {
     color: #17a2b8;
 }
 
@@ -398,7 +370,7 @@ const cambiarVista = (vista) => {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin: 0 2rem 1.5rem 2rem;
     text-align: center;
 }
 
@@ -416,6 +388,7 @@ const cambiarVista = (vista) => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
+    padding: 0 2rem 2rem 2rem;
 }
 
 .column-section {
@@ -487,7 +460,11 @@ const cambiarVista = (vista) => {
     transform: translateY(-2px);
 }
 
-
+.col-datos {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
 .avatar {
     width: 50px;
@@ -530,7 +507,6 @@ const cambiarVista = (vista) => {
     color: #ff9800;
 }
 
-.col-datos,
 .col-puesto,
 .col-area {
     font-weight: 600;
@@ -584,6 +560,30 @@ const cambiarVista = (vista) => {
 }
 
 @media (max-width: 768px) {
+    .inicio-view {
+        padding: 0;
+    }
+
+    .header,
+    .search-container,
+    .stats-grid,
+    .destacados-header,
+    .columns-container {
+        margin: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .btn-incidencia {
+        width: 100%;
+    }
+
     .stats-grid {
         grid-template-columns: 1fr;
     }

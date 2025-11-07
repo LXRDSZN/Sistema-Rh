@@ -1,6 +1,7 @@
 import { db } from '../models/db.js';
 import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
+import bcrypt from 'bcrypt';
 
 /**
  * CONTROLADORES DE AUTENTICACIÓN
@@ -292,6 +293,89 @@ export const verifyToken = async (req, res) => {
     return res.status(401).json({ 
       success: false,
       message: 'Token inválido o expirado' 
+    });
+  }
+};
+
+/**
+ * CAMBIAR CONTRASEÑA - Actualizar contraseña del usuario
+ */
+export const changePassword = async (req, res) => {
+  const { email, currentPassword, newPasswordHash } = req.body;
+
+  try {
+    // Buscar usuario por email
+    const result = await db.query(
+      `SELECT id, email, password_hash, activo
+       FROM usuario
+       WHERE email = $1`,
+      [email]
+    );
+
+    // Verificar si existe el usuario
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Usuario no encontrado' 
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Verificar si el usuario está activo
+    if (!user.activo) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Usuario inactivo. Contacte al administrador.' 
+      });
+    }
+
+    // Verificar la contraseña actual
+    // Si la contraseña actual está hasheada, usar bcrypt.compare
+    // Si está en texto plano (sistema antiguo), comparar directamente
+    let passwordMatch = false;
+    
+    if (user.password_hash.startsWith('$2')) {
+      // La contraseña está hasheada con bcrypt
+      passwordMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    } else {
+      // La contraseña está en texto plano (sistema antiguo)
+      passwordMatch = currentPassword === user.password_hash;
+    }
+
+    if (!passwordMatch) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'La contraseña actual es incorrecta' 
+      });
+    }
+
+    // Actualizar la contraseña en la base de datos
+    await db.query(
+      `UPDATE usuario 
+       SET password_hash = $1
+       WHERE id = $2`,
+      [newPasswordHash, user.id]
+    );
+
+    // Registrar el cambio en la bitácora
+    await db.query(
+      `INSERT INTO bitacora_accesos (usuario_id, ip, accion, inicio)
+       VALUES ($1, $2, $3, NOW())`,
+      [user.id, req.ip || 'unknown', 'Cambio de contraseña']
+    );
+
+    return res.json({
+      success: true,
+      message: 'Contraseña actualizada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Error al cambiar la contraseña',
+      error: error.message 
     });
   }
 };

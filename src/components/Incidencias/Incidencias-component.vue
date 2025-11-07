@@ -1,22 +1,13 @@
 <script>
+import * as incidenciasService from '@/services/incidenciasService';
+
 export default {
   data() {
     return {
-      areaItems: [
-        'Asistencias',
-        'Documentación',
-        'Vacaciones',
-        'Incidencias',
-        'Áreas'
-      ],
-      nombreItems: [
-      'Pedro Pérez', 
-      'Lalito Ramírez'
-    ],
-      statusItems: [
-       'Pendiente',
-       'Revisado'
-      ],
+      // Listas dinámicas desde la API
+      areaItems: [],
+      nombreItems: [],
+      statusItems: [],
 
       selectedArea: null,
       selectedNombre: null,
@@ -24,59 +15,27 @@ export default {
 
       buscar:'',
 
-      reporteDialog: false, // controla el modal
+      reporteDialog: false,
       fechaReporte: null,
       tipoReporte: null,
       tipoReporteItems: ['PDF', 'EXCEL'],
-      menu:false, // para el date picker
+      menu: false,
 
-      // Lista estática de incidencias
-      incidencias: [
-        {
-          id: 1,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Asistencias',
-          nombre: 'Pedro Pérez',
-          status: 'Pendiente'
-        },
-        {
-          id: 2,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Documentación',
-          nombre: 'Lalito Ramírez',
-          status: 'Revisado'
-        },
-        {
-          id: 3,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Documentación',
-          nombre: 'Lalito Ramírez',
-          status: 'Revisado'
-        },
-        {
-          id: 4,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Documentación',
-          nombre: 'Lalito Ramírez',
-          status: 'Pendiente'
-        },
-        {
-          id: 5,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Documentación',
-          nombre: 'Lalito Ramírez',
-          status: 'Pendiente'
-        },
-        {
-          id: 4,
-          asunto: 'Falta injustificada del área de Documentación',
-          area: 'Documentación',
-          nombre: 'Lalito Ramírez',
-          status: 'Pendiente'
-        }
+      incidenciaSeleccionada: null,
+      dialogIncidencia: false,
+      dialogRechazo: false,
+      motivoRechazo: '',
+      cargando: false,
 
-      ]
+      // Incidencias desde la API
+      incidencias: [],
+      tiposIncidencia: [],
+      estadosIncidencia: []
     };
+  },
+  
+  mounted() {
+    this.cargarDatos();
   },
 
   computed: {
@@ -86,14 +45,14 @@ export default {
       return this.incidencias.filter(i => {
         const coincideTexto =
           !texto ||
-          i.asunto.toLowerCase().includes(texto) ||
+          i.tipo.toLowerCase().includes(texto) ||
           i.area.toLowerCase().includes(texto) ||
-          i.nombre.toLowerCase().includes(texto) ||
-          i.status.toLowerCase().includes(texto);
+          i.nombre_completo.toLowerCase().includes(texto) ||
+          i.estado.toLowerCase().includes(texto);
 
         const areaOk = !this.selectedArea || i.area === this.selectedArea;
-        const nombreOk = !this.selectedNombre || i.nombre === this.selectedNombre;
-        const statusOk = !this.selectedStatus || i.status === this.selectedStatus;
+        const nombreOk = !this.selectedNombre || i.nombre_completo === this.selectedNombre;
+        const statusOk = !this.selectedStatus || i.estado === this.selectedStatus;
 
         return coincideTexto && areaOk && nombreOk && statusOk;
       });
@@ -101,16 +60,75 @@ export default {
   },
 
   methods: {
+    // Cargar todos los datos iniciales
+    async cargarDatos() {
+      this.cargando = true;
+      try {
+        // Cargar incidencias
+        const incidenciasRes = await incidenciasService.getIncidencias();
+        if (incidenciasRes.success) {
+          this.incidencias = incidenciasRes.data;
+          
+          // Extraer listas únicas de áreas y nombres
+          const areas = new Set(incidenciasRes.data.map(i => i.area).filter(Boolean));
+          const nombres = new Set(incidenciasRes.data.map(i => i.nombre_completo).filter(Boolean));
+          
+          this.areaItems = Array.from(areas);
+          this.nombreItems = Array.from(nombres);
+        }
+        
+        // Cargar estados
+        const estadosRes = await incidenciasService.getEstadosIncidencia();
+        if (estadosRes.success) {
+          this.estadosIncidencia = estadosRes.data;
+          this.statusItems = estadosRes.data.map(e => e.nombre);
+        }
+        
+        // Cargar tipos
+        const tiposRes = await incidenciasService.getTiposIncidencia();
+        if (tiposRes.success) {
+          this.tiposIncidencia = tiposRes.data;
+        }
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Error al cargar las incidencias'
+        });
+      } finally {
+        this.cargando = false;
+      }
+    },
+
     abrirReporte() {
       this.reporteDialog = true;
     },
+    
     generarReporte() {
       alert(`Reporte generado\nFecha: ${this.fechaReporte}\nTipo: ${this.tipoReporte}`);
       this.reporteDialog = false;
     },
-    eliminarIncidencia(id) {
-      this.incidencias = this.incidencias.filter(i => i.id !== id);
+    
+    async eliminarIncidencia(id) {
+      if (confirm('¿Estás seguro de que deseas eliminar esta incidencia?')) {
+        try {
+          const resultado = await incidenciasService.deleteIncidencia(id);
+          if (resultado.success) {
+            this.incidencias = this.incidencias.filter(i => i.id !== id);
+            this.$emit('mostrar-toast', {
+              color: 'success',
+              mensaje: 'Incidencia eliminada correctamente'
+            });
+          }
+        } catch (error) {
+          this.$emit('mostrar-toast', {
+            color: 'error',
+            mensaje: 'Error al eliminar la incidencia'
+          });
+        }
+      }
     },
+    
     seleccionarFecha(valor) {
       const fecha = new Date(valor);
       const dia = String(fecha.getDate()).padStart(2, '0');
@@ -119,10 +137,93 @@ export default {
       this.fechaReporte = `${dia}/${mes}/${anio}`;
       this.menu = false;
     },
+    
     limpiarFecha() {
       this.fechaReporte = null;
-    }
+    },
 
+    abrirIncidencia(incidencia) {
+      this.incidenciaSeleccionada = incidencia;
+      this.dialogIncidencia = true;
+    },
+    
+    async aprobarIncidencia() {
+      try {
+        const resultado = await incidenciasService.approveIncidencia(this.incidenciaSeleccionada.id);
+        if (resultado.success) {
+          // Actualizar la incidencia en la lista
+          const index = this.incidencias.findIndex(i => i.id === this.incidenciaSeleccionada.id);
+          if (index !== -1) {
+            this.incidencias[index].estado = 'Aprobada';
+          }
+          
+          this.incidenciaSeleccionada.estado = 'Aprobada';
+          this.incidenciaSeleccionada.motivo = '';
+          this.dialogIncidencia = false;
+          this.incidenciaSeleccionada = null;
+          
+          this.$emit('mostrar-toast', {
+            color: 'success',
+            mensaje: 'Incidencia aprobada correctamente'
+          });
+        }
+      } catch (error) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Error al aprobar la incidencia'
+        });
+      }
+    },
+    
+    rechazarIncidencia() {
+      this.dialogIncidencia = false;
+      this.dialogRechazo = true;
+    },
+    
+    async confirmarRechazo() {
+      if (!this.motivoRechazo.trim()) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Por favor ingresa una razón del rechazo.'
+        });
+        return;
+      }
+
+      try {
+        const resultado = await incidenciasService.rejectIncidencia(
+          this.incidenciaSeleccionada.id,
+          this.motivoRechazo
+        );
+        
+        if (resultado.success) {
+          // Actualizar la incidencia en la lista
+          const index = this.incidencias.findIndex(i => i.id === this.incidenciaSeleccionada.id);
+          if (index !== -1) {
+            this.incidencias[index].estado = 'Rechazada';
+            this.incidencias[index].descripcion = `RECHAZADA: ${this.motivoRechazo}`;
+          }
+          
+          this.incidenciaSeleccionada.estado = 'Rechazada';
+          this.incidenciaSeleccionada.motivo = this.motivoRechazo;
+          this.incidenciaSeleccionada.descripcion = `RECHAZADA: ${this.motivoRechazo}`;
+          
+          this.dialogRechazo = false;
+          this.motivoRechazo = '';
+          this.dialogIncidencia = false;
+          this.incidenciaSeleccionada = null;
+          
+          this.$emit('mostrar-toast', {
+            color: 'success',
+            mensaje: 'Incidencia rechazada correctamente'
+          });
+        }
+      } catch (error) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Error al rechazar la incidencia'
+        });
+      }
+    }
   }
 };
 </script>
@@ -257,14 +358,14 @@ export default {
       <div class="tarjetas">
         <div class="pendientes">
           <span class="material-symbols-rounded">hourglass_top</span>
-          <h2>{{ incidencias.filter(i => i.status === 'Pendiente').length }}</h2>
+          <h2>{{ incidencias.filter(i => i.estado === 'Pendiente').length }}</h2>
           <p>Pendientes</p>
         </div>
 
         <div class="revisados">
           <span class="material-symbols-rounded">visibility</span>
-          <h2>{{ incidencias.filter(i => i.status === 'Revisado').length }}</h2>
-          <p>Revisados</p>
+          <h2>{{ incidencias.filter(i => i.estado === 'Aprobada').length }}</h2>
+          <p>Aprobadas</p>
         </div>
       </div>
     </div>
@@ -328,28 +429,34 @@ export default {
     </div>
 
     
-     <!-- Lista de incidencias -->
+    <!-- Lista de incidencias -->
 <div class="lista-incidencias">
   <div
     v-for="(incidencia, index) in incidenciasFiltradas"
     :key="incidencia.id"
     class="incidencia-card"
+    @click="abrirIncidencia(incidencia)"
+    style="cursor:pointer"
   >
     <div class="incidencia-num">{{ index + 1 }}</div>
 
     <div class="incidencia-info">
-      <p class="asunto">{{ incidencia.asunto }}</p>
+      <p class="asunto">{{ incidencia.tipo }} - {{ incidencia.fecha_inicio }}</p>
       <p class="detalles">
         <strong>Área:</strong> {{ incidencia.area }} —
-        <strong>Nombre:</strong> {{ incidencia.nombre }} —
+        <strong>Empleado:</strong> {{ incidencia.nombre_completo }} —
         <strong>Estado:</strong>
         <span
           :class="[
             'status-tag',
-            incidencia.status === 'Pendiente' ? 'pendiente' : 'revisado'
+            incidencia.estado === 'Pendiente'
+            ? 'pendiente'
+            : incidencia.estado === 'Rechazada'
+            ? 'rechazada'
+            : 'revisado'
           ]"
         >
-          {{ incidencia.status }}
+          {{ incidencia.estado }}
         </span>
       </p>
     </div>
@@ -362,7 +469,121 @@ export default {
   </div>
 </div>
 
- 
+<!-- Modal de información de la incidencia -->
+
+<v-dialog v-model="dialogIncidencia" max-width="600" scrollable>
+  <v-card class="pa-6 rounded-xl" elevation="8">
+    <v-card-title class="text-h6 text-center d-flex align-center justify-center mb-2">
+      <span>Detalles de la incidencia</span>
+    </v-card-title>
+
+    <v-divider class="mb-4"></v-divider>
+
+    <v-card-text v-if="incidenciaSeleccionada" class="modal-content">
+      <div class="detalle-item">
+        <label><strong>Tipo:</strong></label>
+        <p>{{ incidenciaSeleccionada.tipo }}</p>
+      </div>
+
+      <div class="detalle-item">
+        <label><strong>Fecha inicio:</strong></label>
+        <p>{{ incidenciaSeleccionada.fecha_inicio }}</p>
+      </div>
+
+      <div class="detalle-item">
+        <label><strong>Área:</strong></label>
+        <p>{{ incidenciaSeleccionada.area }}</p>
+      </div>
+
+      <div class="detalle-item">
+        <label><strong>Empleado:</strong></label>
+        <p>{{ incidenciaSeleccionada.nombre_completo }}</p>
+      </div>
+
+      <div class="detalle-item descripcion-item">
+        <label><strong>Descripción:</strong></label>
+        <p class="descripcion-text">{{ incidenciaSeleccionada.descripcion || 'Sin descripción' }}</p>
+      </div>
+
+      <div class="detalle-item">
+        <label><strong>Estado actual:</strong></label>
+        <span
+          :class="[
+            'status-tag',
+            incidenciaSeleccionada.estado === 'Pendiente'
+              ? 'pendiente'
+              : incidenciaSeleccionada.estado === 'Rechazada'
+              ? 'rechazada'
+              : 'revisado'
+          ]"
+        >
+          {{ incidenciaSeleccionada.estado }}
+        </span>
+      </div>
+
+      <!-- Motivo del rechazo dentro del modal -->
+      <div
+        v-if="incidenciaSeleccionada.estado === 'Rechazada' && incidenciaSeleccionada.descripcion?.includes('RECHAZADA')"
+        class="motivo-box mt-4"
+      >
+        <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+        <div>
+          <strong>Motivo del rechazo:</strong>
+          <p class="motivo-text">{{ incidenciaSeleccionada.descripcion }}</p>
+        </div>
+      </div>
+    </v-card-text>
+
+    <v-card-actions
+      v-if="incidenciaSeleccionada && incidenciaSeleccionada.estado === 'Pendiente'"
+      class="justify-center mt-4"
+    >
+      <v-btn color="success" rounded="xl" @click="aprobarIncidencia">
+        <v-icon left>mdi-check-circle</v-icon> Aprobar
+      </v-btn>
+      <v-btn color="error" rounded="xl" @click="rechazarIncidencia">
+        <v-icon left>mdi-close-circle</v-icon> Rechazar
+      </v-btn>
+    </v-card-actions>
+
+
+  </v-card>
+</v-dialog>
+
+
+<!-- Modal de rechazo -->
+<v-dialog v-model="dialogRechazo" max-width="450">
+  <v-card class="pa-5 rounded-xl" elevation="8">
+    <v-card-title class="text-h6 text-center mb-2">
+      <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+      Escribe el motivo del rechazo
+    </v-card-title>
+
+    <v-divider class="mb-3"></v-divider>
+
+    <v-card-text>
+      <v-textarea
+        v-model="motivoRechazo"
+        label="Motivo del rechazo"
+        auto-grow
+        outlined
+        clearable
+        rows="3"
+      ></v-textarea>
+    </v-card-text>
+
+    <v-card-actions class="justify-center">
+      <v-btn color="primary" rounded="xl" @click="confirmarRechazo">
+        Confirmar
+      </v-btn>
+      <v-btn text @click="dialogRechazo = false">
+        Cancelar
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+
 
   </div>
 </template>
@@ -372,7 +593,7 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
 
 .incidencias-content {
-   flex: 1;
+  flex: 1;
   min-height: 100vh;
   background-color: #E4E4E7;
   display: flex;
@@ -756,6 +977,10 @@ export default {
   background-color: #dcfce7;
   color: #166534;
 }
+.status-tag.rechazada {
+  background-color: #f8d7da;
+  color: #721c24;
+}
 
 /* Mensaje cuando no hay incidencias */
 .no-incidencias {
@@ -769,9 +994,106 @@ export default {
   margin-bottom: 0.5rem;
 }
 
+/* --- Estilo para el motivo del rechazo dentro del modal --- */
+.motivo-box {
+  display: flex;
+  align-items: flex-start;
+  background: #fee2e2;
+  border-left: 5px solid #ef4444;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  color: #991b1b;
+  max-height: 200px; /* evita que crezca demasiado */
+  overflow-y: auto; /* agrega scroll si es muy largo */
+  word-wrap: break-word; /* evita que se salga del contenedor */
+  white-space: pre-wrap; /* conserva saltos de línea y adapta el texto */
+  line-height: 1.4;
+}
+
+.motivo-box p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.95rem;
+  overflow-wrap: break-word;
+}
+
+.motivo-box::-webkit-scrollbar {
+  width: 6px;
+}
+.motivo-box::-webkit-scrollbar-thumb {
+  background-color: #f87171;
+  border-radius: 8px;
+}
+
 @media (min-width: 1024px) {
   .incidencias-content {
     padding: 3rem;
   }
+}
+
+/* Estilos para modal dinámico */
+.modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.detalle-item {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detalle-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.detalle-item label {
+  display: block;
+  color: #374151;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.detalle-item p {
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.descripcion-item p.descripcion-text {
+  background-color: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border-left: 3px solid #6366f1;
+}
+
+.motivo-text {
+  margin: 0.5rem 0 0 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Scroll personalizado para modal */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>

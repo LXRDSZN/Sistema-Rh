@@ -1,9 +1,53 @@
 <script setup>
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
+  import * as incidenciasService from '@/services/incidenciasService'
 
+  const emit = defineEmits(['cerrar', 'incidencia-creada'])
+
+  // Form data
+  const usuario = ref('')
+  const tipoIncidencia = ref('')
+  const fechaInicio = ref(new Date().toISOString().split('T')[0])
+  const descripcion = ref('')
+  const archivo = ref(null)
+  
+  // UI state
   const fileName = ref('Subir archivo')
   const fileInput = ref(null)
   const isLoading = ref(false)
+  const tiposIncidencia = ref([])
+  const empleados = ref([])
+
+  // Tipos de incidencia disponibles (opciones fijas)
+  const tiposIncidenciaOpciones = [
+    { id: 'incapacidad', nombre: 'Incapacidad' },
+    { id: 'retardo', nombre: 'Retardo' },
+    { id: 'falta', nombre: 'Falta' },
+    { id: 'permiso', nombre: 'Permiso' },
+    { id: 'vacaciones', nombre: 'Vacaciones' },
+    { id: 'amonestacion', nombre: 'Amonestación' },
+    { id: 'accidente', nombre: 'Accidente de Trabajo' },
+    { id: 'conflicto', nombre: 'Conflicto Laboral' },
+    { id: 'licencia_especial', nombre: 'Licencia Especial' },
+    { id: 'disciplina', nombre: 'Incidente de Disciplina' }
+  ]
+
+  // Cargar datos iniciales
+  const cargarDatos = async () => {
+    try {
+      // Cargar empleados
+      const resEmpleados = await empleadosService.getEmpleados()
+      if (resEmpleados.success) {
+        empleados.value = resEmpleados.data
+      }
+    } catch (error) {
+      console.error('Error al cargar datos:', error)
+    }
+  }
+
+  onMounted(() => {
+    cargarDatos()
+  })
 
   const triggerFile = () => {
     fileInput.value.click()
@@ -12,17 +56,92 @@
   const handleFile = (event) => {
     const file = event.target.files[0]
     if (file) {
-      isLoading.value = true
+      // Validar tipo de archivo
+      const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword']
+      if (!tiposPermitidos.includes(file.type)) {
+        alert('Solo se permiten archivos: PDF, JPG, PNG, DOC')
+        return
+      }
+      
+      // Validar tamaño (máx 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo no debe superar 5MB')
+        return
+      }
+      
+      archivo.value = file
       fileName.value = file.name
-
-      // Simula la carga del archivo (3 segundos)
-      setTimeout(() => {
-        isLoading.value = false
-      }, 3000)
     } else {
+      archivo.value = null
       fileName.value = 'Subir archivo'
     }
   }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    // Validar campos requeridos
+    if (!usuario.value || !tipoIncidencia.value || !fechaInicio.value || !descripcion.value) {
+      alert('Por favor completa todos los campos requeridos')
+      return
+    }
+
+    isLoading.value = true
+    try {
+      let archivoId = null
+
+      // Si hay archivo, subirlo primero
+      if (archivo.value) {
+        try {
+          const uploadRes = await incidenciasService.uploadArchivo(archivo.value)
+          if (uploadRes.success) {
+            archivoId = uploadRes.data.id
+          } else {
+            alert('Error al subir el archivo: ' + uploadRes.message)
+            isLoading.value = false
+            return
+          }
+        } catch (uploadError) {
+          alert('Error al subir el archivo: ' + uploadError.message)
+          isLoading.value = false
+          return
+        }
+      }
+
+      // Crear la incidencia
+      const datosIncidencia = {
+        persona_id: usuario.value,
+        tipo: tipoIncidencia.value,
+        fecha_inicio: fechaInicio.value,
+        descripcion: descripcion.value,
+        archivo_id: archivoId
+      }
+
+      // Crear la incidencia en la BD
+      const resultado = await incidenciasService.createIncidencia(datosIncidencia)
+      
+      if (resultado.success) {
+        emit('incidencia-creada', resultado.data)
+        emit('cerrar')
+        
+        // Limpiar formulario
+        usuario.value = ''
+        tipoIncidencia.value = ''
+        fechaInicio.value = new Date().toISOString().split('T')[0]
+        descripcion.value = ''
+        archivo.value = null
+        fileName.value = 'Subir archivo'
+      }
+    } catch (error) {
+      console.error('Error al crear incidencia:', error)
+      alert('Error al crear la incidencia: ' + error.message)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  import { onMounted } from 'vue'
+  import * as empleadosService from '@/services/empleadosService'
 </script>
 
 
@@ -35,52 +154,64 @@
         <button class="btn-cerrar" @click="$emit('cerrar')">&times;</button>
       </header>
 
-      <form class="form">
+      <form class="form" @submit="handleSubmit">
         <div class="form-group">
-          <label>Usuario (Empleado)</label>
+          <label>Usuario (Empleado) *</label>
+          <select v-model="usuario" class="input" required>
+            <option value="" disabled>Selecciona un empleado</option>
+            <option v-for="emp in empleados" :key="emp.id" :value="emp.id">
+              {{ emp.nombre }} {{ emp.apellido_paterno }} {{ emp.apellido_materno }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo de Incidencia *</label>
+          <select v-model="tipoIncidencia" class="input" required>
+            <option value="" disabled>Selecciona un tipo</option>
+            <option v-for="tipo in tiposIncidenciaOpciones" :key="tipo.id" :value="tipo.nombre">
+              {{ tipo.nombre }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Inicio *</label>
           <input
-            type="text"
-            v-model="usuario"
-            placeholder="Ej. Carlos Méndez"
+            type="date"
+            v-model="fechaInicio"
             class="input"
             required
           />
         </div>
 
         <div class="form-group">
-          <label>Asunto</label>
-          <input
-            type="text"
-            v-model="asunto"
-            placeholder="Ej. Falta, Retardo..."
-            class="input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Descripción</label>
+          <label>Descripción *</label>
           <textarea
             v-model="descripcion"
-            rows="2"
-            placeholder="Describe la situación..."
+            rows="3"
+            placeholder="Describe la incidencia detalladamente..."
             class="textarea"
             required
           ></textarea>
         </div>
 
         <div class="form-group">
-          <label>Subir acta emitida</label>
+          <label>Subir documento (Opcional).</label>
           <input type="file" ref="fileInput" @change="handleFile" style="display:none" />
           <button type="button" class="upload-btn" @click="triggerFile" :disabled="isLoading">
             <span class="material-symbols-rounded">upload_file</span>
-            {{ isLoading ? 'Cargando...' : fileName }}
+            {{ fileName }}
           </button>
+          <small style="display: block; margin-top: 5px; color: #666;">
+            Máximo 5MB. Formatos: PDF, JPG, PNG, DOC
+          </small>
         </div>
 
-
         <div class="form-footer">
-          <button type="submit" class="btn-reportar">Reportar</button>
+          <button type="button" class="btn-cancelar" @click="$emit('cerrar')">Cancelar</button>
+          <button type="submit" class="btn-reportar" :disabled="isLoading">
+            {{ isLoading ? 'Guardando...' : 'Reportar' }}
+          </button>
         </div>
       </form>
     </div>
@@ -255,9 +386,33 @@ label {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.btn-reportar:hover {
-  transform: scale(1.05); /* se agranda un poco */
-  box-shadow: 0 8px 20px rgba(108, 71, 255, 0.4); /* sombra suave */
+.btn-reportar:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(108, 71, 255, 0.4);
+}
+
+.btn-reportar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botón Cancelar */
+.btn-cancelar {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 45px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+}
+
+.btn-cancelar:hover {
+  background: #d1d5db;
+  transform: translateY(-2px);
 }
 
 
