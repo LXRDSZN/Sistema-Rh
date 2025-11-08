@@ -4,6 +4,9 @@
  * Este archivo centraliza todas las variables de configuración del backend.
  * Configurado para usar AWS RDS en producción.
  */
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 export const config = {
   // Configuración del servidor
@@ -38,6 +41,12 @@ export const config = {
       rejectUnauthorized: false,
     },
   },
+  aws: {
+    region: process.env.AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    bucket: process.env.AWS_BUCKET
+  }
 };
 
 export default config;
