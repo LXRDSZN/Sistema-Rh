@@ -50,9 +50,14 @@ export function useAreasFilters(empleados) {
       filtrados = filtrados.filter(emp => filtrosCategoria.value.includes(emp.categoria));
     }
     
-    // Filtrar por género
+    // Filtrar por género (case-insensitive)
     if (filtrosGenero.value.length > 0) {
-      filtrados = filtrados.filter(emp => filtrosGenero.value.includes(emp.genero));
+      filtrados = filtrados.filter(emp => {
+        const generoEmpleado = emp.genero?.toLowerCase() || '';
+        return filtrosGenero.value.some(filtro => 
+          filtro.toLowerCase() === generoEmpleado
+        );
+      });
     }
     
     // Filtrar por búsqueda (nombre)

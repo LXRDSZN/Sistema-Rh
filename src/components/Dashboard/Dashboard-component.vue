@@ -303,7 +303,10 @@
             </div>
           </div>
 
-          <button type="submit" class="submit-btn">Guardar Usuario</button>
+          <button type="submit" class="submit-btn" :disabled="isRegistering">
+            <span v-if="!isRegistering">Guardar Usuario</span>
+            <span v-else>Guardando...</span>
+          </button>
         </form>
       </div>
     </div>
@@ -315,6 +318,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toast-notification';
+import axios from 'axios';
 
 const router = useRouter();
 const toast = useToast();
@@ -339,6 +343,7 @@ const handleLogout = async () => {
 
 // Estado del modal y formulario de registro
 const showRegisterModal = ref(false);
+const isRegistering = ref(false);
 const newUser = ref({
   nombre: '',
   apellido_paterno: '',
@@ -352,28 +357,60 @@ const newUser = ref({
 
 // Función para registrar usuario
 const handleRegisterUser = async () => {
+  if (isRegistering.value) return; // Evitar clicks múltiples
+  
   try {
-    // Aquí puedes agregar la lógica para enviar los datos al backend
+    isRegistering.value = true;
     console.log('Registrando usuario:', newUser.value);
     
-    // Simulación de registro exitoso
-    toast.success(`Usuario ${newUser.value.nombre} ${newUser.value.apellido_paterno} registrado exitosamente`);
-    
-    // Limpiar formulario y cerrar modal
-    newUser.value = {
-      nombre: '',
-      apellido_paterno: '',
-      apellido_materno: '',
-      fecha_nacimiento: '',
-      sexo: '',
-      email: '',
-      password: '',
-      rol: ''
-    };
-    showRegisterModal.value = false;
+    // Validar campos requeridos
+    if (!newUser.value.nombre || !newUser.value.email || !newUser.value.password) {
+      toast.error('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    // Convertir sexo de texto a código
+    const sexoCodigo = newUser.value.sexo === 'Mujer' ? 'F' : 'M';
+
+    // Enviar datos al backend
+    const response = await axios.post('http://localhost:5000/api/register', {
+      nombre: newUser.value.nombre,
+      apellidoPaterno: newUser.value.apellido_paterno,
+      apellidoMaterno: newUser.value.apellido_materno || '',
+      email: newUser.value.email,
+      password: newUser.value.password,
+      sexo: sexoCodigo,
+      fechaNacimiento: newUser.value.fecha_nacimiento || '1990-01-01',
+      rol: newUser.value.rol || 'EMPLEADO'
+    });
+
+    if (response.data.success) {
+      toast.success(`Usuario ${newUser.value.nombre} ${newUser.value.apellido_paterno} registrado exitosamente`);
+      
+      // Limpiar formulario
+      newUser.value = {
+        nombre: '',
+        apellido_paterno: '',
+        apellido_materno: '',
+        fecha_nacimiento: '',
+        sexo: '',
+        email: '',
+        password: '',
+        rol: ''
+      };
+      
+      // Cerrar modal después de un breve delay
+      setTimeout(() => {
+        showRegisterModal.value = false;
+      }, 500);
+    }
   } catch (error) {
     console.error('Error al registrar usuario:', error);
-    toast.error('Error al registrar el usuario');
+    console.error('Respuesta del servidor:', error.response?.data);
+    const errorMessage = error.response?.data?.message || 'Error al registrar el usuario';
+    toast.error(errorMessage);
+  } finally {
+    isRegistering.value = false;
   }
 };
 
@@ -778,10 +815,16 @@ const cargarDatos = () => {
   transition: all 0.2s;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   background: #4F46E5;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.submit-btn:disabled {
+  background: #9CA3AF;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* ============================================

@@ -1,12 +1,15 @@
 <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
+  import axios from 'axios'
   import * as incidenciasService from '@/services/incidenciasService'
+  import * as empleadosService from '@/services/empleadosService'
 
   const emit = defineEmits(['cerrar', 'incidencia-creada'])
 
   // Form data
   const usuario = ref('')
   const tipoIncidencia = ref('')
+  const area = ref('')
   const fechaInicio = ref(new Date().toISOString().split('T')[0])
   const descripcion = ref('')
   const archivo = ref(null)
@@ -16,21 +19,8 @@
   const fileInput = ref(null)
   const isLoading = ref(false)
   const tiposIncidencia = ref([])
+  const areas = ref([])
   const empleados = ref([])
-
-  // Tipos de incidencia disponibles (opciones fijas)
-  const tiposIncidenciaOpciones = [
-    { id: 'incapacidad', nombre: 'Incapacidad' },
-    { id: 'retardo', nombre: 'Retardo' },
-    { id: 'falta', nombre: 'Falta' },
-    { id: 'permiso', nombre: 'Permiso' },
-    { id: 'vacaciones', nombre: 'Vacaciones' },
-    { id: 'amonestacion', nombre: 'Amonestación' },
-    { id: 'accidente', nombre: 'Accidente de Trabajo' },
-    { id: 'conflicto', nombre: 'Conflicto Laboral' },
-    { id: 'licencia_especial', nombre: 'Licencia Especial' },
-    { id: 'disciplina', nombre: 'Incidente de Disciplina' }
-  ]
 
   // Cargar datos iniciales
   const cargarDatos = async () => {
@@ -39,6 +29,21 @@
       const resEmpleados = await empleadosService.getEmpleados()
       if (resEmpleados.success) {
         empleados.value = resEmpleados.data
+      }
+
+      // Cargar tipos de incidencia desde la BD
+      const resTipos = await incidenciasService.getTiposIncidencia()
+      if (resTipos.success) {
+        tiposIncidencia.value = resTipos.data
+      }
+
+      // Cargar áreas desde la BD
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+      const resAreas = await axios.get(`${API_URL}/areas`, {
+        withCredentials: true
+      })
+      if (resAreas.data.success) {
+        areas.value = resAreas.data.data
       }
     } catch (error) {
       console.error('Error al cargar datos:', error)
@@ -111,7 +116,8 @@
       // Crear la incidencia
       const datosIncidencia = {
         persona_id: usuario.value,
-        tipo: tipoIncidencia.value,
+        tipo_id: tipoIncidencia.value,
+        area_id: area.value || null,
         fecha_inicio: fechaInicio.value,
         descripcion: descripcion.value,
         archivo_id: archivoId
@@ -121,16 +127,22 @@
       const resultado = await incidenciasService.createIncidencia(datosIncidencia)
       
       if (resultado.success) {
+        // Mostrar mensaje de éxito
+        alert('✅ Incidencia creada exitosamente')
+        
         emit('incidencia-creada', resultado.data)
         emit('cerrar')
         
         // Limpiar formulario
         usuario.value = ''
         tipoIncidencia.value = ''
+        area.value = ''
         fechaInicio.value = new Date().toISOString().split('T')[0]
         descripcion.value = ''
         archivo.value = null
         fileName.value = 'Subir archivo'
+      } else {
+        alert('❌ Error: ' + (resultado.message || 'No se pudo crear la incidencia'))
       }
     } catch (error) {
       console.error('Error al crear incidencia:', error)
@@ -139,9 +151,6 @@
       isLoading.value = false
     }
   }
-
-  import { onMounted } from 'vue'
-  import * as empleadosService from '@/services/empleadosService'
 </script>
 
 
@@ -169,11 +178,22 @@
           <label>Tipo de Incidencia *</label>
           <select v-model="tipoIncidencia" class="input" required>
             <option value="" disabled>Selecciona un tipo</option>
-            <option v-for="tipo in tiposIncidenciaOpciones" :key="tipo.id" :value="tipo.nombre">
-              {{ tipo.nombre }}
+            <option v-for="tipo in tiposIncidencia" :key="tipo.id" :value="tipo.id">
+              {{ tipo.codigo }} - {{ tipo.nombre }}
             </option>
           </select>
         </div>
+
+        <div class="form-group">
+          <label>Área (Opcional)</label>
+          <select v-model="area" class="input">
+            <option value="">Selecciona un área</option>
+            <option v-for="a in areas" :key="a.id" :value="a.id">
+              {{ a.codigo }} - {{ a.nombre }}
+            </option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label>Fecha de Inicio *</label>
           <input

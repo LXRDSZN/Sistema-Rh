@@ -41,8 +41,8 @@ export const CATEGORIAS = [
  * Lista de géneros para filtrado
  */
 export const GENEROS = [
-  'Hombre',
-  'Mujer'
+  'Masculino',
+  'Femenino'
 ];
 
 /**

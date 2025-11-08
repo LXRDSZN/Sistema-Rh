@@ -6,6 +6,7 @@ import { connectDB } from './models/db.js';
 import authRoutes from './routes/auth.js';
 import empleadosRoutes from './routes/empleados.js';
 import incidenciasRoutes from './routes/incidencias.js';
+import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
 import s3Routes from './routes/s3.js'; // s3.js
@@ -51,6 +52,9 @@ app.use('/api', empleadosRoutes);
 
 // Rutas de incidencias
 app.use('/api', incidenciasRoutes);
+
+// Rutas de áreas
+app.use('/api', areasRoutes);
 
 // Rutas de uploads
 app.use('/api', uploadsRoutes);
