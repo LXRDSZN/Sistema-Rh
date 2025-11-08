@@ -8,6 +8,7 @@ import empleadosRoutes from './routes/empleados.js';
 import incidenciasRoutes from './routes/incidencias.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
+import s3Routes from './routes/s3.js'; // s3.js
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -53,6 +54,9 @@ app.use('/api', incidenciasRoutes);
 
 // Rutas de uploads
 app.use('/api', uploadsRoutes);
+
+// Rutas para integración con AWS S3 (gestión de archivos y buckets)
+app.use('/api', s3Routes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
