@@ -1,13 +1,7 @@
 <template>
   <div class="contratos-content">
     <!-- Formulario de incidencias -->
-    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false"
-      @incidencia-creada="onIncidenciaCreada" />
-
-    <!-- Animación de éxito -->
-    <div v-if="showSuccess" class="success-toast">
-      <div class="success-content">✓ Incidencia registrada exitosamente</div>
-    </div>
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
 
     <!-- Vista de Inicio (usando componente EnlaceInicio) -->
     <EnlaceInicio v-if="activeTab === 'inicio'" :contratos="contratos" :stats="stats"
@@ -69,18 +63,8 @@ const router = useRouter();
 const activeTab = ref('inicio');
 const searchQuery = ref('');
 const showIncidencia = ref(false);
-const showSuccess = ref(false);
 const aspiranteSeleccionado = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
-
-// Función para manejar incidencia creada
-const onIncidenciaCreada = () => {
-  showSuccess.value = true;
-  showIncidencia.value = false;
-  setTimeout(() => {
-    showSuccess.value = false;
-  }, 3000);
-};
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
