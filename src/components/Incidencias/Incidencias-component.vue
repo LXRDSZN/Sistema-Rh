@@ -1,5 +1,7 @@
 <script>
 import * as incidenciasService from '@/services/incidenciasService';
+import { watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 export default {
   data() {
@@ -16,16 +18,21 @@ export default {
       buscar:'',
 
       reporteDialog: false,
-      fechaReporte: null,
+      fechaInicio: null,
+      fechaFin: null,
       tipoReporte: null,
       tipoReporteItems: ['PDF', 'EXCEL'],
-      menu: false,
+      menuInicio: false,
+      menuFin: false,
+      rangoRapido: null,
 
       incidenciaSeleccionada: null,
       dialogIncidencia: false,
       dialogRechazo: false,
       motivoRechazo: '',
       cargando: false,
+      modoEdicion: false,
+      tipoIncidenciaEdit: null,
 
       // Incidencias desde la API
       incidencias: [],
@@ -36,6 +43,14 @@ export default {
   
   mounted() {
     this.cargarDatos();
+    
+    // Watch para recargar cuando se navega a esta vista
+    const route = useRoute();
+    watch(() => route.path, (newPath) => {
+      if (newPath === '/Incidencias') {
+        this.cargarDatos();
+      }
+    });
   },
 
   computed: {
@@ -101,12 +116,198 @@ export default {
     },
 
     abrirReporte() {
+      // Inicializar con rango del mes actual
+      const hoy = new Date();
+      this.fechaInicio = null;
+      this.fechaFin = null;
+      this.rangoRapido = null;
+      this.tipoReporte = null;
       this.reporteDialog = true;
     },
     
-    generarReporte() {
-      alert(`Reporte generado\nFecha: ${this.fechaReporte}\nTipo: ${this.tipoReporte}`);
-      this.reporteDialog = false;
+    aplicarRangoRapido(tipo) {
+      const hoy = new Date();
+      this.rangoRapido = tipo;
+      
+      if (tipo === 'hoy') {
+        this.fechaInicio = hoy;
+        this.fechaFin = hoy;
+      } else if (tipo === 'mes') {
+        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+        this.fechaInicio = primerDia;
+        this.fechaFin = ultimoDia;
+      }
+    },
+    
+    async generarReporte() {
+      // Validar que se hayan seleccionado los campos
+      if (!this.fechaInicio || !this.fechaFin) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Por favor selecciona un rango de fechas'
+        });
+        return;
+      }
+      
+      if (!this.tipoReporte) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Por favor selecciona un tipo de reporte (PDF o EXCEL)'
+        });
+        return;
+      }
+
+      try {
+        // Filtrar incidencias por rango de fechas
+        const inicio = new Date(this.fechaInicio);
+        inicio.setHours(0, 0, 0, 0);
+        const fin = new Date(this.fechaFin);
+        fin.setHours(23, 59, 59, 999);
+        
+        const datosReporte = this.incidenciasFiltradas.filter(incidencia => {
+          // Parsear la fecha en formato DD/MM/YYYY
+          const [dia, mes, anio] = incidencia.fecha_inicio.split('/');
+          const fechaIncidencia = new Date(anio, mes - 1, dia);
+          return fechaIncidencia >= inicio && fechaIncidencia <= fin;
+        });
+        
+        if (datosReporte.length === 0) {
+          this.$emit('mostrar-toast', {
+            color: 'warning',
+            mensaje: 'No hay incidencias para generar el reporte'
+          });
+          return;
+        }
+
+        if (this.tipoReporte === 'PDF') {
+          this.generarReportePDF(datosReporte);
+        } else if (this.tipoReporte === 'EXCEL') {
+          this.generarReporteExcel(datosReporte);
+        }
+        
+        this.reporteDialog = false;
+        this.$emit('mostrar-toast', {
+          color: 'success',
+          mensaje: `Reporte ${this.tipoReporte} generado exitosamente`
+        });
+      } catch (error) {
+        console.error('Error al generar reporte:', error);
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Error al generar el reporte'
+        });
+      }
+    },
+    
+    generarReportePDF(datos) {
+      // Crear contenido HTML para el PDF
+      let contenidoHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Reporte de Incidencias</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #4F39F6; text-align: center; }
+            .fecha { text-align: center; color: #666; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #4F39F6; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border-bottom: 1px solid #ddd; }
+            tr:hover { background-color: #f5f5f5; }
+            .estado { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+            .estado.pendiente { background-color: #fef3c7; color: #92400e; }
+            .estado.aprobada { background-color: #dcfce7; color: #166534; }
+            .estado.rechazada { background-color: #f8d7da; color: #721c24; }
+          </style>
+        </head>
+        <body>
+          <h1>Reporte de Incidencias</h1>
+          <p class="fecha">Período: ${this.formatearFecha(this.fechaInicio)} - ${this.formatearFecha(this.fechaFin)}</p>
+          <p class="fecha" style="margin-top: -15px; font-size: 12px;">Generado: ${new Date().toLocaleDateString('es-MX')}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Empleado</th>
+                <th>Tipo</th>
+                <th>Área</th>
+                <th>Fecha Inicio</th>
+                <th>Estado</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      datos.forEach((incidencia, index) => {
+        const estadoClass = incidencia.estado.toLowerCase().replace(' ', '-');
+        contenidoHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${incidencia.nombre_completo}</td>
+            <td>${incidencia.tipo}</td>
+            <td>${incidencia.area}</td>
+            <td>${incidencia.fecha_inicio}</td>
+            <td><span class="estado ${estadoClass}">${incidencia.estado}</span></td>
+            <td>${incidencia.descripcion || 'Sin descripción'}</td>
+          </tr>
+        `;
+      });
+      
+      contenidoHTML += `
+            </tbody>
+          </table>
+          <p style="margin-top: 30px; text-align: center; color: #666; font-size: 12px;">
+            Total de incidencias: ${datos.length}
+          </p>
+        </body>
+        </html>
+      `;
+      
+      // Abrir en nueva ventana para imprimir como PDF
+      const ventana = window.open('', '_blank');
+      ventana.document.write(contenidoHTML);
+      ventana.document.close();
+      
+      // Esperar a que cargue y luego mostrar el diálogo de impresión
+      ventana.onload = () => {
+        ventana.print();
+      };
+    },
+    
+    generarReporteExcel(datos) {
+      // Crear contenido CSV (compatible con Excel)
+      let csv = 'Número,Empleado,Tipo,Área,Fecha Inicio,Estado,Descripción\n';
+      
+      datos.forEach((incidencia, index) => {
+        const descripcion = (incidencia.descripcion || 'Sin descripción').replace(/,/g, ';').replace(/\n/g, ' ');
+        csv += `${index + 1},${incidencia.nombre_completo},${incidencia.tipo},${incidencia.area},${incidencia.fecha_inicio},${incidencia.estado},"${descripcion}"\n`;
+      });
+      
+      // Crear blob y descargar
+      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      const nombreArchivo = `reporte_incidencias_${this.formatearFecha(this.fechaInicio)}_${this.formatearFecha(this.fechaFin)}.csv`.replace(/\//g, '-');
+      link.setAttribute('href', url);
+      link.setAttribute('download', nombreArchivo);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    
+    formatearFecha(fecha) {
+      if (!fecha) return '';
+      const f = new Date(fecha);
+      const dia = String(f.getDate()).padStart(2, '0');
+      const mes = String(f.getMonth() + 1).padStart(2, '0');
+      const anio = f.getFullYear();
+      return `${dia}/${mes}/${anio}`;
     },
     
     async eliminarIncidencia(id) {
@@ -128,23 +329,55 @@ export default {
         }
       }
     },
-    
-    seleccionarFecha(valor) {
-      const fecha = new Date(valor);
-      const dia = String(fecha.getDate()).padStart(2, '0');
-      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-      const anio = fecha.getFullYear();
-      this.fechaReporte = `${dia}/${mes}/${anio}`;
-      this.menu = false;
-    },
-    
-    limpiarFecha() {
-      this.fechaReporte = null;
-    },
 
     abrirIncidencia(incidencia) {
       this.incidenciaSeleccionada = incidencia;
+      this.tipoIncidenciaEdit = incidencia.tipo_id;
+      this.modoEdicion = false;
       this.dialogIncidencia = true;
+    },
+    
+    activarEdicion() {
+      this.modoEdicion = true;
+    },
+    
+    cancelarEdicion() {
+      this.modoEdicion = false;
+      this.tipoIncidenciaEdit = this.incidenciaSeleccionada.tipo_id;
+    },
+    
+    async guardarCambios() {
+      try {
+        const resultado = await incidenciasService.updateIncidencia(
+          this.incidenciaSeleccionada.id,
+          { tipo_id: this.tipoIncidenciaEdit }
+        );
+        
+        if (resultado.success) {
+          // Actualizar en la lista
+          const index = this.incidencias.findIndex(i => i.id === this.incidenciaSeleccionada.id);
+          if (index !== -1) {
+            // Buscar el nombre del tipo seleccionado
+            const tipoSeleccionado = this.tiposIncidencia.find(t => t.id === this.tipoIncidenciaEdit);
+            if (tipoSeleccionado) {
+              this.incidencias[index].tipo = tipoSeleccionado.nombre;
+              this.incidencias[index].tipo_codigo = tipoSeleccionado.codigo;
+              this.incidenciaSeleccionada.tipo = tipoSeleccionado.nombre;
+            }
+          }
+          
+          this.modoEdicion = false;
+          this.$emit('mostrar-toast', {
+            color: 'success',
+            mensaje: 'Tipo de incidencia actualizado correctamente'
+          });
+        }
+      } catch (error) {
+        this.$emit('mostrar-toast', {
+          color: 'error',
+          mensaje: 'Error al actualizar el tipo de incidencia'
+        });
+      }
     },
     
     async aprobarIncidencia() {
@@ -237,6 +470,12 @@ export default {
       </div>
 
       <div class="header-right">
+        <!-- Botón Recargar -->
+        <v-btn class="btn-Greporte" @click="cargarDatos" :loading="cargando" title="Recargar incidencias">
+          <span class="material-symbols-rounded">refresh</span>
+          Recargar
+        </v-btn>
+        
         <!-- Botón Generar Reporte -->
 <v-btn class="btn-Greporte" @click="abrirReporte">
   <span class="material-symbols-rounded">description</span>
@@ -262,38 +501,47 @@ export default {
     </div>
 
     <!-- Contenido -->
-    <v-card-text class="text-center">
+    <v-card-text>
+      <!-- Opciones rápidas -->
+      <label class="label-modal mb-2">Rango rápido:</label>
+      <div class="botones-rapidos mb-4">
+        <v-btn
+          :class="['btn-rapido', rangoRapido === 'hoy' ? 'activo' : '']"
+          variant="outlined"
+          size="small"
+          @click="aplicarRangoRapido('hoy')"
+        >
+          <v-icon left size="18">mdi-calendar-today</v-icon>
+          Solo hoy
+        </v-btn>
+        <v-btn
+          :class="['btn-rapido', rangoRapido === 'mes' ? 'activo' : '']"
+          variant="outlined"
+          size="small"
+          @click="aplicarRangoRapido('mes')"
+        >
+          <v-icon left size="18">mdi-calendar-month</v-icon>
+          Este mes
+        </v-btn>
+      </div>
 
-      <label class="label-modal">Seleccione una fecha:</label>
-      <v-menu
-  v-model="menu"
-  :close-on-content-click="false"
-  transition="scale-transition"
-  offset-y
-  min-width="auto"
->
-  <template #activator="{ props }">
-    <v-text-field
-      v-model="fechaReporte"
-      placeholder="MM/DD/YYYY"
-      prepend-inner-icon="mdi-calendar"
-      :append-inner-icon="fechaReporte ? 'mdi-close-circle' : ''"
-      @click:append-inner.stop="limpiarFecha"
-      readonly
-      v-bind="props"
-      variant="outlined"
-      density="comfortable"
-      class="mb-6 campo-fecha"
-      :class="{ 'fecha-activa': !!fechaReporte }"
-    />
-  </template>
+      <!-- Fecha inicio -->
+      <label class="label-modal">Fecha inicio:</label>
+      <v-date-picker
+        v-model="fechaInicio"
+        color="primary"
+        class="mb-4"
+        hide-header
+      ></v-date-picker>
 
-  <v-date-picker
-    v-model="fechaReporte"
-    @update:model-value="seleccionarFecha"
-    color="primary"
-  ></v-date-picker>
-</v-menu>
+      <!-- Fecha fin -->
+      <label class="label-modal mt-3">Fecha fin:</label>
+      <v-date-picker
+        v-model="fechaFin"
+        color="primary"
+        class="mb-4"
+        hide-header
+      ></v-date-picker>
 
       <label class="label-modal mb-2">Generar como:</label>
 
@@ -482,7 +730,59 @@ export default {
     <v-card-text v-if="incidenciaSeleccionada" class="modal-content">
       <div class="detalle-item">
         <label><strong>Tipo:</strong></label>
-        <p>{{ incidenciaSeleccionada.tipo }}</p>
+        <div v-if="!modoEdicion">
+          <p style="display: inline-block;">{{ incidenciaSeleccionada.tipo }}</p>
+          <v-btn 
+            icon 
+            size="small" 
+            variant="text" 
+            color="primary" 
+            @click="activarEdicion"
+            class="ml-2"
+            title="Editar tipo de incidencia"
+          >
+            <v-icon size="18">mdi-pencil</v-icon>
+          </v-btn>
+        </div>
+        <div v-else>
+          <v-select
+            v-model="tipoIncidenciaEdit"
+            :items="tiposIncidencia"
+            item-title="nombre"
+            item-value="id"
+            variant="outlined"
+            density="compact"
+            hide-details
+            class="mb-2"
+          >
+            <template #item="{ props, item }">
+              <v-list-item v-bind="props" :title="`${item.raw.codigo} - ${item.raw.nombre}`"></v-list-item>
+            </template>
+            <template #selection="{ item }">
+              {{ item.raw.codigo }} - {{ item.raw.nombre }}
+            </template>
+          </v-select>
+          <div class="d-flex gap-2 mt-2">
+            <v-btn 
+              size="small" 
+              color="success" 
+              variant="flat"
+              @click="guardarCambios"
+            >
+              <v-icon left size="16">mdi-check</v-icon>
+              Guardar
+            </v-btn>
+            <v-btn 
+              size="small" 
+              color="error" 
+              variant="outlined"
+              @click="cancelarEdicion"
+            >
+              <v-icon left size="16">mdi-close</v-icon>
+              Cancelar
+            </v-btn>
+          </div>
+        </div>
       </div>
 
       <div class="detalle-item">
@@ -1095,5 +1395,28 @@ export default {
 
 .modal-content::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Estilos para botones de edición */
+.d-flex.gap-2 {
+  gap: 8px;
+}
+
+/* Botones rápidos de rango */
+.botones-rapidos {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-rapido {
+  flex: 1;
+  transition: all 0.2s ease;
+}
+
+.btn-rapido.activo {
+  background-color: #6366f1 !important;
+  color: white !important;
+  border-color: #6366f1 !important;
 }
 </style>
