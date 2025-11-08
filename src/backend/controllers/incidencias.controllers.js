@@ -29,8 +29,8 @@ export const getAllIncidencias = async (req, res) => {
         i.archivo_id,
         i.estado_id,
         ei.nombre as estado,
-        ap.area_id,
-        a.nombre as area,
+        COALESCE(i.area_id, ap.area_id) as area_id,
+        COALESCE(a_inc.nombre, a_emp.nombre) as area,
         CASE 
           WHEN i.fecha_fin IS NULL THEN 'Activa'
           ELSE 'Finalizada'
@@ -39,8 +39,9 @@ export const getAllIncidencias = async (req, res) => {
       LEFT JOIN persona p ON i.persona_id = p.id
       LEFT JOIN tipo_incidencia ti ON i.tipo_id = ti.id
       LEFT JOIN estado_incidencia ei ON i.estado_id = ei.id
+      LEFT JOIN area a_inc ON i.area_id = a_inc.id
       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
+      LEFT JOIN area a_emp ON ap.area_id = a_emp.id
       WHERE 1=1
     `;
 
@@ -94,6 +95,7 @@ export const getAllIncidencias = async (req, res) => {
       persona_id: row.persona_id,
       nombre_completo: `${row.nombre} ${row.apellido_paterno} ${row.apellido_materno || ''}`.trim(),
       tipo: row.tipo_incidencia,
+      tipo_id: row.tipo_id,
       tipo_codigo: row.tipo_codigo,
       fecha_inicio: row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-MX') : null,
       fecha_fin: row.fecha_fin ? new Date(row.fecha_fin).toLocaleDateString('es-MX') : null,
@@ -147,15 +149,16 @@ export const getIncidenciaById = async (req, res) => {
         i.archivo_id,
         i.estado_id,
         ei.nombre as estado,
-        ap.area_id,
-        a.nombre as area,
+        COALESCE(i.area_id, ap.area_id) as area_id,
+        COALESCE(a_inc.nombre, a_emp.nombre) as area,
         pu.nombre as puesto
       FROM incidencia i
       LEFT JOIN persona p ON i.persona_id = p.id
       LEFT JOIN tipo_incidencia ti ON i.tipo_id = ti.id
       LEFT JOIN estado_incidencia ei ON i.estado_id = ei.id
+      LEFT JOIN area a_inc ON i.area_id = a_inc.id
       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
+      LEFT JOIN area a_emp ON ap.area_id = a_emp.id
       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
       WHERE i.id = $1`,
       [id]
@@ -175,6 +178,7 @@ export const getIncidenciaById = async (req, res) => {
       nombre_completo: `${row.nombre} ${row.apellido_paterno} ${row.apellido_materno || ''}`.trim(),
       foto_url: row.foto_url,
       tipo: row.tipo_incidencia,
+      tipo_id: row.tipo_id,
       tipo_codigo: row.tipo_codigo,
       afecta_asistencia: row.afecta_asistencia,
       fecha_inicio: row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-MX') : null,
@@ -184,6 +188,7 @@ export const getIncidenciaById = async (req, res) => {
       estado: row.estado,
       estado_id: row.estado_id,
       area: row.area || 'Sin asignar',
+      area_id: row.area_id,
       puesto: row.puesto || 'Sin asignar'
     };
 
@@ -259,7 +264,7 @@ export const getIncidenciasByPersona = async (req, res) => {
  */
 export const createIncidencia = async (req, res) => {
   try {
-    const { persona_id, tipo_id, tipo, fecha_inicio, fecha_fin, descripcion, archivo_id } = req.body;
+    const { persona_id, tipo_id, tipo, fecha_inicio, fecha_fin, descripcion, archivo_id, area_id } = req.body;
 
     // Validaciones básicas
     if (!persona_id || (!tipo_id && !tipo) || !fecha_inicio || !descripcion) {
@@ -269,15 +274,15 @@ export const createIncidencia = async (req, res) => {
       });
     }
 
-    // Obtener el estado inicial de la incidencia (por defecto "Pendiente")
-    const estadoResult = await db.query(
-      `SELECT id FROM estado_incidencia WHERE nombre = 'Pendiente' LIMIT 1`
+    // Obtener el estado inicial de la incidencia (por defecto "Activo" o "Pendiente")
+    let estadoResult = await db.query(
+      `SELECT id FROM estado_incidencia WHERE nombre IN ('Activo', 'Pendiente') ORDER BY nombre DESC LIMIT 1`
     );
 
     if (estadoResult.rows.length === 0) {
       return res.status(500).json({
         success: false,
-        message: 'Estado "Pendiente" no encontrado en la base de datos'
+        message: 'Estado inicial no encontrado en la base de datos'
       });
     }
 
@@ -288,7 +293,7 @@ export const createIncidencia = async (req, res) => {
     if (!finalTipoId) {
       // Obtener o crear un tipo genérico llamado "Otro"
       const tipoGenericoResult = await db.query(
-        `SELECT id FROM tipo_incidencia WHERE nombre = 'Otro' LIMIT 1`
+        `SELECT id FROM tipo_incidencia WHERE nombre = 'Otro' OR codigo = 'GEN' LIMIT 1`
       );
       
       if (tipoGenericoResult.rows.length > 0) {
@@ -313,10 +318,10 @@ export const createIncidencia = async (req, res) => {
 
     const result = await db.query(
       `INSERT INTO incidencia 
-       (persona_id, tipo_id, fecha_inicio, fecha_fin, descripcion, archivo_id, estado_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (persona_id, tipo_id, fecha_inicio, fecha_fin, descripcion, archivo_id, estado_id, area_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [persona_id, finalTipoId, fecha_inicio, fecha_fin || null, finalDescripcion || null, archivo_id || null, estado_id]
+      [persona_id, finalTipoId, fecha_inicio, fecha_fin || null, finalDescripcion || null, archivo_id || null, estado_id, area_id || null]
     );
 
     return res.status(201).json({
@@ -341,7 +346,7 @@ export const createIncidencia = async (req, res) => {
 export const updateIncidencia = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fecha_fin, descripcion, archivo_id, estado_id } = req.body;
+    const { fecha_fin, descripcion, archivo_id, estado_id, tipo_id, area_id } = req.body;
 
     // Verificar que la incidencia existe
     const existsResult = await db.query(
@@ -360,6 +365,18 @@ export const updateIncidencia = async (req, res) => {
     const updates = [];
     const params = [];
     let paramIndex = 1;
+
+    if (tipo_id !== undefined) {
+      updates.push(`tipo_id = $${paramIndex}`);
+      params.push(tipo_id);
+      paramIndex++;
+    }
+
+    if (area_id !== undefined) {
+      updates.push(`area_id = $${paramIndex}`);
+      params.push(area_id);
+      paramIndex++;
+    }
 
     if (fecha_fin !== undefined) {
       updates.push(`fecha_fin = $${paramIndex}`);

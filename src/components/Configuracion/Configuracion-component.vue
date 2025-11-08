@@ -93,7 +93,6 @@ import { ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from 'vue-toast-notification';
 import axios from 'axios';
-import bcrypt from 'bcryptjs';
 
 const toast = useToast();
 const { userName, userEmail, userRole, totalPermissions } = useAuth();
@@ -128,15 +127,12 @@ const handleChangePassword = async () => {
       return;
     }
 
-    // Hashear la nueva contraseña
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(passwordForm.value.newPassword, salt);
-
     // Llamada al backend para actualizar la contraseña
+    // El backend se encargará de hashear la contraseña
     const response = await axios.post('http://localhost:5000/api/change-password', {
       email: userEmail.value,
       currentPassword: passwordForm.value.currentPassword,
-      newPasswordHash: hashedPassword
+      newPassword: passwordForm.value.newPassword
     }, {
       withCredentials: true // Para enviar las cookies de autenticación
     });
