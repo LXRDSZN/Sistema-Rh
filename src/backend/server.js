@@ -10,6 +10,7 @@ import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
 import s3Routes from './routes/s3.js'; // s3.js
+import contratosRoutes from './routes/contratos.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -61,6 +62,9 @@ app.use('/api', uploadsRoutes);
 
 // Rutas para integración con AWS S3 (gestión de archivos y buckets)
 app.use('/api', s3Routes);
+
+// Rutas de contratos
+app.use('/api', contratosRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
