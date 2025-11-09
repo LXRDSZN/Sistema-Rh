@@ -64,7 +64,6 @@ import EnlaceVencidos from './EnlacesNavegacion/EnlaceVencidos.vue';
 import EnlaceEnProceso from './EnlacesNavegacion/EnlaceEnProceso.vue';
 import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
-import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 import DetalleAspirante from './DetalleAspiranteRefactored.vue';
 import DetalleEmpleado from './DetalleEmpleadoCommon/DetalleEmpleado.vue'; // ✅ Nuevo componente
