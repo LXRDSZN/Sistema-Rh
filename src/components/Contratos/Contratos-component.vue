@@ -16,9 +16,13 @@
 
     <!-- Otras vistas -->
     <div v-else class="other-view">
-      <!-- ✅ Vista de Detalle del Aspirante (versión refactorizada) -->
-      <DetalleAspirante v-if="activeTab === 'detalle'" :aspirante="aspiranteSeleccionado"
+      <!-- ✅ Vista de Detalle del Aspirante -->
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante'" :aspirante="aspiranteSeleccionado"
         @cerrar="activeTab = 'inicio'" />
+
+      <!-- ✅ Vista de Detalle del Empleado con evento renovar-contrato -->
+      <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
+        @cerrar="activeTab = 'inicio'" @renovar-contrato="handleRenovarContrato" />
 
       <!-- Vista de Activos -->
       <EnlaceActivos v-else-if="activeTab === 'activos'" :contratos="contratosActivos"
@@ -63,6 +67,7 @@ import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
 import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 import DetalleAspirante from './DetalleAspiranteRefactored.vue';
+import DetalleEmpleado from './DetalleEmpleadoCommon/DetalleEmpleado.vue'; // ✅ Nuevo componente
 
 const route = useRoute();
 const router = useRouter();
@@ -71,6 +76,7 @@ const searchQuery = ref('');
 const showIncidencia = ref(false);
 const showSuccess = ref(false);
 const aspiranteSeleccionado = ref(null);
+const empleadoSeleccionado = ref(null); // ✅ Nuevo estado
 const { contentMarginLeft, contentWidth } = useSidebar();
 
 // Función para manejar incidencia creada
@@ -141,7 +147,7 @@ const contratos = ref([
     telefono: '555-123-4567',
     domicilio: 'Calle Ejemplo #123, Col. Centro',
     estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-08-16'
+    fechaRegistro: '16/08/2023'
   },
   {
     id: 2,
@@ -166,7 +172,7 @@ const contratos = ref([
     telefono: '555-987-6543',
     domicilio: 'Av. Principal #456, Col. Norte',
     estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-07-20'
+    fechaRegistro: '20/07/2023'
   },
   {
     id: 3,
@@ -191,7 +197,7 @@ const contratos = ref([
     telefono: '555-456-7890',
     domicilio: 'Boulevard Central #789, Col. Sur',
     estadoProceso: 'FINALIZADO',
-    fechaRegistro: '2025-06-10'
+    fechaRegistro: '10/06/2023'
   },
   {
     id: 4,
@@ -216,7 +222,7 @@ const contratos = ref([
     telefono: '555-123-4567',
     domicilio: 'Calle Ejemplo #123, Col. Centro',
     estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-09-01'
+    fechaRegistro: '01/09/2025'
   },
   {
     id: 5,
@@ -241,7 +247,7 @@ const contratos = ref([
     telefono: '555-987-6543',
     domicilio: 'Av. Principal #456, Col. Norte',
     estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-09-15'
+    fechaRegistro: '15/09/2025'
   },
   {
     id: 6,
@@ -266,7 +272,7 @@ const contratos = ref([
     telefono: '555-456-7890',
     domicilio: 'Boulevard Central #789, Col. Sur',
     estadoProceso: 'EN EVALUACIÓN',
-    fechaRegistro: '2025-10-01'
+    fechaRegistro: '01/10/2025'
   }
 ]);
 
@@ -292,13 +298,24 @@ const handleCrearContrato = () => {
   activeTab.value = 'crear';
 };
 
-// Método para manejar revisión de contrato
+// ✅ Método mejorado para manejar revisión de contrato
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
-  aspiranteSeleccionado.value = contrato;
-  activeTab.value = 'detalle';
+
+  // Verificar el tipo de contrato y redirigir al componente adecuado
+  if (contrato.tipo === 'empleado') {
+    empleadoSeleccionado.value = contrato;
+    activeTab.value = 'detalleEmpleado';
+  } else if (contrato.tipo === 'aspirante') {
+    aspiranteSeleccionado.value = contrato;
+    activeTab.value = 'detalleAspirante';
+  }
 };
 
+// Función para manejar la renovación de contrato
+const handleRenovarContrato = () => {
+  activeTab.value = 'crear';
+};
 // Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
@@ -321,10 +338,7 @@ const cambiarVista = (vista) => {
 }
 
 .other-view {
-  background-color: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background-color: transparent;
 }
 
 /* Animación de éxito */
