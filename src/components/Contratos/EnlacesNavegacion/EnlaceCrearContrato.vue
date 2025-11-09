@@ -5,7 +5,7 @@
             <button class="btn-back" @click="volverInicio">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <h1>Creación de contrato</h1>
+            <h1>Contrato/Creación</h1>
         </div>
 
         <div class="content-box">
@@ -15,256 +15,212 @@
             <div class="form-section">
                 <h3 class="subsection-title">Datos Personales</h3>
 
+                <!-- Foto placeholder y Nombre completo -->
                 <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>Fecha de contratación</label>
-                        <input type="date" v-model="formData.fechaContratacion" class="form-input">
+                    <div class="form-group" style="grid-column: 1 / 2;">
+                        <div class="photo-placeholder">
+                            <div class="photo-box"></div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>Ingrese el número de solicitud</label>
-                        <input type="text" v-model="formData.numeroSolicitud"
-                            placeholder="Ingrese el número de solicitud" class="form-input">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
+                    <div class="form-group" style="grid-column: 2 / 4;">
                         <label>Nombre Completo</label>
-                        <input type="text" v-model="formData.nombre" placeholder="Nombre" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <input type="text" v-model="formData.apellidoPaterno" placeholder="Apellido Paterno"
-                            class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <input type="text" v-model="formData.apellidoMaterno" placeholder="Apellido Materno"
-                            class="form-input">
+                        <div class="inline-fields">
+                            <input type="text" v-model="formData.nombre" placeholder="Nombre" class="form-input">
+                            <input type="text" v-model="formData.apellidoPaterno" placeholder="Apellido Paterno"
+                                class="form-input">
+                            <input type="text" v-model="formData.apellidoMaterno" placeholder="Apellido Materno"
+                                class="form-input">
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Día de nacimiento</label>
-                        <select v-model="formData.diaNacimiento" class="form-select">
-                            <option value="">Seleccione día</option>
-                            <option v-for="dia in 31" :key="dia" :value="dia">{{ dia }}</option>
+                        <label>Tipo de Contrato</label>
+                        <select v-model="formData.tipoContrato" class="form-select">
+                            <option value="">Seleccione tipo</option>
+                            <option value="Indefinido">Indefinido</option>
+                            <option value="Temporal">Temporal</option>
+                            <option value="Por Obra">Por Obra</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Mes de nacimiento</label>
-                        <select v-model="formData.mesNacimiento" class="form-select">
-                            <option value="">Seleccione mes</option>
-                            <option value="1">Enero</option>
-                            <option value="2">Febrero</option>
-                            <option value="3">Marzo</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Mayo</option>
-                            <option value="6">Junio</option>
-                            <option value="7">Julio</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Septiembre</option>
-                            <option value="10">Octubre</option>
-                            <option value="11">Noviembre</option>
-                            <option value="12">Diciembre</option>
-                        </select>
+                        <label>Fecha de inicio</label>
+                        <input type="date" v-model="formData.fechaInicio" class="form-input">
                     </div>
                     <div class="form-group">
-                        <label>Año de nacimiento</label>
-                        <select v-model="formData.anioNacimiento" class="form-select">
-                            <option value="">Seleccione año</option>
-                            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-                        </select>
+                        <label>Fecha de término</label>
+                        <input type="date" v-model="formData.fechaTermino" class="form-input">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Nacionalidad</label>
-                        <input type="text" v-model="formData.nacionalidad" class="form-input">
+                        <label>Sueldo Mensual</label>
+                        <input type="text" v-model="formData.sueldoMensual" class="form-input">
                     </div>
                     <div class="form-group">
-                        <label>Sexo</label>
-                        <select v-model="formData.sexo" class="form-select">
-                            <option value="">Seleccione su sexo</option>
-                            <option value="M">Masculino</option>
-                            <option value="F">Femenino</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Estado civil</label>
-                        <select v-model="formData.estadoCivil" class="form-select">
-                            <option value="">Seleccione una opción</option>
-                            <option value="Soltero">Soltero(a)</option>
-                            <option value="Casado">Casado(a)</option>
-                            <option value="Divorciado">Divorciado(a)</option>
-                            <option value="Viudo">Viudo(a)</option>
+                        <label>Modalidad</label>
+                        <select v-model="formData.modalidad" class="form-select">
+                            <option value="">Seleccione modalidad</option>
+                            <option value="Presencial">Presencial</option>
+                            <option value="Remoto">Remoto</option>
+                            <option value="Híbrido">Híbrido</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>CURP</label>
-                        <input type="text" v-model="formData.curp" placeholder="Ingrese tu CURP (18 caracteres)"
-                            maxlength="18" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label>NSS</label>
-                        <input type="text" v-model="formData.nss" placeholder="Ingrese el Número de seguridad social"
-                            class="form-input">
+                    <div class="form-group full-width">
+                        <label>Observaciones</label>
+                        <textarea v-model="formData.observaciones" class="form-textarea" rows="4"></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- Puesto de trabajo -->
+            <!-- Asignación Laboral -->
             <div class="form-section">
-                <h3 class="subsection-title">Puesto de trabajo</h3>
+                <h3 class="subsection-title">Asignación Laboral</h3>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Área</label>
                         <select v-model="formData.area" class="form-select">
-                            <option value="">Seleccione Área</option>
+                            <option value="">Seleccione área</option>
                             <option value="Contratos">Contratos</option>
                             <option value="Asistencias">Asistencias</option>
                             <option value="Incidencias">Incidencias</option>
                             <option value="Vacaciones">Vacaciones</option>
-                            <option value="Areas">Areas</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Cargo</label>
-                        <select v-model="formData.cargo" class="form-select">
-                            <option value="">Seleccione cargo</option>
+                        <label>Puesto</label>
+                        <select v-model="formData.puesto" class="form-select">
+                            <option value="">Seleccione puesto</option>
                             <option value="Gerente">Gerente</option>
                             <option value="Supervisor">Supervisor</option>
-                            <option value="Coordinador">Coordinador</option>
                             <option value="Analista">Analista</option>
                             <option value="Asistente">Asistente</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Tipo de contrato</label>
-                        <select v-model="formData.tipoContrato" class="form-select">
+                        <label>Jornada Laboral</label>
+                        <select v-model="formData.jornadaLaboral" class="form-select">
                             <option value="">Seleccione tipo</option>
-                            <option value="Indefinidos">Indefinidos</option>
-                            <option value="Temporales">Temporales</option>
-                            <option value="Por Obra">Por Obra</option>
+                            <option value="Completa">Completa</option>
+                            <option value="Parcial">Parcial</option>
+                            <option value="Por turnos">Por turnos</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>Descripción del trabajo</label>
-                        <textarea v-model="formData.descripcionTrabajo" class="form-textarea" rows="4"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Jornada de trabajo -->
-            <div class="form-section">
-                <h3 class="subsection-title">Jornada de trabajo</h3>
-
-                <div class="form-row">
                     <div class="form-group">
-                        <label>Hora de entrada</label>
-                        <select v-model="formData.horaEntrada" class="form-select">
-                            <option value="">Seleccione hora</option>
-                            <option v-for="hora in horas" :key="hora" :value="hora">{{ hora }}</option>
+                        <label>Plantilla Contrato</label>
+                        <select v-model="formData.plantillaContrato" class="form-select">
+                            <option value="">Seleccione</option>
+                            <option value="Plantilla A">Plantilla A</option>
+                            <option value="Plantilla B">Plantilla B</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Hora de salida</label>
-                        <select v-model="formData.horaSalida" class="form-select">
-                            <option value="">Seleccione hora</option>
-                            <option v-for="hora in horas" :key="hora" :value="hora">{{ hora }}</option>
+                        <label>Estado del contrato</label>
+                        <select v-model="formData.estadoContrato" class="form-select">
+                            <option value="">Seleccione</option>
+                            <option value="Activo">Activo</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Finalizado">Finalizado</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Total de horas por día</label>
-                        <input type="number" v-model="formData.totalHoras" class="form-input">
+                        <label>Entrada</label>
+                        <input type="time" v-model="formData.entrada" class="form-input time-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Salida</label>
+                        <input type="time" v-model="formData.salida" class="form-input time-input">
                     </div>
                 </div>
             </div>
 
-            <!-- Salario y datos bancarios -->
+            <!-- Documentos Asociados -->
             <div class="form-section">
-                <h3 class="subsection-title">Salario y datos bancarios</h3>
+                <h3 class="subsection-title">Documentos Asociados</h3>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Cantidad (MXN)</label>
-                        <select v-model="formData.salario" class="form-select">
-                            <option value="">Seleccione cantidad</option>
-                            <option value="5000">$5,000</option>
-                            <option value="10000">$10,000</option>
-                            <option value="15000">$15,000</option>
-                            <option value="20000">$20,000</option>
-                            <option value="25000">$25,000</option>
-                            <option value="30000">$30,000</option>
+                        <label>Tipo de Documento</label>
+                        <select v-model="formData.tipoDocumento" class="form-select">
+                            <option value="">Seleccione</option>
+                            <option value="Contrato">Contrato</option>
+                            <option value="Anexo">Anexo</option>
+                            <option value="Identificación">Identificación</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Período</label>
-                        <select v-model="formData.periodo" class="form-select">
-                            <option value="">Seleccione periodo</option>
-                            <option value="Semanal">Semanal</option>
-                            <option value="Quincenal">Quincenal</option>
-                            <option value="Mensual">Mensual</option>
-                        </select>
+                        <label>Subir documento (PDF)</label>
+                        <input type="text" v-model="formData.documento" placeholder="Seleccione" class="form-input">
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Título de la cuenta</label>
-                        <input type="text" v-model="formData.tituloCuenta" placeholder="Ingrese nombre del titular"
-                            class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label>Entidad bancaria</label>
-                        <select v-model="formData.banco" class="form-select">
-                            <option value="">Seleccione una entidad bancaria</option>
-                            <option value="BBVA">BBVA</option>
-                            <option value="Santander">Santander</option>
-                            <option value="Banamex">Banamex</option>
-                            <option value="Banorte">Banorte</option>
-                            <option value="HSBC">HSBC</option>
-                        </select>
-                    </div>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="formData.contratoBase">
+                        <span>Contrato Base</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="formData.reglamentoInterno">
+                        <span>Reglamento Interno</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" v-model="formData.acuerdoConfidencialidad">
+                        <span>Acuerdo de Confidencialidad</span>
+                    </label>
                 </div>
+            </div>
+
+            <!-- Firmas y Acciones -->
+            <div class="form-section">
+                <h3 class="subsection-title">Firmas y Acciones</h3>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Número de cuenta</label>
-                        <input type="text" v-model="formData.numeroCuenta" placeholder="Ingrese número de cuenta"
-                            class="form-input">
+                        <label>Estado de Firma</label>
+                        <select v-model="formData.estadoFirma" class="form-select">
+                            <option value="">Seleccione</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Firmado">Firmado</option>
+                            <option value="Rechazado">Rechazado</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Clave interbancaria</label>
-                        <input type="text" v-model="formData.clabe" placeholder="Ingrese clave interbancaria"
-                            maxlength="18" class="form-input">
+                        <label>Fecha de Generación</label>
+                        <input type="date" v-model="formData.fechaGeneracion" class="form-input">
                     </div>
                 </div>
             </div>
 
             <!-- Botones de acción -->
             <div class="form-actions">
-                <button class="btn-cancelar" @click="cancelar">CANCELAR</button>
-                <button class="btn-guardar" @click="guardarContrato">GUARDAR</button>
+                <button class="btn-guardar" @click="guardarContrato">
+                    <span class="material-symbols-rounded">save</span>
+                    Guardar
+                </button>
+                <button class="btn-enviar" @click="enviarFirma">
+                    <span class="material-symbols-rounded">edit</span>
+                    Enviar a Firma
+                </button>
+                <button class="btn-imprimir" @click="imprimir">
+                    <span class="material-symbols-rounded">print</span>
+                    Imprimir
+                </button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 const emit = defineEmits(['volver-inicio']);
 
@@ -273,63 +229,32 @@ const volverInicio = () => {
     emit('volver-inicio');
 };
 
-// Generar años para el selector (desde 1950 hasta el año actual)
-const currentYear = new Date().getFullYear();
-const years = computed(() => {
-    const yearList = [];
-    for (let year = currentYear; year >= 1950; year--) {
-        yearList.push(year);
-    }
-    return yearList;
-});
-
-// Generar horas para selectores (00:00 - 23:00)
-const horas = computed(() => {
-    const horasList = [];
-    for (let h = 0; h < 24; h++) {
-        for (let m = 0; m < 60; m += 30) {
-            const hora = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-            horasList.push(hora);
-        }
-    }
-    return horasList;
-});
-
 // Datos del formulario
 const formData = ref({
-    fechaContratacion: '',
-    numeroSolicitud: '',
     nombre: '',
     apellidoPaterno: '',
     apellidoMaterno: '',
-    diaNacimiento: '',
-    mesNacimiento: '',
-    anioNacimiento: '',
-    nacionalidad: '',
-    sexo: '',
-    estadoCivil: '',
-    curp: '',
-    nss: '',
-    area: '',
-    cargo: '',
     tipoContrato: '',
-    descripcionTrabajo: '',
-    horaEntrada: '',
-    horaSalida: '',
-    totalHoras: '',
-    salario: '',
-    periodo: '',
-    tituloCuenta: '',
-    banco: '',
-    numeroCuenta: '',
-    clabe: ''
+    fechaInicio: '',
+    fechaTermino: '',
+    sueldoMensual: '',
+    modalidad: '',
+    observaciones: '',
+    area: '',
+    puesto: '',
+    jornadaLaboral: '',
+    plantillaContrato: '',
+    estadoContrato: '',
+    entrada: '',
+    salida: '',
+    tipoDocumento: '',
+    documento: '',
+    contratoBase: false,
+    reglamentoInterno: false,
+    acuerdoConfidencialidad: false,
+    estadoFirma: '',
+    fechaGeneracion: ''
 });
-
-const cancelar = () => {
-    if (confirm('¿Está seguro que desea cancelar? Se perderán los datos ingresados.')) {
-        volverInicio();
-    }
-};
 
 const guardarContrato = () => {
     // Validar campos requeridos
@@ -338,10 +263,18 @@ const guardarContrato = () => {
         return;
     }
 
-    // Aquí iría la lógica para guardar el contrato
     console.log('Guardando contrato:', formData.value);
     alert('Contrato guardado exitosamente');
-    volverInicio();
+};
+
+const enviarFirma = () => {
+    console.log('Enviando a firma:', formData.value);
+    alert('Enviado a firma exitosamente');
+};
+
+const imprimir = () => {
+    console.log('Imprimiendo contrato:', formData.value);
+    window.print();
 };
 </script>
 
@@ -396,11 +329,12 @@ const guardarContrato = () => {
 }
 
 .section-title {
-    color: #00bcd4;
+    color: #9370db;
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0 0 2rem 0;
     letter-spacing: 0.5px;
+    text-align: center;
 }
 
 .form-section {
@@ -450,7 +384,7 @@ const guardarContrato = () => {
 .form-input:focus,
 .form-select:focus {
     outline: none;
-    border-color: #00bcd4;
+    border-color: #9370db;
 }
 
 .form-input::placeholder {
@@ -474,55 +408,123 @@ const guardarContrato = () => {
 
 .form-textarea:focus {
     outline: none;
-    border-color: #00bcd4;
+    border-color: #9370db;
+}
+
+/* Photo placeholder */
+.photo-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.photo-box {
+    width: 100px;
+    height: 100px;
+    background-color: #d3d3d3;
+    border-radius: 8px;
+}
+
+/* Inline fields para nombre completo */
+.inline-fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+/* Time input */
+.time-input {
+    cursor: pointer;
+}
+
+/* Checkbox group */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: #333;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #9370db;
 }
 
 /* Botones de acción */
 .form-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 1rem;
     margin-top: 2rem;
     padding-top: 2rem;
     border-top: 1px solid #e0e0e0;
 }
 
-.btn-cancelar,
-.btn-guardar {
-    padding: 0.85rem 2.5rem;
+.btn-guardar,
+.btn-enviar,
+.btn-imprimir {
+    padding: 0.85rem 2rem;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.3s ease;
-}
-
-.btn-cancelar {
-    background-color: white;
-    color: #666;
-    border: 2px solid #d0d0d0;
-}
-
-.btn-cancelar:hover {
-    background-color: #f5f5f5;
-    border-color: #999;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .btn-guardar {
-    background-color: #00bcd4;
+    background-color: #4caf50;
     color: white;
-    border: 2px solid #00bcd4;
 }
 
 .btn-guardar:hover {
-    background-color: #00a5bb;
-    border-color: #00a5bb;
+    background-color: #45a049;
+}
+
+.btn-enviar {
+    background-color: #ffc107;
+    color: white;
+}
+
+.btn-enviar:hover {
+    background-color: #e0a800;
+}
+
+.btn-imprimir {
+    background-color: #9370db;
+    color: white;
+}
+
+.btn-imprimir:hover {
+    background-color: #7b5cb8;
+}
+
+.material-symbols-rounded {
+    font-size: 20px;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
     .form-row {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .inline-fields {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -539,8 +541,9 @@ const guardarContrato = () => {
         flex-direction: column;
     }
 
-    .btn-cancelar,
-    .btn-guardar {
+    .btn-guardar,
+    .btn-enviar,
+    .btn-imprimir {
         width: 100%;
     }
 }
