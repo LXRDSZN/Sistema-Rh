@@ -220,4 +220,101 @@ router.get('/contratos/por-estado', async (req, res) => {
     }
 });
 
+// ========================================
+// 5. OBTENER LISTADO COMPLETO DE CONTRATOS
+// ========================================
+router.get('/contratos/listado', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                c.id AS contrato_id,
+                c.persona_id,
+                c.huella_id,
+                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre_completo,
+                p.foto_url AS avatar,
+                p.tipo AS tipo_persona,
+                COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+                COALESCE(a.nombre, 'Sin área') AS area,
+                COALESCE(ec.nombre, 'SIN ESTADO') AS estado_contrato,
+                c.tipo_contrato,
+                c.modalidad,
+                c.fecha_inicio,
+                c.fecha_fin,
+                c.salario_mensual
+            FROM contrato c
+            INNER JOIN persona p ON p.id = c.persona_id
+            INNER JOIN estado_contrato ec ON ec.id = c.estado_id
+            LEFT JOIN puesto pu ON pu.id = c.puesto_id
+            LEFT JOIN area a ON a.id = c.area_id
+            ORDER BY c.fecha_inicio DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            contratos: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener listado de contratos:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// 6. ACTUALIZAR HUELLA_ID DE UN CONTRATO
+// ========================================
+router.patch('/contratos/:id/huella', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { huella_id } = req.body;
+
+        // Permitir NULL para eliminar huella, pero si se proporciona un valor debe ser válido
+        if (huella_id !== null && huella_id !== undefined && huella_id < 1) {
+            return res.status(400).json({
+                ok: false,
+                error: 'huella_id debe ser un número válido mayor a 0 o null'
+            });
+        }
+
+        // Verificar si el contrato existe
+        const checkQuery = 'SELECT id FROM contrato WHERE id = $1';
+        const checkResult = await pool.query(checkQuery, [id]);
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Contrato no encontrado'
+            });
+        }
+
+        // Actualizar huella_id
+        const updateQuery = `
+            UPDATE contrato
+            SET huella_id = $1
+            WHERE id = $2
+            RETURNING id, huella_id
+        `;
+
+        const result = await pool.query(updateQuery, [huella_id, id]);
+
+        res.json({
+            ok: true,
+            message: 'Huella registrada exitosamente',
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error al actualizar huella_id:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
 export default router;

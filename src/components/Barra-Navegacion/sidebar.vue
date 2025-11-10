@@ -96,6 +96,9 @@
           <RouterLink to="/Contratos/estadisticas" class="dropdown-item" @click.stop="closeContratosMenu">
             <span>Estadísticas</span>
           </RouterLink>
+          <RouterLink to="/Contratos/registro-huellas" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Registro de huellas</span>
+          </RouterLink>
         </div>
       </transition>
 
