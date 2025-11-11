@@ -65,6 +65,11 @@ const router = createRouter({
       component: () => import('../views/Contratos/ContratosView.vue')
     },
     {
+      path: '/Contratos/registro-huellas',
+      name: 'ContratosRegistroHuellas',
+      component: () => import('../views/Contratos/RegistroHuellasView.vue')
+    },
+    {
       path: '/Vacaciones',
       name: 'Vacaciones',
       component: () => import('../views/Vacaciones/VacacionesView.vue')
