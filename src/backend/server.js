@@ -5,6 +5,7 @@ import { connectDB } from './models/db.js';
 import authRoutes from './routes/auth.js';
 import empleadosRoutes from './routes/empleados.js';
 import config from './config/config.js';
+import vacacionesRoutes from './routes/vacaciones.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -24,15 +25,24 @@ await connectDB();
 app.use(cors({
   origin: config.server.frontendUrl,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+  maxAge: 86400
 }));
 
 // Parsear JSON en el body de las peticiones
 app.use(express.json());
 
-// Parsear cookies
+// Parsear cookies - DEBE IR DESPUÉS DE CORS
 app.use(cookieParser());
+
+// ========== MIDDLEWARE DE DEBUG (opcional) ==========
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  
+  next();
+});
 
 // ========== RUTAS ==========
 
@@ -41,6 +51,9 @@ app.use('/api', authRoutes);
 
 // Rutas de empleados
 app.use('/api', empleadosRoutes);
+
+// Rutas de vacaciones 
+app.use('/api/vacaciones', vacacionesRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
@@ -55,4 +68,3 @@ app.listen(config.server.port, () => {
   console.log(`🔌 API: http://localhost:${config.server.port}/api`);
   console.log('================================\n');
 });
-
