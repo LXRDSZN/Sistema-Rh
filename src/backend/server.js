@@ -9,12 +9,7 @@ import incidenciasRoutes from './routes/incidencias.js';
 import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
-<<<<<<< HEAD
-import s3Routes from './routes/s3.js'; // s3.js
-import contratosRoutes from './routes/contratos.js';
-=======
 import vacacionesRoutes from './routes/vacaciones.js';
->>>>>>> vacaciones
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -34,15 +29,10 @@ await connectDB();
 app.use(cors({
   origin: config.server.frontendUrl,
   credentials: true,
-<<<<<<< HEAD
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-=======
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
   maxAge: 86400
->>>>>>> vacaciones
 }));
 
 // Parsear JSON en el body de las peticiones
@@ -51,17 +41,12 @@ app.use(express.json());
 // Parsear cookies - DEBE IR DESPUÉS DE CORS
 app.use(cookieParser());
 
-<<<<<<< HEAD
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
-=======
 // ========== MIDDLEWARE DE DEBUG (opcional) ==========
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   
   next();
 });
->>>>>>> vacaciones
 
 // ========== RUTAS ==========
 
@@ -71,25 +56,8 @@ app.use('/api', authRoutes);
 // Rutas de empleados
 app.use('/api', empleadosRoutes);
 
-<<<<<<< HEAD
-// Rutas de incidencias
-app.use('/api', incidenciasRoutes);
-
-// Rutas de áreas
-app.use('/api', areasRoutes);
-
-// Rutas de uploads
-app.use('/api', uploadsRoutes);
-
-// Rutas para integración con AWS S3 (gestión de archivos y buckets)
-app.use('/api', s3Routes);
-
-// Rutas de contratos
-app.use('/api', contratosRoutes);
-=======
 // Rutas de vacaciones 
 app.use('/api/vacaciones', vacacionesRoutes);
->>>>>>> vacaciones
 
 // Ruta de health check
 app.get('/health', (req, res) => {
