@@ -1,12 +1,7 @@
 <template>
   <div class="asistencias-inicio">
     <!-- Formulario de incidencias -->
-    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" @incidencia-creada="onIncidenciaCreada" />
-    
-    <!-- Animación de éxito -->
-    <div v-if="showSuccess" class="success-toast">
-      <div class="success-content">✓ Incidencia registrada exitosamente</div>
-    </div>
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
     
     <div class="content-inner">
       <div class="header-section">
@@ -147,15 +142,6 @@ import { ref } from 'vue'
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue'
 
 const showIncidencia = ref(false)
-const showSuccess = ref(false)
-
-const onIncidenciaCreada = () => {
-  showSuccess.value = true
-  showIncidencia.value = false
-  setTimeout(() => {
-    showSuccess.value = false
-  }, 3000)
-}
 </script>
 
 <style scoped>

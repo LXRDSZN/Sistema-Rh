@@ -18,6 +18,7 @@
   const fileName = ref('Subir archivo')
   const fileInput = ref(null)
   const isLoading = ref(false)
+  const mostrarExito = ref(false)
   const tiposIncidencia = ref([])
   const areas = ref([])
   const empleados = ref([])
@@ -127,11 +128,8 @@
       const resultado = await incidenciasService.createIncidencia(datosIncidencia)
       
       if (resultado.success) {
-        // Mostrar mensaje de éxito
-        alert('✅ Incidencia creada exitosamente')
-        
-        emit('incidencia-creada', resultado.data)
-        emit('cerrar')
+        // Mostrar animación de éxito
+        mostrarExito.value = true
         
         // Limpiar formulario
         usuario.value = ''
@@ -141,6 +139,14 @@
         descripcion.value = ''
         archivo.value = null
         fileName.value = 'Subir archivo'
+        
+        // Emitir evento y cerrar después de la animación
+        emit('incidencia-creada', resultado.data)
+        
+        setTimeout(() => {
+          mostrarExito.value = false
+          emit('cerrar')
+        }, 2500)
       } else {
         alert('❌ Error: ' + (resultado.message || 'No se pudo crear la incidencia'))
       }
@@ -157,13 +163,25 @@
 
 
 <template>
-  <div class="incidencias-formulario" @click.self="$emit('cerrar')">
-    <div class="modal-card">
+  <div class="incidencias-formulario" @click.self="!mostrarExito && $emit('cerrar')" :class="{ 'fade-out': mostrarExito }">
+    <div class="modal-card" :class="{ 'exito-mode': mostrarExito }">
       <header class="modal-header">
         <button class="btn-cerrar" @click="$emit('cerrar')">&times;</button>
       </header>
 
-      <form class="form" @submit="handleSubmit">
+      <!-- Animación de éxito -->
+      <div v-if="mostrarExito" class="exito-content">
+        <div class="check-container">
+          <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark-check" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+        </div>
+        <h2 class="exito-titulo">¡Incidencia registrada!</h2>
+        <p class="exito-mensaje">Tu reporte se ha guardado exitosamente</p>
+      </div>
+
+      <form v-else class="form" @submit="handleSubmit">
         <div class="form-group">
           <label>Usuario (Empleado) *</label>
           <select v-model="usuario" class="input" required>
@@ -446,6 +464,157 @@ label {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+.area-auto-detectada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #16a34a;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.area-auto-detectada .material-symbols-rounded {
+  font-size: 16px;
+  color: #16a34a;
+}
+
+/* ============================================
+   ANIMACIÓN DE ÉXITO
+   ============================================ */
+.incidencias-formulario.fade-out {
+  animation: fadeOut 0.5s ease forwards 2s;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-card.exito-mode {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.exito-content {
+  text-align: center;
+  padding: 3rem 2rem;
+  animation: fadeInContent 0.3s ease;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Check animado */
+.check-container {
+  margin: 0 auto 1.5rem;
+  width: 120px;
+  height: 120px;
+}
+
+.checkmark {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 3;
+  stroke: #00C8B8;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0 0 0 #00C8B8;
+  animation: fill 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke: #00C8B8;
+  fill: none;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes scale {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+
+@keyframes fill {
+  100% {
+    box-shadow: inset 0 0 0 60px #00C8B8;
+  }
+}
+
+.exito-titulo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  animation: slideUp 0.5s ease 0.5s both;
+}
+
+.exito-mensaje {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  animation: slideUp 0.5s ease 0.6s both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>
