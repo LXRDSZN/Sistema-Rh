@@ -159,7 +159,6 @@ export const todasLasSolicitudes = async () => {
  */
 export const aprobarSolicitud = async (solicitudId) => {
   try {
-    console.log('📤 Aprobando solicitud:', solicitudId);
 
     const response = await fetch(`${API_URL}/vacaciones/aprobar/${solicitudId}`, {
       method: 'PUT',

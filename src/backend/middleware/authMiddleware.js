@@ -10,8 +10,7 @@ import config from '../config/config.js';
  */
 export const verificarToken = (req, res, next) => {
   try {
-    console.log('📍 Middleware verificarToken ejecutado');
-    console.log('🔍 Token en cookies:', req.cookies.token ? 'SÍ existe' : 'NO existe');
+    
     
     const token = req.cookies.token;
 
