@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.926.0",
+    "@aws-sdk/s3-request-presigner": "^3.927.0",
     "@mdi/font": "^7.4.47",
     "@vicons/material": "^0.13.0",
     "@vicons/utils": "^0.1.4",
@@ -19,6 +21,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-vue-next": "^0.545.0",
