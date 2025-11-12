@@ -6,8 +6,11 @@ import { connectDB } from './models/db.js';
 import authRoutes from './routes/auth.js';
 import empleadosRoutes from './routes/empleados.js';
 import incidenciasRoutes from './routes/incidencias.js';
+import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
+import s3Routes from './routes/s3.js'; // s3.js
+import contratosRoutes from './routes/contratos.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -51,8 +54,17 @@ app.use('/api', empleadosRoutes);
 // Rutas de incidencias
 app.use('/api', incidenciasRoutes);
 
+// Rutas de áreas
+app.use('/api', areasRoutes);
+
 // Rutas de uploads
 app.use('/api', uploadsRoutes);
+
+// Rutas para integración con AWS S3 (gestión de archivos y buckets)
+app.use('/api', s3Routes);
+
+// Rutas de contratos
+app.use('/api', contratosRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
