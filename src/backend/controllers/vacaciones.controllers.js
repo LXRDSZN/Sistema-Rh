@@ -129,7 +129,6 @@ export const getVacacionesEmpleado = async (req, res) => {
       [empleadoId]
     );
 
-    console.log('📋 Solicitudes:', solicitudes.rows[0]);
 
     return res.json({
       success: true,
@@ -370,7 +369,6 @@ export const getDiasSolicitud = async (req, res) => {
   try {
     const { solicitudId } = req.params;
 
-    console.log('📅 Obteniendo días para solicitud:', solicitudId);
 
     const result = await db.query(
       `SELECT 
@@ -383,7 +381,6 @@ export const getDiasSolicitud = async (req, res) => {
       [solicitudId]
     );
 
-    console.log('✅ Días obtenidos:', result.rows.length);
 
     return res.json({
       success: true,
