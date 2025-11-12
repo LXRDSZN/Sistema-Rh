@@ -3,8 +3,6 @@ import config from '../config/config.js';
 
 /**
  * MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN
- * 
- * Conjunto de middlewares para proteger rutas y verificar permisos
  */
 
 /**
@@ -12,23 +10,30 @@ import config from '../config/config.js';
  */
 export const verificarToken = (req, res, next) => {
   try {
+    console.log('📍 Middleware verificarToken ejecutado');
+    console.log('🔍 Token en cookies:', req.cookies.token ? 'SÍ existe' : 'NO existe');
+    
     const token = req.cookies.token;
 
     if (!token) {
+      console.log('❌ No hay token en las cookies');
       return res.status(401).json({ 
         success: false,
         message: 'No autenticado. Por favor inicie sesión.' 
       });
     }
 
+
     // Verificar y decodificar token
     const decoded = jwt.verify(token, config.jwt.secret);
+    
     
     // Agregar información del usuario al request
     req.user = decoded;
     
     next();
   } catch (error) {
+    console.error('❌ Error en verificarToken:', error.message);
     return res.status(401).json({ 
       success: false,
       message: 'Token inválido o expirado. Por favor inicie sesión nuevamente.' 
@@ -38,12 +43,10 @@ export const verificarToken = (req, res, next) => {
 
 /**
  * Middleware para verificar permisos específicos
- * Uso: verificarPermiso('PERS_READ_ALL')
  */
 export const verificarPermiso = (codigoPermiso) => {
   return (req, res, next) => {
     try {
-      // Verificar que el usuario esté autenticado
       if (!req.user) {
         return res.status(401).json({ 
           success: false,
@@ -51,7 +54,6 @@ export const verificarPermiso = (codigoPermiso) => {
         });
       }
 
-      // Verificar si el usuario tiene el permiso
       if (!req.user.permisos || !req.user.permisos.includes(codigoPermiso)) {
         return res.status(403).json({ 
           success: false,
@@ -71,7 +73,6 @@ export const verificarPermiso = (codigoPermiso) => {
 
 /**
  * Middleware para verificar múltiples permisos (requiere TODOS)
- * Uso: verificarPermisos(['PERS_READ_ALL', 'PERS_UPDATE_ALL'])
  */
 export const verificarPermisos = (codigos) => {
   return (req, res, next) => {
@@ -83,7 +84,6 @@ export const verificarPermisos = (codigos) => {
         });
       }
 
-      // Verificar que tenga TODOS los permisos
       const tieneTodos = codigos.every(codigo => req.user.permisos.includes(codigo));
 
       if (!tieneTodos) {
@@ -105,7 +105,6 @@ export const verificarPermisos = (codigos) => {
 
 /**
  * Middleware para verificar al menos uno de varios permisos
- * Uso: verificarAlgunoDeEstosPermisos(['PERS_READ_ALL', 'PERS_READ_AREA', 'PERS_READ_SELF'])
  */
 export const verificarAlgunoDeEstosPermisos = (codigos) => {
   return (req, res, next) => {
@@ -117,7 +116,6 @@ export const verificarAlgunoDeEstosPermisos = (codigos) => {
         });
       }
 
-      // Verificar que tenga AL MENOS UNO de los permisos
       const tieneAlguno = codigos.some(codigo => req.user.permisos.includes(codigo));
 
       if (!tieneAlguno) {
@@ -139,7 +137,6 @@ export const verificarAlgunoDeEstosPermisos = (codigos) => {
 
 /**
  * Middleware para verificar roles específicos
- * Uso: verificarRol('ADMIN')
  */
 export const verificarRol = (nombreRol) => {
   return (req, res, next) => {
