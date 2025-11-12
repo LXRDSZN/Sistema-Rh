@@ -1,13 +1,7 @@
 <template>
   <div class="contratos-content">
     <!-- Formulario de incidencias -->
-    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false"
-      @incidencia-creada="onIncidenciaCreada" />
-
-    <!-- Animación de éxito -->
-    <div v-if="showSuccess" class="success-toast">
-      <div class="success-content">✓ Incidencia registrada exitosamente</div>
-    </div>
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
 
     <!-- Vista de Inicio -->
     <EnlaceInicio v-if="activeTab === 'inicio'" :contratos="contratos" :stats="stats"
@@ -71,7 +65,6 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = ref('inicio');
 const showIncidencia = ref(false);
-const showSuccess = ref(false);
 const aspiranteSeleccionado = ref(null);
 const empleadoSeleccionado = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
@@ -102,7 +95,6 @@ const onIncidenciaCreada = () => {
     showSuccess.value = false;
   }, 3000);
 };
-
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
   if (route.path === '/Contratos/estadisticas') {

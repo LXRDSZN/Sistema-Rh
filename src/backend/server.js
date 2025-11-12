@@ -9,6 +9,11 @@ import incidenciasRoutes from './routes/incidencias.js';
 import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
 import config from './config/config.js';
+<<<<<<< HEAD
+=======
+import s3Routes from './routes/s3.js'; // s3.js
+import contratosRoutes from './routes/contratos.js';
+>>>>>>> 5705a2cf707477cc4aa86fcee6bbc436927e179b
 import vacacionesRoutes from './routes/vacaciones.js';
 
 /**
@@ -41,6 +46,12 @@ app.use(express.json());
 // Parsear cookies - DEBE IR DESPUÉS DE CORS
 app.use(cookieParser());
 
+<<<<<<< HEAD
+=======
+// Servir archivos estáticos
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+
+>>>>>>> 5705a2cf707477cc4aa86fcee6bbc436927e179b
 // ========== MIDDLEWARE DE DEBUG (opcional) ==========
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -56,6 +67,24 @@ app.use('/api', authRoutes);
 // Rutas de empleados
 app.use('/api', empleadosRoutes);
 
+<<<<<<< HEAD
+=======
+// Rutas de incidencias
+app.use('/api', incidenciasRoutes);
+
+// Rutas de áreas
+app.use('/api', areasRoutes);
+
+// Rutas de uploads
+app.use('/api', uploadsRoutes);
+
+// Rutas para integración con AWS S3 (gestión de archivos y buckets)
+app.use('/api', s3Routes);
+
+// Rutas de contratos
+app.use('/api', contratosRoutes);
+
+>>>>>>> 5705a2cf707477cc4aa86fcee6bbc436927e179b
 // Rutas de vacaciones 
 app.use('/api/vacaciones', vacacionesRoutes);
 
