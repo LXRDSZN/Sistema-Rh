@@ -1,6 +1,22 @@
 <script setup>
-import {  RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
+import { onMounted, onUnmounted } from 'vue'
+import { useAuth } from '@/composables/useAuth'
 
+const { startActivityMonitoring } = useAuth()
+
+// Iniciar monitoreo de actividad cuando se monta la app
+let cleanupActivityMonitoring = null
+
+onMounted(() => {
+  cleanupActivityMonitoring = startActivityMonitoring()
+})
+
+onUnmounted(() => {
+  if (cleanupActivityMonitoring) {
+    cleanupActivityMonitoring()
+  }
+})
 </script>
 
 <template>

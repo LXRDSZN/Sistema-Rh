@@ -88,11 +88,34 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// ========== LIMPIEZA DE SESIONES EXPIRADAS ==========
+// Ejecutar cada 2 minutos para eliminar sesiones expiradas (sesiones duran 5 min)
+import { db } from './models/db.js';
+
+const limpiarSesionesExpiradas = async () => {
+  try {
+    const result = await db.query(
+      `DELETE FROM sesiones_activas WHERE expiracion < NOW()`
+    );
+    if (result.rowCount > 0) {
+      console.log(`🧹 Limpieza: ${result.rowCount} sesiones expiradas eliminadas`);
+    }
+  } catch (error) {
+    console.error('❌ Error al limpiar sesiones expiradas:', error);
+  }
+};
+
+// Ejecutar limpieza cada 2 minutos (frecuente dado que las sesiones expiran en 5 min)
+setInterval(limpiarSesionesExpiradas, 2 * 60 * 1000);
+// Ejecutar limpieza inicial al arrancar
+limpiarSesionesExpiradas();
+
 // ========== INICIAR SERVIDOR ==========
 app.listen(config.server.port, () => {
   console.log('\n🚀 ===== SERVIDOR INICIADO =====');
   console.log(`✅ Servidor corriendo en el puerto ${config.server.port}`);
   console.log(`🌐 Frontend: ${config.server.frontendUrl}`);
   console.log(`🔌 API: http://localhost:${config.server.port}/api`);
+  console.log('🔄 Limpieza automática de sesiones: Activada');
   console.log('================================\n');
 });

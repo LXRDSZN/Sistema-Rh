@@ -17,24 +17,30 @@ export const getDashboardStats = async (req, res) => {
     );
     const totalEmpleados = parseInt(totalEmpleadosResult.rows[0].total);
 
-    // 2. Nuevos empleados este mes (basado en fecha_inicio de asignación_puesto)
+    // 2. Nuevos empleados este mes
+    // Usa fecha_registro de persona como fuente principal, con asignacion_puesto como alternativa
     const nuevosEmpleadosResult = await db.query(
-      `SELECT COUNT(DISTINCT persona_id) as total 
-       FROM asignacion_puesto 
-       WHERE fecha_inicio >= DATE_TRUNC('month', CURRENT_DATE)
-       AND fecha_inicio < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'`
+      `SELECT COUNT(DISTINCT p.id) as total 
+       FROM persona p
+       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id
+       WHERE p.tipo = 'Empleado'
+       AND (
+         -- Opción 1: Registrados este mes
+         p.fecha_registro >= DATE_TRUNC('month', CURRENT_DATE)
+         -- Opción 2: O tienen asignación de puesto que inició este mes
+         OR (ap.fecha_inicio >= DATE_TRUNC('month', CURRENT_DATE) 
+             AND ap.fecha_inicio < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')
+       )`
     );
     const nuevosEmpleados = parseInt(nuevosEmpleadosResult.rows[0].total);
 
-    // 3. Empleados activos (con asignación de puesto activa)
-    const activosHoyResult = await db.query(
-      `SELECT COUNT(DISTINCT ap.persona_id) as total 
-       FROM asignacion_puesto ap
-       INNER JOIN persona p ON ap.persona_id = p.id
-       WHERE ap.fecha_fin IS NULL
-       AND p.tipo = 'Empleado'`
+    // 3. Usuarios con sesión activa en el sistema (conectados ahora)
+    const sesionesActivasResult = await db.query(
+      `SELECT COUNT(DISTINCT sa.usuario_id) as total 
+       FROM sesiones_activas sa
+       WHERE sa.expiracion > NOW()`
     );
-    const activosHoy = parseInt(activosHoyResult.rows[0].total);
+    const sesionesActivas = parseInt(sesionesActivasResult.rows[0].total);
 
     // 4. Calcular porcentajes
     const porcentajeCrecimiento = totalEmpleados > 0 ? ((nuevosEmpleados / totalEmpleados) * 100) : 0;
@@ -54,7 +60,7 @@ export const getDashboardStats = async (req, res) => {
           tendencia: porcentajeCrecimiento > 0 ? 'up' : porcentajeCrecimiento < 0 ? 'down' : 'neutral'
         },
         asistenciasActivas: {
-          total: activosHoy,
+          total: sesionesActivas,
           emoji: '💻📊📈',
           tendencia: 'neutral'
         }
