@@ -123,7 +123,25 @@ export const getEmpleadoById = async (req, res) => {
 export const updateEmpleadoAsignacion = async (req, res) => {
   try {
     const { id } = req.params;
-    const { area_id, puesto_id } = req.body;
+    const { area_id, puesto_id, motivo, categoria } = req.body;
+
+    console.log('📝 Actualizando empleado:', { id, area_id, puesto_id, motivo, categoria });
+
+    // Validar que puesto_id no sea null
+    if (!puesto_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'El puesto es requerido'
+      });
+    }
+
+    // Validar que area_id no sea null
+    if (!area_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'El área es requerida'
+      });
+    }
 
     // Iniciar transacción
     const client = await db.connect();
@@ -147,6 +165,41 @@ export const updateEmpleadoAsignacion = async (req, res) => {
         [id, puesto_id, area_id]
       );
 
+      console.log('✅ Asignación actualizada');
+
+      // Si se proporcionó un motivo, guardarlo en observaciones de persona
+      if (motivo && motivo.trim()) {
+        // Obtener observaciones actuales
+        const observacionesResult = await client.query(
+          `SELECT observaciones FROM persona WHERE id = $1`,
+          [id]
+        );
+        
+        const observacionesActuales = observacionesResult.rows[0]?.observaciones || '';
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        const nuevaObservacion = `[${fechaHoy}] Cambio de puesto/área: ${motivo}`;
+        
+        // Agregar nueva observación
+        const observacionesActualizadas = observacionesActuales 
+          ? `${observacionesActuales}\n${nuevaObservacion}`
+          : nuevaObservacion;
+        
+        await client.query(
+          `UPDATE persona SET observaciones = $1 WHERE id = $2`,
+          [observacionesActualizadas, id]
+        );
+        
+        // Registrar en historial_puesto
+        await client.query(
+          `INSERT INTO historial_puesto 
+           (persona_id, puesto_id, area_id, fecha_inicio)
+           VALUES ($1, $2, $3, CURRENT_DATE)`,
+          [id, puesto_id, area_id]
+        );
+        
+        console.log('📋 Motivo guardado en observaciones:', motivo);
+      }
+
       await client.query('COMMIT');
 
       return res.json({
@@ -162,11 +215,20 @@ export const updateEmpleadoAsignacion = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error al actualizar empleado:', error);
+    console.error('❌ Error al actualizar empleado:', error);
+    console.error('❌ Detalle del error:', {
+      message: error.message,
+      detail: error.detail,
+      code: error.code,
+      constraint: error.constraint,
+      table: error.table,
+      column: error.column
+    });
     return res.status(500).json({
       success: false,
       message: 'Error al actualizar empleado',
-      error: error.message
+      error: error.message,
+      detail: error.detail
     });
   }
 };

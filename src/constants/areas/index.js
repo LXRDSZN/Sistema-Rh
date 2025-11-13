@@ -7,14 +7,14 @@
  */
 
 /**
- * Lista de departamentos disponibles en el sistema
+ * Lista de áreas/módulos disponibles en el sistema
  */
 export const DEPARTAMENTOS = [
+  'Areas',
   'Contratos',
   'Asistencias',
-  'Incidencias',
   'Vacaciones',
-  'Areas'
+  'Incidencias'
 ];
 
 /**

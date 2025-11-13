@@ -8,6 +8,7 @@ import empleadosRoutes from './routes/empleados.js';
 import incidenciasRoutes from './routes/incidencias.js';
 import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
+import dashboardRoutes from './routes/dashboard.js';
 import config from './config/config.js';
 import s3Routes from './routes/s3.js'; // s3.js
 import contratosRoutes from './routes/contratos.js';
@@ -69,6 +70,9 @@ app.use('/api', areasRoutes);
 
 // Rutas de uploads
 app.use('/api', uploadsRoutes);
+
+// Rutas de dashboard
+app.use('/api', dashboardRoutes);
 
 // Rutas para integración con AWS S3 (gestión de archivos y buckets)
 app.use('/api', s3Routes);

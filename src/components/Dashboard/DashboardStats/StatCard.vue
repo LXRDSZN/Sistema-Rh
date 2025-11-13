@@ -75,8 +75,8 @@ const formattedValue = computed(() => {
 }
 
 .stat-icon {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -85,20 +85,22 @@ const formattedValue = computed(() => {
 }
 
 .stat-icon span {
-  font-size: 2rem;
-  color: white;
+  font-size: 1.5rem;
 }
 
 .stat-icon.nuevos {
-  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  background: #D1FAE5;
+  color: #059669;
 }
 
 .stat-icon.empleados {
-  background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
+  background: #DBEAFE;
+  color: #2563EB;
 }
 
 .stat-icon.activos {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: #E0E7FF;
+  color: #6366F1;
 }
 
 .stat-info {
@@ -112,7 +114,7 @@ const formattedValue = computed(() => {
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.875rem;
   font-weight: 700;
   color: #1F2937;
   margin-bottom: 0.25rem;

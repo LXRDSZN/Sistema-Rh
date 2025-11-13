@@ -196,7 +196,7 @@ export const register = async (req, res) => {
       await client.query('BEGIN');
       console.log('✅ Transacción iniciada');
 
-      // 1. Crear persona
+      // 1. Crear persona (todos son 'Empleado', el rol específico se asigna en usuario_rol)
       const personaResult = await client.query(
         `INSERT INTO persona 
          (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
@@ -209,7 +209,8 @@ export const register = async (req, res) => {
       );
 
       const personaId = personaResult.rows[0].id;
-      console.log('✅ Persona creada con ID:', personaId);
+      console.log('✅ Persona creada como Empleado con ID:', personaId);
+      console.log('📋 Rol asignado será:', rolFinal);
 
       // 2. Crear usuario
       const usuarioResult = await client.query(
