@@ -97,14 +97,12 @@ export const login = async (req, res) => {
     res.cookie('token', token, config.cookie);
 
     // Registrar sesión activa en la tabla sesiones_activas
-    const expiracion = new Date();
-    expiracion.setMinutes(expiracion.getMinutes() + 5); // Sesión válida por 5 minutos
-    
+    // Usar SQL para calcular la expiración (más confiable que JavaScript Date)
     await db.query(
       `INSERT INTO sesiones_activas (usuario_id, inicio, expiracion, token)
-       VALUES ($1, NOW(), $2, $3)
-       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = $2`,
-      [user.usuario_id, expiracion, token]
+       VALUES ($1, NOW(), NOW() + INTERVAL '5 minutes', $2)
+       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = NOW() + INTERVAL '5 minutes'`,
+      [user.usuario_id, token]
     );
 
     // Registrar acceso en bitácora
