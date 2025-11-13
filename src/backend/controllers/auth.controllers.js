@@ -96,6 +96,17 @@ export const login = async (req, res) => {
     // Enviar token como cookie HTTP-only
     res.cookie('token', token, config.cookie);
 
+    // Registrar sesión activa en la tabla sesiones_activas
+    const expiracion = new Date();
+    expiracion.setMinutes(expiracion.getMinutes() + 5); // Sesión válida por 5 minutos
+    
+    await db.query(
+      `INSERT INTO sesiones_activas (usuario_id, inicio, expiracion, token)
+       VALUES ($1, NOW(), $2, $3)
+       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = $2`,
+      [user.usuario_id, expiracion, token]
+    );
+
     // Registrar acceso en bitácora
     await db.query(
       `INSERT INTO bitacora_accesos (usuario_id, ip, inicio)
@@ -286,11 +297,22 @@ export const register = async (req, res) => {
  */
 export const logout = async (req, res) => {
   try {
+    const token = req.cookies.token;
+    
     // Limpiar cookie
     res.clearCookie('token');
 
-    // Si hay usuario autenticado, actualizar bitácora
+    // Si hay usuario autenticado, actualizar bitácora y eliminar sesión activa
     if (req.user) {
+      // Eliminar sesión activa
+      if (token) {
+        await db.query(
+          `DELETE FROM sesiones_activas WHERE token = $1`,
+          [token]
+        );
+      }
+
+      // Actualizar bitácora
       await db.query(
         `UPDATE bitacora_accesos 
          SET fin = NOW()
