@@ -11,6 +11,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import multer from 'multer';
 import config from '../config/config.js';
 import pool from '../models/db.js';
+import { verificarToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -72,7 +73,7 @@ router.get('/list-files', async (req, res) => {
 // ========================================
 // 3. SUBIR ARCHIVO A S3 Y REGISTRAR EN BD
 // ========================================
-router.post('/upload-file', upload.single('archivo'), async (req, res) => {
+router.post('/upload-file', verificarToken, upload.single('archivo'), async (req, res) => {
     try {
         const file = req.file;
         
@@ -135,7 +136,7 @@ router.post('/upload-file', upload.single('archivo'), async (req, res) => {
 // ========================================
 // 4. OBTENER ARCHIVO DE S3 (URL FIRMADA)
 // ========================================
-router.get('/get-file/:fileName', async (req, res) => {
+router.get('/get-file/:fileName', verificarToken, async (req, res) => {
     try {
         const { fileName } = req.params;
 
@@ -271,7 +272,7 @@ router.get('/archivos', async (req, res) => {
 // ========================================
 // 8. OBTENER UN ARCHIVO POR ID DE LA BD
 // ========================================
-router.get('/archivo/:id', async (req, res) => {
+router.get('/archivo/:id', verificarToken, async (req, res) => {
     try {
         const { id } = req.params;
         const query = 'SELECT * FROM archivo WHERE id = $1';

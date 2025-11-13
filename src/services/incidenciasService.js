@@ -184,15 +184,15 @@ export const getEstadosIncidencia = async () => {
 };
 
 /**
- * Subir archivo
- */
+| * Subir archivo a AWS S3
+| */
 export const uploadArchivo = async (file) => {
   try {
     const formData = new FormData();
     formData.append('archivo', file);
 
     const response = await axios.post(
-      `${API_URL}/upload`,
+      `${API_URL}/upload-file`,
       formData,
       {
         ...axiosConfig,
@@ -201,7 +201,13 @@ export const uploadArchivo = async (file) => {
         }
       }
     );
-    return response.data;
+    
+    // La respuesta de S3 tiene estructura diferente
+    return {
+      success: response.data.ok,
+      message: response.data.mensaje,
+      data: response.data.archivo
+    };
   } catch (error) {
     console.error('Error al subir archivo:', error);
     throw error;

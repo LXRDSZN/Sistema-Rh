@@ -2,6 +2,7 @@
 import * as incidenciasService from '@/services/incidenciasService';
 import { watch } from 'vue';
 import { useRoute } from 'vue-router';
+import axios from 'axios';
 
 export default {
   data() {
@@ -33,6 +34,11 @@ export default {
       cargando: false,
       modoEdicion: false,
       tipoIncidenciaEdit: null,
+      archivoInfo: null,
+      cargandoArchivo: false,
+      mostrarVisorArchivo: false,
+      urlFirmada: null,
+      cargandoUrlFirmada: false,
 
       // Incidencias desde la API
       incidencias: [],
@@ -330,11 +336,116 @@ export default {
       }
     },
 
-    abrirIncidencia(incidencia) {
+    async abrirIncidencia(incidencia) {
       this.incidenciaSeleccionada = incidencia;
       this.tipoIncidenciaEdit = incidencia.tipo_id;
       this.modoEdicion = false;
+      this.archivoInfo = null;
       this.dialogIncidencia = true;
+      
+      // Cargar información del archivo si existe
+      if (incidencia.archivo_id) {
+        await this.cargarArchivo(incidencia.archivo_id);
+      }
+    },
+    
+    async cargarArchivo(archivoId) {
+      this.cargandoArchivo = true;
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await axios.get(`${API_URL}/archivo/${archivoId}`, {
+          withCredentials: true
+        });
+        
+        console.log('Respuesta del archivo:', response.data);
+        
+        // Manejar ambas estructuras de respuesta: {ok, archivo} y {success, data}
+        if ((response.data.ok && response.data.archivo) || (response.data.success && response.data.data)) {
+          this.archivoInfo = response.data.archivo || response.data.data;
+        } else {
+          console.error('Estructura de respuesta inesperada:', response.data);
+          this.archivoInfo = null;
+        }
+      } catch (error) {
+        console.error('Error al cargar archivo:', error);
+        console.error('Detalles del error:', error.response?.data);
+        this.archivoInfo = null;
+      } finally {
+        this.cargandoArchivo = false;
+      }
+    },
+    
+    async verArchivo() {
+      this.mostrarVisorArchivo = true;
+      await this.obtenerUrlFirmada();
+    },
+    
+    async obtenerUrlFirmada() {
+      if (!this.archivoInfo || !this.archivoInfo.storage_url) return;
+      
+      this.cargandoUrlFirmada = true;
+      try {
+        // Extraer el nombre del archivo de la URL de S3
+        const fileName = this.archivoInfo.storage_url.split('/').pop();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        
+        const response = await axios.get(`${API_URL}/get-file/${fileName}`, {
+          withCredentials: true
+        });
+        
+        if (response.data.ok && response.data.url) {
+          this.urlFirmada = response.data.url;
+        } else {
+          console.error('No se pudo obtener URL firmada:', response.data);
+          this.urlFirmada = null;
+        }
+      } catch (error) {
+        console.error('Error al obtener URL firmada:', error);
+        this.urlFirmada = null;
+      } finally {
+        this.cargandoUrlFirmada = false;
+      }
+    },
+    
+    cerrarVisor() {
+      this.mostrarVisorArchivo = false;
+      this.urlFirmada = null;
+    },
+    
+    descargarArchivo() {
+      if (this.archivoInfo && this.archivoInfo.storage_url) {
+        // Extraer el nombre del archivo de la URL de S3
+        const fileName = this.archivoInfo.storage_url.split('/').pop();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        window.open(`${API_URL}/download-file/${fileName}`, '_blank');
+      }
+    },
+    
+    esImagen(tipoMime) {
+      return tipoMime && tipoMime.startsWith('image/');
+    },
+    
+    esPDF(tipoMime) {
+      return tipoMime && tipoMime === 'application/pdf';
+    },
+    
+    obtenerIconoArchivo(tipoMime) {
+      if (!tipoMime) return 'mdi-file';
+      
+      if (tipoMime.includes('pdf')) return 'mdi-file-pdf-box';
+      if (tipoMime.includes('image')) return 'mdi-file-image';
+      if (tipoMime.includes('word') || tipoMime.includes('document')) return 'mdi-file-word';
+      if (tipoMime.includes('excel') || tipoMime.includes('spreadsheet')) return 'mdi-file-excel';
+      
+      return 'mdi-file-document';
+    },
+    
+    formatearTamano(bytes) {
+      if (!bytes) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     },
     
     activarEdicion() {
@@ -821,6 +932,55 @@ export default {
         </span>
       </div>
 
+      <!-- Documento adjunto -->
+      <div v-if="incidenciaSeleccionada.archivo_id" class="detalle-item">
+        <label><strong>Documento adjunto:</strong></label>
+        
+        <div v-if="cargandoArchivo" class="archivo-cargando">
+          <v-progress-circular indeterminate size="24" width="2" color="primary"></v-progress-circular>
+          <span>Cargando archivo...</span>
+        </div>
+        
+        <div v-else-if="archivoInfo" class="archivo-card">
+          <div class="archivo-icon">
+            <v-icon :icon="obtenerIconoArchivo(archivoInfo.tipo_mime)" size="48" color="primary"></v-icon>
+          </div>
+          <div class="archivo-detalles">
+            <p class="archivo-nombre">{{ archivoInfo.nombre }}</p>
+            <p class="archivo-info">
+              <span>{{ formatearTamano(archivoInfo.tamano_bytes) }}</span>
+              <span class="separador">•</span>
+              <span>{{ new Date(archivoInfo.creado_en).toLocaleDateString('es-MX') }}</span>
+            </p>
+          </div>
+          <div class="archivo-acciones">
+            <v-btn
+              icon
+              variant="tonal"
+              color="primary"
+              @click="verArchivo"
+              title="Ver archivo"
+            >
+              <v-icon>mdi-eye</v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              variant="tonal"
+              color="success"
+              @click="descargarArchivo"
+              title="Descargar archivo"
+            >
+              <v-icon>mdi-download</v-icon>
+            </v-btn>
+          </div>
+        </div>
+        
+        <div v-else class="archivo-error">
+          <v-icon color="error">mdi-alert-circle</v-icon>
+          <span>No se pudo cargar el archivo</span>
+        </div>
+      </div>
+
       <!-- Motivo del rechazo dentro del modal -->
       <div
         v-if="incidenciaSeleccionada.estado === 'Rechazada' && incidenciaSeleccionada.descripcion?.includes('RECHAZADA')"
@@ -883,7 +1043,69 @@ export default {
   </v-card>
 </v-dialog>
 
-
+<!-- Modal visor de archivos -->
+<v-dialog v-model="mostrarVisorArchivo" max-width="900" scrollable>
+  <v-card class="visor-archivo-card">
+    <v-card-title class="d-flex justify-space-between align-center pa-4">
+      <div class="d-flex align-center gap-2">
+        <v-icon :icon="obtenerIconoArchivo(archivoInfo?.tipo_mime)" color="primary" size="24"></v-icon>
+        <span class="text-h6">{{ archivoInfo?.nombre }}</span>
+      </div>
+      <v-btn icon variant="text" @click="cerrarVisor">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-card-title>
+    
+    <v-divider></v-divider>
+    
+    <v-card-text class="pa-0 visor-contenido">
+      <!-- Loading mientras se obtiene URL firmada -->
+      <div v-if="cargandoUrlFirmada" class="visor-loading">
+        <v-progress-circular indeterminate size="64" color="primary"></v-progress-circular>
+        <p class="mt-4">Cargando archivo...</p>
+      </div>
+      
+      <!-- Vista previa para imágenes -->
+      <div v-else-if="archivoInfo && urlFirmada && esImagen(archivoInfo.tipo_mime)" class="imagen-container">
+        <img :src="urlFirmada" :alt="archivoInfo.nombre" class="imagen-preview" />
+      </div>
+      
+      <!-- Vista previa para PDFs -->
+      <div v-else-if="archivoInfo && urlFirmada && esPDF(archivoInfo.tipo_mime)" class="pdf-container">
+        <iframe 
+          :src="urlFirmada" 
+          frameborder="0"
+          class="pdf-viewer"
+        ></iframe>
+      </div>
+      
+      <!-- Mensaje para otros tipos de archivo -->
+      <div v-else class="no-preview">
+        <v-icon size="64" color="grey">mdi-file-document-outline</v-icon>
+        <p class="mt-4">Vista previa no disponible para este tipo de archivo</p>
+        <v-btn color="primary" @click="descargarArchivo" class="mt-4">
+          <v-icon left>mdi-download</v-icon>
+          Descargar archivo
+        </v-btn>
+      </div>
+    </v-card-text>
+    
+    <v-divider></v-divider>
+    
+    <v-card-actions class="pa-4">
+      <div class="archivo-info-footer">
+        <span>{{ formatearTamano(archivoInfo?.tamano_bytes) }}</span>
+        <span class="separador">•</span>
+        <span>{{ new Date(archivoInfo?.creado_en).toLocaleDateString('es-MX') }}</span>
+      </div>
+      <v-spacer></v-spacer>
+      <v-btn color="success" @click="descargarArchivo">
+        <v-icon left>mdi-download</v-icon>
+        Descargar
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
 
   </div>
 </template>
@@ -1418,5 +1640,165 @@ export default {
   background-color: #6366f1 !important;
   color: white !important;
   border-color: #6366f1 !important;
+}
+
+/* Estilos para documento adjunto */
+.archivo-cargando {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.archivo-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  border-radius: 12px;
+  border: 1px solid #d1d9e6;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+}
+
+.archivo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.archivo-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.archivo-detalles {
+  flex: 1;
+  min-width: 0;
+}
+
+.archivo-nombre {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archivo-info {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.archivo-info .separador {
+  color: #d1d5db;
+}
+
+.archivo-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.9rem;
+  border-left: 3px solid #ef4444;
+}
+
+.archivo-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+/* Estilos para el visor de archivos */
+.visor-archivo-card {
+  max-height: 90vh;
+}
+
+.visor-contenido {
+  min-height: 500px;
+  max-height: calc(90vh - 180px);
+  background-color: #f5f5f5;
+}
+
+.visor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.imagen-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: #1a1a1a;
+}
+
+.imagen-preview {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pdf-container {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+}
+
+.pdf-viewer {
+  width: 100%;
+  height: 70vh;
+  border: none;
+}
+
+.no-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #6b7280;
+  text-align: center;
+  padding: 2rem;
+}
+
+.archivo-info-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.archivo-info-footer .separador {
+  color: #d1d5db;
 }
 </style>
