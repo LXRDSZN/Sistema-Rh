@@ -28,3 +28,8 @@ coverage
 *.sw?
 .env
 *.tsbuildinfo
+
+# Test files (internal use only)
+tests/
+*.test.js
+*.spec.js
