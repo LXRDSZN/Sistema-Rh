@@ -17,8 +17,12 @@
               id="nombre"
               v-model="modelValue.nombre"
               placeholder="Nombre(s)"
+              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+              title="Solo se permiten letras y espacios"
+              @keypress="onlyLetters"
               required
             />
+            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
           </div>
           
           <div class="form-group">
@@ -28,8 +32,12 @@
               id="apellido_paterno"
               v-model="modelValue.apellido_paterno"
               placeholder="Apellido paterno"
+              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+              title="Solo se permiten letras y espacios"
+              @keypress="onlyLetters"
               required
             />
+            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
           </div>
         </div>
 
@@ -41,7 +49,11 @@
               id="apellido_materno"
               v-model="modelValue.apellido_materno"
               placeholder="Apellido materno (opcional)"
+              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*"
+              title="Solo se permiten letras y espacios"
+              @keypress="onlyLetters"
             />
+            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
           </div>
           
           <div class="form-group">
@@ -110,6 +122,10 @@
 </template>
 
 <script setup>
+import { useTextValidation } from '@/composables/useTextValidation';
+
+const { onlyLetters } = useTextValidation();
+
 defineProps({
   show: Boolean,
   modelValue: Object,
@@ -203,6 +219,13 @@ const closeModal = () => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.5rem;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+  font-style: italic;
 }
 
 .form-group input,
