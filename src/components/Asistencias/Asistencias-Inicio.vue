@@ -5,7 +5,7 @@
     
     <div class="content-inner">
       <div class="header-section">
-        <h1>Vista Para Asistencias</h1>
+        <h1>Asistencias</h1>
         <button class="btn-incidencia" @click="showIncidencia = true">+ Registrar Incidencia</button>
       </div>
       
