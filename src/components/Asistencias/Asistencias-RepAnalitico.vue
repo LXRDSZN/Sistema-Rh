@@ -4,7 +4,6 @@
       <h2 class="page-title">Reporte Analítico</h2>
       <br>
 
-      <!-- Filtros Superiores -->
       <div class="filtros-superiores">
         <v-select
           v-model="selectedMonth"
@@ -178,7 +177,6 @@
       </v-card>
     </div>
 
-    <!-- Snackbar para mensajes -->
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
@@ -198,7 +196,6 @@
 import { ref, computed } from 'vue'
 import jsPDF from 'jspdf'
 
-// Refs
 const selectedMonth = ref('enero-2024')
 const selectedArea = ref('todas')
 const searchTerm = ref('')
@@ -207,7 +204,6 @@ const generandoPdf = ref(false)
 const descargandoIndividual = ref(false)
 const mostrarStats = ref(false)
 
-// Snackbar
 const snackbar = ref({
   show: false,
   text: '',
@@ -222,7 +218,6 @@ const mostrarMensaje = (texto, color = 'success') => {
   }
 }
 
-// Items para selects
 const monthsItems = [
   { title: 'Enero 2024', value: 'enero-2024' },
   { title: 'Febrero 2024', value: 'febrero-2024' },
@@ -238,7 +233,6 @@ const areasItems = [
   { title: 'TI', value: 'ti' }
 ]
 
-// Data
 const originalAnalyticsData = [
   {
     empleado: 'Luis Hernández',
@@ -354,7 +348,7 @@ const originalAnalyticsData = [
 
 const analyticsData = ref([...originalAnalyticsData])
 
-// ================== COMPUTED ==================
+//COMPUTED
 const mesSeleccionado = computed(() => {
   const meses = {
     'enero-2024': 'Enero 2024',
@@ -382,8 +376,7 @@ const estadisticas = computed(() => {
   }
 })
 
-// ================== MÉTODOS ==================
-// Validación de búsqueda (solo letras y espacios)
+// Validación de búsqueda 
 const validarBusqueda = () => {
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
   if (searchTerm.value && !soloLetrasRegex.test(searchTerm.value)) {
@@ -475,7 +468,7 @@ const generarPDF = async () => {
         error: [239, 68, 68]
       }
 
-      // ========== ENCABEZADO DEL REPORTE ==========
+      // Encabezado del reporte
       pdf.setFontSize(16)
       pdf.setTextColor(...colors.primary)
       pdf.text('REPORTE ANALÍTICO DE ASISTENCIAS', 20, 20)
@@ -488,7 +481,7 @@ const generarPDF = async () => {
 
       let yPosition = 55
 
-      // ========== ESTADÍSTICAS ==========
+      // Estadísticas
       pdf.setFillColor(...colors.primary)
       pdf.setTextColor(255, 255, 255)
       pdf.rect(20, yPosition, 250, 8, 'F')
@@ -516,7 +509,7 @@ const generarPDF = async () => {
 
       yPosition += 30
 
-      // ========== TABLA ANALÍTICA ==========
+      //Tabla analitica
       pdf.setFillColor(...colors.primary)
       pdf.setTextColor(255, 255, 255)
       pdf.rect(20, yPosition, 250, 8, 'F')
@@ -530,7 +523,6 @@ const generarPDF = async () => {
 
       let xPosition = 20
 
-      // Dibujar encabezados
       headers.forEach((header, index) => {
         pdf.setFillColor(...colors.primary)
         pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
@@ -592,7 +584,7 @@ const generarPDF = async () => {
         yPosition += 6
       })
 
-      // ========== PIE DE PÁGINA ==========
+      //Pie de página
       const totalPages = pdf.internal.getNumberOfPages()
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
@@ -641,7 +633,7 @@ const generarPDFIndividual = async (empleado) => {
         gray: [107, 114, 128]
       }
 
-      // ========== ENCABEZADO DEL REPORTE ==========
+      //Encabezado del reporte
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.text(`REPORTE INDIVIDUAL - ${empleado.empleado.toUpperCase()}`, 20, 25)
@@ -654,7 +646,7 @@ const generarPDFIndividual = async (empleado) => {
 
       let yPosition = 65
 
-      // ========== DATOS DEL EMPLEADO ==========
+      //Datos del empleado
       pdf.setFillColor(...colors.primary)
       pdf.setTextColor(255, 255, 255)
       pdf.rect(20, yPosition, 170, 8, 'F')
@@ -685,7 +677,7 @@ const generarPDFIndividual = async (empleado) => {
 
       yPosition += 60
 
-      // ========== RESUMEN ==========
+      //Resumen
       pdf.setFillColor(...colors.primary)
       pdf.setTextColor(255, 255, 255)
       pdf.rect(20, yPosition, 170, 8, 'F')
@@ -710,7 +702,7 @@ const generarPDFIndividual = async (empleado) => {
         pdf.text(dato.valor, 85, y)
       })
 
-      // ========== PIE DE PÁGINA ==========
+      //Pie de página
       pdf.setFontSize(8)
       pdf.setTextColor(...colors.gray)
       pdf.text(`Generado el ${new Date().toLocaleDateString('es-ES')} - Sistema de Reportes`, 20, 287)
@@ -732,7 +724,6 @@ const mostrarEstadisticas = () => {
   }
 }
 
-// Funciones para clases condicionales
 const getRetardosClass = (retardos) => {
   if (retardos === 0) return 'buen-estado'
   if (retardos <= 2) return 'estado-regular'
@@ -776,17 +767,14 @@ const getHorasExtraClass = (horas) => {
   padding: 0.2rem;
 }
 
-/* Inputs con fondo blanco */
 .input-white :deep(.v-field) { 
   background-color: #FAFAFA; 
 }
 
-/* Input con error (solo borde rojo) */
 .input-error :deep(.v-field) {
   border-color: #ef4444 !important;
 }
 
-/* Mensaje de error debajo del input */
 .error-message {
   color: #ef4444;
   font-size: 0.75rem;
@@ -794,7 +782,6 @@ const getHorasExtraClass = (horas) => {
   padding: 0 4px;
 }
 
-/* ===== Filtros Compactos ===== */
 .filtros-superiores {
   display: grid;
   grid-template-columns: 180px 180px 1fr auto auto auto;
@@ -819,7 +806,7 @@ const getHorasExtraClass = (horas) => {
   height: 40px !important;
 }
 
-/* ===== Tarjeta de Estadísticas ===== */
+/* Tarjeta de estadísticas */
 .card-formulario {
   padding: 0.2rem;
   background-color: #FAFAFA;
@@ -872,7 +859,7 @@ const getHorasExtraClass = (horas) => {
   font-weight: 500;
 }
 
-/* ===== Tarjeta / Tabla ===== */
+/* Tarjeta / tabla */
 .card-monitoreo {
   margin: 1rem 0 2rem 0;
   padding: 0;
@@ -900,7 +887,6 @@ const getHorasExtraClass = (horas) => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* Contenedor compacto para tabla */
 .table-container {
   overflow-x: auto;
   width: 100%;
@@ -908,7 +894,6 @@ const getHorasExtraClass = (horas) => {
   margin-top: 1rem;
 }
 
-/* Tabla con letra más grande */
 .tabla-monitoreo {
   width: 100%;
   min-width: 900px;
@@ -948,7 +933,6 @@ const getHorasExtraClass = (horas) => {
   width: 120px;
 }
 
-/* Filas con letra más grande y mejor espaciado */
 .tabla-monitoreo :deep(tbody) { background-color: #FFFFFF; }
 .tabla-monitoreo :deep(tbody tr:nth-child(odd)) { background-color: #FFFFFF; }
 .tabla-monitoreo :deep(tbody tr:nth-child(even)) { background-color: #f8fafc; }
@@ -1007,7 +991,6 @@ const getHorasExtraClass = (horas) => {
   font-weight: 500;
 }
 
-/* Snackbar personalizado */
 .custom-snackbar {
   border-radius: 8px;
   bottom: 20px !important;
@@ -1022,7 +1005,7 @@ const getHorasExtraClass = (horas) => {
   padding: 8px 16px;
 }
 
-/* ===== RESPONSIVE ===== */
+/*RESPONSIVE*/
 @media (min-width: 1024px) {
   .repanalitico-content { 
     padding: 3rem;

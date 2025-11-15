@@ -4,7 +4,6 @@
       <h2 class="page-title">Reporte de Visitas</h2>
       <br>
 
-      <!-- Filtros Superiores -->
       <div class="filtros-superiores">
         <v-select
           v-model="selectedMonth"
@@ -104,7 +103,6 @@
       </v-card>
     </div>
 
-    <!-- Snackbar para mensajes -->
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
@@ -124,14 +122,12 @@
 import { ref, computed } from 'vue'
 import jsPDF from 'jspdf'
 
-// Refs
 const selectedMonth = ref('enero-2024')
 const selectedArea = ref('todas')
 const searchTerm = ref('')
 const busquedaError = ref(false)
 const generandoPdf = ref(false)
 
-// Snackbar
 const snackbar = ref({
   show: false,
   text: '',
@@ -162,7 +158,7 @@ const areasItems = [
   { title: 'Asistencias', value: 'asistencias' }
 ]
 
-// Data (master + visible)
+// Data
 const originalVisits = [
   {
     visitante: 'Laura Hernández',
@@ -240,7 +236,7 @@ const originalVisits = [
 
 const visitsData = ref([...originalVisits])
 
-// ================== COMPUTED ==================
+//COMPUTED
 const mesSeleccionado = computed(() => {
   const meses = {
     'enero-2024': 'Enero 2024',
@@ -250,7 +246,6 @@ const mesSeleccionado = computed(() => {
   return meses[selectedMonth.value] || 'Enero 2024'
 })
 
-// ================== MÉTODOS ==================
 // Validación de búsqueda (solo letras y espacios)
 const validarBusqueda = () => {
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
@@ -311,7 +306,7 @@ const generarPDF = async () => {
         gray: [107, 114, 128]
       }
 
-      // ========== ENCABEZADO DEL REPORTE ==========
+      // Encabezado del reporte
       pdf.setFontSize(16)
       pdf.setTextColor(...colors.primary)
       pdf.text('REPORTE DE VISITAS', 20, 20)
@@ -324,7 +319,7 @@ const generarPDF = async () => {
 
       let yPosition = 55
 
-      // ========== TABLA DE VISITAS ==========
+      // Tabla de visitas
       pdf.setFillColor(...colors.primary)
       pdf.setTextColor(255, 255, 255)
       pdf.rect(20, yPosition, 250, 8, 'F')
@@ -398,7 +393,7 @@ const generarPDF = async () => {
         yPosition += 6
       })
 
-      // ========== PIE DE PÁGINA ==========
+      //Pie de página
       const totalPages = pdf.internal.getNumberOfPages()
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
@@ -434,7 +429,6 @@ const generarPDF = async () => {
   background-color: #E4E4E7;
 }
 
-/* Título sin margen extra */
 .page-title {
   font-size: 1.5rem;
   font-weight: 600;
@@ -443,17 +437,14 @@ const generarPDF = async () => {
   padding: 0.2rem;
 }
 
-/* Inputs con fondo blanco */
 .input-white :deep(.v-field) { 
   background-color: #FAFAFA; 
 }
 
-/* Input con error (solo borde rojo) */
 .input-error :deep(.v-field) {
   border-color: #ef4444 !important;
 }
 
-/* ===== Filtros ===== */
 .filtros-superiores {
   display: grid;
   grid-template-columns: 180px 180px 1fr auto auto;
@@ -478,7 +469,7 @@ const generarPDF = async () => {
   height: 40px !important;
 }
 
-/* ===== Tarjeta / Tabla ===== */
+/* Tarjeta / tabla */
 .card-monitoreo {
   margin: 1rem 0 2rem 0;
   padding: 0;
@@ -506,7 +497,6 @@ const generarPDF = async () => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* Contenedor para tabla con scroll horizontal */
 .table-container {
   overflow-x: auto;
   width: 100%;
@@ -514,7 +504,6 @@ const generarPDF = async () => {
   margin-top: 1rem;
 }
 
-/* Tabla con ancho optimizado */
 .tabla-monitoreo {
   width: 100%;
   min-width: 1000px;
@@ -535,7 +524,6 @@ const generarPDF = async () => {
   border: none;
 }
 
-/* Columnas con tamaños específicos */
 .columna-visitante {
   width: 160px !important;
   min-width: 160px !important;
@@ -597,7 +585,6 @@ const generarPDF = async () => {
   font-weight: 500;
 }
 
-/* Snackbar personalizado */
 .custom-snackbar {
   border-radius: 8px;
   bottom: 20px !important;
