@@ -72,24 +72,24 @@
             <v-table class="tabla-monitoreo">
               <thead>
                 <tr>
-                  <th class="text-center">Visitante</th>
-                  <th class="text-center">Cargo/Rol Durante la Visita</th>
-                  <th class="text-center">Área Visitada</th>
-                  <th class="text-center">Persona Visitada</th>
-                  <th class="text-center">Empresa</th>
-                  <th class="text-center">Hora Ingreso</th>
-                  <th class="text-center">Hora Salida</th>
+                  <th class="text-center columna-visitante">Visitante</th>
+                  <th class="text-center columna-cargo">Cargo/Rol</th>
+                  <th class="text-center columna-area">Área Visitada</th>
+                  <th class="text-center columna-persona">Persona Visitada</th>
+                  <th class="text-center columna-empresa">Empresa</th>
+                  <th class="text-center columna-hora">Hora Ingreso</th>
+                  <th class="text-center columna-hora">Hora Salida</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(visit, index) in visitsData" :key="index">
-                  <td class="text-center">{{ visit.visitante }}</td>
-                  <td class="text-center">{{ visit.cargoRol }}</td>
-                  <td class="text-center">{{ visit.areaVisitada }}</td>
-                  <td class="text-center">{{ visit.personaVisitada }}</td>
-                  <td class="text-center">{{ visit.empresaPertenece }}</td>
-                  <td class="text-center">{{ visit.horaIngreso }}</td>
-                  <td class="text-center">{{ visit.horaSalida }}</td>
+                  <td class="text-center columna-visitante">{{ visit.visitante }}</td>
+                  <td class="text-center columna-cargo">{{ visit.cargoRol }}</td>
+                  <td class="text-center columna-area">{{ visit.areaVisitada }}</td>
+                  <td class="text-center columna-persona">{{ visit.personaVisitada }}</td>
+                  <td class="text-center columna-empresa">{{ visit.empresaPertenece }}</td>
+                  <td class="text-center columna-hora">{{ visit.horaIngreso }}</td>
+                  <td class="text-center columna-hora">{{ visit.horaSalida }}</td>
                 </tr>
               </tbody>
             </v-table>
@@ -332,9 +332,9 @@ const generarPDF = async () => {
 
       yPosition += 15
 
-      // Encabezados de la tabla
-      const headers = ['Visitante', 'Cargo/Rol', 'Área Visitada', 'Persona Visitada', 'Empresa', 'Hora Ingreso', 'Hora Salida']
-      const columnWidths = [30, 35, 25, 30, 40, 25, 25]
+      // Encabezados de la tabla con anchos ajustados
+      const headers = ['Visitante', 'Cargo/Rol', 'Área', 'Persona Visitada', 'Empresa', 'H. Ingreso', 'H. Salida']
+      const columnWidths = [35, 40, 25, 35, 45, 20, 20]
 
       let xPosition = 20
 
@@ -379,13 +379,13 @@ const generarPDF = async () => {
         pdf.setTextColor(0, 0, 0)
         pdf.setFontSize(6)
         
-        // Datos de cada columna
+        // Datos de cada columna con tamaños ajustados
         const datosFila = [
-          visit.visitante.substring(0, 18),
-          visit.cargoRol.substring(0, 20),
-          visit.areaVisitada.substring(0, 15),
-          visit.personaVisitada.substring(0, 18),
-          visit.empresaPertenece.substring(0, 22),
+          visit.visitante.substring(0, 20),
+          visit.cargoRol.substring(0, 22),
+          visit.areaVisitada.substring(0, 12),
+          visit.personaVisitada.substring(0, 20),
+          visit.empresaPertenece.substring(0, 25),
           visit.horaIngreso,
           visit.horaSalida
         ]
@@ -455,14 +455,14 @@ const generarPDF = async () => {
 
 /* ===== Filtros ===== */
 .filtros-superiores {
-  display: flex;
-  grid-template-columns: 200px 200px minmax(300px, 1fr) auto auto;
-  gap: 1rem;
-  width: 100%;
-  max-width: 1200px;
-  padding: 0rem 0;
+  display: grid;
+  grid-template-columns: 180px 180px 1fr auto auto;
+  gap: 0.75rem;
+  width: 75%;
+  padding: 0.5rem 0;
   box-sizing: border-box;
-  margin: 0 0 2rem 0;
+  margin: 0 0 1rem 0;
+  align-items: center;
 }
 
 .filter-select,
@@ -475,17 +475,19 @@ const generarPDF = async () => {
   font-weight: 500;
   letter-spacing: 0;
   white-space: nowrap;
+  height: 40px !important;
 }
 
 /* ===== Tarjeta / Tabla ===== */
 .card-monitoreo {
-  width: 100%;
-  margin: 1rem 0 1rem 0;
+  margin: 1rem 0 2rem 0;
   padding: 0;
   background-color: #FFFFFF;
   border-radius: 12px;
   box-sizing: border-box;
   overflow: hidden;
+  border: 1px solid #e5e7eb;
+  width: 100%;
 }
 
 .card-monitoreo :deep(.v-card-text) {
@@ -498,41 +500,76 @@ const generarPDF = async () => {
   font-size: 1.125rem;
   font-weight: 600;
   color: #544F65;
-  padding: 1.5rem 1.5rem 1.5rem;
+  padding: 1rem 1.5rem 0.75rem;
   margin: 0;
   background-color: #FFFFFF;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 /* Contenedor para tabla con scroll horizontal */
 .table-container {
   overflow-x: auto;
   width: 100%;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  position: center;
+  border-radius: 4px;
+  margin-top: 1rem;
 }
 
-/* Tabla con ancho fijo para forzar scroll horizontal cuando sea necesario */
+/* Tabla con ancho optimizado */
 .tabla-monitoreo {
   width: 100%;
-  min-width: 1000px; /* Ancho mínimo para mantener las columnas visibles */
+  min-width: 1000px;
   border-collapse: collapse;
   background-color: #FFFFFF;
 }
 
 .tabla-monitoreo :deep(thead) { 
   background-color: #221A68; 
-  position: sticky;
-  left: 0;
 }
 
 .tabla-monitoreo :deep(thead th) { 
   color: #fff !important; 
   font-weight: 600 !important; 
-  font-size: 0.875rem; 
-  padding: 0.75rem;
+  font-size: 0.875rem !important;
+  padding: 1rem 0.5rem !important;
   white-space: nowrap;
-  min-width: 120px;
+  border: none;
+}
+
+/* Columnas con tamaños específicos */
+.columna-visitante {
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
+}
+
+.columna-cargo {
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 180px !important;
+}
+
+.columna-area {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
+
+.columna-persona {
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
+}
+
+.columna-empresa {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+.columna-hora {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
 }
 
 /* Filas alternadas */
@@ -540,17 +577,17 @@ const generarPDF = async () => {
 .tabla-monitoreo :deep(tbody tr:nth-child(odd)) { background-color: #FFFFFF; }
 .tabla-monitoreo :deep(tbody tr:nth-child(even)) { background-color: #f8fafc; }
 .tabla-monitoreo :deep(tbody td) {
-  padding: 0.75rem; 
-  font-size: 0.875rem; 
+  padding: 0.75rem 0.5rem !important;
+  font-size: 0.875rem !important;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
-  min-width: 120px;
+  line-height: 1.4;
 }
 
 /* Mensaje cuando no hay datos */
 .no-data-message {
   text-align: center;
-  padding: 3rem 2rem;
+  padding: 3rem 1rem;
   color: #6b7280;
 }
 
@@ -577,49 +614,148 @@ const generarPDF = async () => {
 
 /* ===== RESPONSIVE ===== */
 @media (min-width: 1024px) {
-  .reportevisitas-content { padding-left: 2rem; }
+  .reportevisitas-content { 
+    padding: 3rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .filtros-superiores {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+  }
 }
 
 @media (max-width: 768px) {
   .reportevisitas-content { 
-    padding: 1rem; 
-    margin-left: 48px; 
+    padding: 1rem;
   }
   
   .filtros-superiores { 
     grid-template-columns: 1fr; 
-    max-width: 100%; 
     gap: 0.5rem;
   }
   
   .card-monitoreo { 
-    max-width: 100%; 
-    border-radius: 12px; 
-    margin: 0.5rem 0 1rem 0;
+    margin: 0.25rem 0 0.5rem 0;
   }
   
   .card-monitoreo :deep(.v-card-text) { 
     padding: 0 1rem 1rem; 
   }
   
-  .filter-select, .search-input-monitor { 
-    width: 100%; 
-  }
-  
-  .table-container {
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
+  .card-titulo {
+    padding: 0.75rem 1rem 0.5rem;
+    font-size: 1rem;
   }
   
   .tabla-monitoreo {
-    min-width: 800px; /* Menos ancho mínimo para móviles */
+    min-width: 900px;
   }
   
-  .tabla-monitoreo :deep(thead th),
+  .tabla-monitoreo :deep(thead th) { 
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.8rem !important;
+  }
+  
   .tabla-monitoreo :deep(tbody td) {
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    min-width: 100px;
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  /* Ajustes de columnas para móvil */
+  .columna-visitante {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+  
+  .columna-cargo {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+  }
+  
+  .columna-area {
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+  
+  .columna-persona {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+  
+  .columna-empresa {
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+  }
+  
+  .columna-hora {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .reportevisitas-content { 
+    padding: 0.5rem; 
+  }
+  
+  .page-title {
+    font-size: 1.3rem;
+  }
+  
+  .tabla-monitoreo {
+    min-width: 850px;
+  }
+  
+  .columna-visitante {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+  
+  .columna-cargo {
+    width: 130px !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
+  }
+  
+  .columna-area {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+  }
+  
+  .columna-persona {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+  
+  .columna-empresa {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+  
+  .columna-hora {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+  }
+  
+  .no-data-message {
+    padding: 2rem 0.5rem;
+  }
+  
+  .no-data-message p {
+    font-size: 0.9rem;
   }
 }
 </style>

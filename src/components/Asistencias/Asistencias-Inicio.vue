@@ -71,65 +71,29 @@
           <div class="subtitle">Estadísticas semanales</div>
           <h2>Retardos y ausencias</h2>
           
-          <div class="leyenda">
+          <div class="leyenda-lineal">
             <div class="leyenda-item">
-              <div class="leyenda-color" style="background-color: #6366f1;"></div>
+              <div class="linea-leyenda retardos"></div>
               <span>Retardos</span>
             </div>
             <div class="leyenda-item">
-              <div class="leyenda-color" style="background-color: #312e81;"></div>
+              <div class="linea-leyenda ausencias"></div>
               <span>Ausencias</span>
             </div>
           </div>
 
-          <div class="barras-container">
-            <div class="barra-row">
-              <span class="barra-label">Lunes</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 15%;"></div>
-                <div class="barra-fill ausencias" style="left: 15%; width: 10%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Martes</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 8%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Miércoles</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 8%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Jueves</span>
-              <div class="barra-bg"></div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Viernes</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 15%;"></div>
-                <div class="barra-fill ausencias" style="left: 15%; width: 10%;"></div>
+          <div class="barras-lineales-container">
+            <div class="linea-dia" v-for="dia in semana" :key="dia.nombre">
+              <span class="dia-label">{{ dia.nombre }}</span>
+              <div class="barras-horizontales">
+                <div class="barra-lineal retardos" :style="{ width: dia.retardos * 10 + '%' }"></div>
+                <div class="barra-lineal ausencias" :style="{ width: dia.ausencias * 10 + '%' }"></div>
               </div>
             </div>
           </div>
 
-          <div class="escala">
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span>5</span>
-            <span>6</span>
-            <span>7</span>
-            <span>8</span>
-            <span>9</span>
-            <span>10</span>
+          <div class="escala-numerica">
+            <span v-for="n in 10" :key="n">{{ n }}</span>
           </div>
         </div>
       </div>
@@ -142,6 +106,15 @@ import { ref } from 'vue'
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue'
 
 const showIncidencia = ref(false)
+
+// Datos de ejemplo para la semana - ahora todos los días tienen datos
+const semana = ref([
+  { nombre: 'Lunes', retardos: 2, ausencias: 1 },
+  { nombre: 'Martes', retardos: 1, ausencias: 2 },
+  { nombre: 'Miércoles', retardos: 3, ausencias: 1 },
+  { nombre: 'Jueves', retardos: 1, ausencias: 3 },
+  { nombre: 'Viernes', retardos: 2, ausencias: 2 }
+])
 </script>
 
 <style scoped>
@@ -158,7 +131,7 @@ const showIncidencia = ref(false)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin: 0 0rem 2rem 1rem;
 }
 
 h1 {
@@ -183,49 +156,6 @@ h1 {
 .btn-incidencia:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
-}
-
-/* Animación de éxito */
-.success-toast {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  z-index: 9999;
-  animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 2.7s forwards;
-}
-
-.success-content {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-@keyframes slideIn {
-  0% {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOut {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(400px);
-    opacity: 0;
-  }
 }
 
 .card {
@@ -343,6 +273,7 @@ h2, .card h2 {
   font-weight: bold;
   color: #111827;
   line-height: 1;
+  margin-top: 1.5rem;
 }
 
 .puntualidad-label {
@@ -351,14 +282,14 @@ h2, .card h2 {
   font-size: 1rem;
 }
 
-/* Estadísticas Semanales */
+/* Estadísticas Semanales - Estilo Lineal */
 .subtitle {
   font-size: 0.875rem;
   color: #9ca3af;
   margin-bottom: 0.5rem;
 }
 
-.leyenda {
+.leyenda-lineal {
   display: flex;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
@@ -371,58 +302,68 @@ h2, .card h2 {
   gap: 0.5rem;
 }
 
-.leyenda-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.linea-leyenda {
+  width: 20px;
+  height: 6px; /* Más grueso */
+  border-radius: 3px;
 }
 
-.barras-container {
+.linea-leyenda.retardos {
+  background-color: #6366f1;
+}
+
+.linea-leyenda.ausencias {
+  background-color: #312e81;
+}
+
+.barras-lineales-container {
   margin-bottom: 1rem;
 }
 
-.barra-row {
+.linea-dia {
   display: flex;
   align-items: center;
   margin-bottom: 0.75rem;
+  height: 30px; /* Más alto para barras más gruesas */
 }
 
-.barra-label {
+.dia-label {
   width: 80px;
   font-size: 0.875rem;
   color: #374151;
 }
 
-.barra-bg {
+.barras-horizontales {
   flex: 1;
-  height: 8px;
-  background-color: #e5e7eb;
-  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Más espacio entre barras */
   position: relative;
-  overflow: hidden;
-}
-
-.barra-fill {
-  position: absolute;
   height: 100%;
-  border-radius: 4px;
+  justify-content: center;
 }
 
-.barra-fill.retardos {
+.barra-lineal {
+  height: 7px; /* Más grueso - de 3px a 6px */
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.barra-lineal.retardos {
   background-color: #6366f1;
-  left: 0;
 }
 
-.barra-fill.ausencias {
+.barra-lineal.ausencias {
   background-color: #312e81;
 }
 
-.escala {
+.escala-numerica {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
   color: #9ca3af;
   padding: 0 80px;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {
@@ -432,6 +373,14 @@ h2, .card h2 {
   
   .graficas-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .escala-numerica {
+    padding: 0 20px;
+  }
+  
+  .dia-label {
+    width: 60px;
   }
 }
 </style>
