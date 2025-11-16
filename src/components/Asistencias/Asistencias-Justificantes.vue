@@ -201,7 +201,7 @@
               hide-details
             />
 
-            <!-- 👇 AQUÍ ESTÁ EL COMBOBOX CORREGIDO -->
+            <!--  AQUÍ ESTÁ EL COMBOBOX CORREGIDO -->
             <v-select
               v-model="monitoreo.area_id"
               :items="areasMonitoreoItems"
