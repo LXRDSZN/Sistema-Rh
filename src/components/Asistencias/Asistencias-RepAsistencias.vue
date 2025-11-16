@@ -221,7 +221,6 @@ const busquedaError = ref(false)
 const generandoPdf = ref(false)
 const areas = ref([])
 
-// Snackbar
 const snackbar = ref({ show: false, text: '', color: 'success' })
 const mostrarMensaje = (texto, color = 'success') => {
   snackbar.value = { show: true, text: texto, color }
@@ -843,7 +842,7 @@ const generarPDF = async (row) => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* Tabla de detalle con scroll horizontal y columnas fijas */
+/* Tabla de detalle */
 .table-container {
   overflow-x: auto;
   max-width: 100%;
@@ -858,7 +857,7 @@ const generarPDF = async (row) => {
   border-spacing: 0;
 }
 
-/* Columnas fijas - HEADER */
+/*HEADER */
 .fixed-header {
   position: sticky;
   left: 0;
@@ -873,7 +872,7 @@ const generarPDF = async (row) => {
 .fixed-header:nth-child(2) { left: 150px; }
 .fixed-header:nth-child(3) { left: 300px; }
 
-/* Columnas fijas - CELDAS */
+/* CELDAS */
 .fixed-cell {
   position: sticky;
   left: 0;
@@ -966,7 +965,7 @@ const generarPDF = async (row) => {
   color: white;
 }
 
-/* BOTÓN GENERAR REPORTE - SOLUCIÓN DEFINITIVA */
+/* BOTÓN GENERAR REPORTE */
 .action-cell {
   width: 180px !important;
   padding: 8px 4px !important;
@@ -1030,7 +1029,6 @@ const generarPDF = async (row) => {
   cursor: not-allowed !important;
 }
 
-/* Snackbar personalizado - centrado inferior */
 .custom-snackbar {
   border-radius: 8px;
   bottom: 20px !important;
@@ -1099,7 +1097,6 @@ const generarPDF = async (row) => {
     width: 100%;
   }
 
-  /* Ajustes para móvil en tabla de detalle */
   .fixed-header,
   .fixed-cell {
     min-width: 120px;
