@@ -40,6 +40,11 @@
 
       <!-- Vista de Crear Contrato -->
       <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
+
+      <!-- ✅ Agregar en el bloque de vistas -->
+      <EnlaceHistorial v-else-if="activeTab === 'historial'" :contratos="contratosHistorico"
+        @volver-inicio="activeTab = 'inicio'" @ver-contrato="handleRevisarContrato"
+        @descargar-contrato="handleDescargarContrato" />
     </div>
   </div>
 </template>
@@ -60,6 +65,7 @@ import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 import DetalleAspirante from './DetalleAspiranteRefactored.vue';
 import DetalleEmpleado from './DetalleEmpleadoCommon/DetalleEmpleado.vue';
+import EnlaceHistorial from './EnlacesNavegacion/EnlaceHistorial.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -95,13 +101,20 @@ const onIncidenciaCreada = () => {
     showSuccess.value = false;
   }, 3000);
 };
+
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
   if (route.path === '/Contratos/estadisticas') {
     activeTab.value = 'estadisticas';
   } else if (route.path === '/Contratos/crear') {
     activeTab.value = 'crear';
-  } else {
+  } else if (route.path === '/Contratos/registro-huellas') {
+    activeTab.value = 'registro-huellas';
+  }
+  else if (route.path === '/Contratos/historial') {
+    activeTab.value = 'historial';
+  }
+  else {
     activeTab.value = 'inicio';
   }
 };
@@ -208,6 +221,30 @@ const cambiarVista = (vista) => {
   activeTab.value = vista;
   // Los datos ya están cargados y los computed properties se encargan del filtro
 };
+
+// Computed para historial
+const contratosHistorico = computed(() =>
+  contratos.value.filter(c =>
+    c.estado_clase === 'terminado' ||
+    c.estado_clase === 'cancelado' ||
+    c.estado_clase === 'suspendido'
+  )
+);
+
+// Método para manejar descarga de contrato
+const handleDescargarContrato = async (contrato) => {
+  console.log('Descargar contrato:', contrato);
+
+  try {
+    // Aquí puedes implementar la descarga del PDF
+    // Por ejemplo, usando tu sistema S3
+    alert(`Descargando contrato de ${contrato.nombre}`);
+  } catch (error) {
+    console.error('Error al descargar:', error);
+    alert('Error al descargar el contrato');
+  }
+};
+
 
 // Watch para cambios en la ruta
 watch(() => route.path, () => {

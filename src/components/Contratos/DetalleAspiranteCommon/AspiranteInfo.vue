@@ -32,10 +32,7 @@
                     <span class="material-symbols-rounded">badge</span>
                     <span class="icono-label">CV</span>
                 </div>
-                <div class="icono-card">
-                    <span class="material-symbols-rounded">fingerprint</span>
-                    <span class="icono-label">Huella</span>
-                </div>
+
                 <div class="icono-card">
                     <span class="material-symbols-rounded">description</span>
                     <span class="icono-label">Contrato</span>
