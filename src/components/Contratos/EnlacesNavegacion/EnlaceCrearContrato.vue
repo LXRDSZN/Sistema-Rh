@@ -56,6 +56,10 @@
 
                 <div class="form-row">
                     <div class="form-group">
+                        <label>Proyecto (en caso de aplicar) </label>
+                        <input type="text" v-model="formData.sueldoMensual" class="form-input">
+                    </div>
+                    <div class="form-group">
                         <label>Sueldo Mensual</label>
                         <input type="text" v-model="formData.sueldoMensual" class="form-input">
                     </div>
@@ -163,20 +167,6 @@
                     </div>
                 </div>
 
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" v-model="formData.contratoBase">
-                        <span>Contrato Base</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" v-model="formData.reglamentoInterno">
-                        <span>Reglamento Interno</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" v-model="formData.acuerdoConfidencialidad">
-                        <span>Acuerdo de Confidencialidad</span>
-                    </label>
-                </div>
             </div>
 
             <!-- Firmas y Acciones -->
@@ -184,15 +174,6 @@
                 <h3 class="subsection-title">Firmas y Acciones</h3>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>Estado de Firma</label>
-                        <select v-model="formData.estadoFirma" class="form-select">
-                            <option value="">Seleccione</option>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Firmado">Firmado</option>
-                            <option value="Rechazado">Rechazado</option>
-                        </select>
-                    </div>
                     <div class="form-group">
                         <label>Fecha de Generación</label>
                         <input type="date" v-model="formData.fechaGeneracion" class="form-input">
@@ -206,14 +187,11 @@
                     <span class="material-symbols-rounded">save</span>
                     Guardar
                 </button>
-                <button class="btn-enviar" @click="enviarFirma">
+                <button class="btn-limpiar" @click="enviarLimpiar">
                     <span class="material-symbols-rounded">edit</span>
-                    Enviar a Firma
+                    Limpiar
                 </button>
-                <button class="btn-imprimir" @click="imprimir">
-                    <span class="material-symbols-rounded">print</span>
-                    Imprimir
-                </button>
+
             </div>
         </div>
     </div>
@@ -237,6 +215,7 @@ const formData = ref({
     tipoContrato: '',
     fechaInicio: '',
     fechaTermino: '',
+    proyecto: '',
     sueldoMensual: '',
     modalidad: '',
     observaciones: '',
@@ -249,10 +228,6 @@ const formData = ref({
     salida: '',
     tipoDocumento: '',
     documento: '',
-    contratoBase: false,
-    reglamentoInterno: false,
-    acuerdoConfidencialidad: false,
-    estadoFirma: '',
     fechaGeneracion: ''
 });
 
@@ -267,15 +242,11 @@ const guardarContrato = () => {
     alert('Contrato guardado exitosamente');
 };
 
-const enviarFirma = () => {
+const enviarLimpiar = () => {
     console.log('Enviando a firma:', formData.value);
-    alert('Enviado a firma exitosamente');
+    alert('Limpiado Correctamente');
 };
 
-const imprimir = () => {
-    console.log('Imprimiendo contrato:', formData.value);
-    window.print();
-};
 </script>
 
 <style scoped>
@@ -472,8 +443,7 @@ const imprimir = () => {
 }
 
 .btn-guardar,
-.btn-enviar,
-.btn-imprimir {
+.btn-limpiar {
     padding: 0.85rem 2rem;
     border-radius: 8px;
     font-weight: 600;
@@ -495,23 +465,15 @@ const imprimir = () => {
     background-color: #45a049;
 }
 
-.btn-enviar {
+.btn-limpiar {
     background-color: #ffc107;
     color: white;
 }
 
-.btn-enviar:hover {
+.btn-limpiar:hover {
     background-color: #e0a800;
 }
 
-.btn-imprimir {
-    background-color: #9370db;
-    color: white;
-}
-
-.btn-imprimir:hover {
-    background-color: #7b5cb8;
-}
 
 .material-symbols-rounded {
     font-size: 20px;
@@ -542,8 +504,7 @@ const imprimir = () => {
     }
 
     .btn-guardar,
-    .btn-enviar,
-    .btn-imprimir {
+    .btn-enviar {
         width: 100%;
     }
 }
