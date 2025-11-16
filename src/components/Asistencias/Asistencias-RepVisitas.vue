@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAsistencias } from '@/composables/useAsistencias'
 import axios from 'axios'
 import jsPDF from 'jspdf'
@@ -200,11 +200,13 @@ const monthsItems = computed(() => {
   }))
 })
 
+// Áreas: value = nombre tal cual (para backend) 
 const areasItems = computed(() => [
   { title: 'Todas las Áreas', value: 'todas' },
-  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre.toLowerCase() }))
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
 ])
 
+// Datos mostrados en la tabla, filtrados en frontend por área y búsqueda
 const visitsData = computed(() => {
   if (!visitas.value || visitas.value.length === 0) return []
   
@@ -217,6 +219,14 @@ const visitsData = computed(() => {
     horaIngreso: v.hora_entrada || 'N/A',
     horaSalida: v.hora_salida || 'N/A'
   }))
+
+  // Filtro por área (solo cuando no es "todas")
+  if (selectedArea.value && selectedArea.value !== 'todas') {
+    const areaFiltro = selectedArea.value.toLowerCase()
+    resultado = resultado.filter(v =>
+      v.areaVisitada && v.areaVisitada.toLowerCase() === areaFiltro
+    )
+  }
   
   // Filtro por búsqueda
   if (searchTerm.value) {
@@ -234,11 +244,6 @@ const visitsData = computed(() => {
 // ================== COMPUTED ==================
 const mesSeleccionado = computed(() => {
   return monthsItems.value.find(m => m.value === selectedMonth.value)?.title || ''
-})
-
-// Watch para recargar datos cuando cambien filtros
-watch([selectedMonth, selectedYear, selectedArea], async () => {
-  await cargarDatos()
 })
 
 // ================== MÉTODOS ==================

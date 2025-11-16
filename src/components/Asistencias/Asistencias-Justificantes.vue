@@ -15,9 +15,12 @@
           hide-details
         />
 
+        <!-- Filtro de área superior CORREGIDO -->
         <v-select
           v-model="filtroArea"
           :items="areasItems"
+          item-title="title"
+          item-value="value"
           placeholder="Todas las áreas"
           class="filter-select input-white"
           variant="outlined"
@@ -203,11 +206,12 @@
               hide-details
             />
 
+            <!-- Filtro de área monitoreo CORREGIDO -->
             <v-select
               v-model="monitoreo.area_id"
               :items="areasMonitoreoItems"
-              item-title="nombre"
-              item-value="id"
+              item-title="title"
+              item-value="value"
               placeholder="Todas las áreas"
               class="filter-select-monitor input-white"
               variant="outlined"
@@ -273,6 +277,7 @@
           </v-table>
         </v-card-text>
       </v-card>
+
       <v-card class="card-registro" elevation="0">
         <h2 class="card-titulo">Registro de Justificaciones</h2>
 
