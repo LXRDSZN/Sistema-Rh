@@ -172,169 +172,153 @@
     </div>
   </template>
   
-  <script setup>
-  import { ref, computed } from 'vue'
-  
-  // Refs
-  const selectedMonth = ref('enero-2024')
-  const selectedType = ref('asistencia')
-  const searchTerm = ref('')
-  const mostrarStats = ref(false)
-  
-  // Snackbar
-  const snackbar = ref({
-    show: false,
-    text: '',
-    color: 'success'
-  })
-  
-  const mostrarMensaje = (texto, color = 'success') => {
-    snackbar.value = {
-      show: true,
-      text: texto,
-      color: color
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+
+// Composable
+const {
+  reporteAnalitico,
+  loading,
+  cargarReporteAnalitico
+} = useAsistencias()
+
+// Estados
+const selectedMonth = ref(new Date().getMonth() + 1)
+const selectedYear = ref(new Date().getFullYear())
+const selectedType = ref('asistencia')
+const searchTerm = ref('')
+const mostrarStats = ref(false)
+
+// Snackbar
+const snackbar = ref({
+  show: false,
+  text: '',
+  color: 'success'
+})
+
+const mostrarMensaje = (texto, color = 'success') => {
+  snackbar.value = {
+    show: true,
+    text: texto,
+    color: color
+  }
+}
+
+// Cargar datos iniciales
+onMounted(async () => {
+  await cargarDatos()
+})
+
+const cargarDatos = async () => {
+  try {
+    const filtros = {
+      mes: selectedMonth.value,
+      anio: selectedYear.value
     }
+    await cargarReporteAnalitico(filtros)
+  } catch (error) {
+    console.error('Error al cargar reporte analítico:', error)
+    mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
+// Items para selects
+const monthsItems = computed(() => {
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return meses.map((mes, index) => ({
+    title: `${mes} ${selectedYear.value}`,
+    value: index + 1
+  }))
+})
+
+const typesItems = [
+  { title: 'Asistencia', value: 'asistencia' },
+  { title: 'Retardos', value: 'retardos' },
+  { title: 'Faltas', value: 'faltas' }
+]
+
+// Data
+const analyticsData = computed(() => {
+  if (!reporteAnalitico.value || reporteAnalitico.value.length === 0) return []
+  
+  let resultado = Array.isArray(reporteAnalitico.value) 
+    ? reporteAnalitico.value 
+    : (reporteAnalitico.value.empleados || [])
+  
+  resultado = resultado.map(emp => ({
+    empleado: emp.empleado || 'N/A',
+    diasTrabajados: emp.dias_trabajados || 0,
+    retardos: emp.retardos || 0,
+    faltJustif: emp.faltas_justificadas || 0,
+    faltInjustif: emp.faltas_injustificadas || 0,
+    incidencias: emp.incidencias || 0,
+    horasExtra: emp.horas_extra || 0,
+    dFdosTrabajados: emp.dias_festivos_trabajados || 0,
+    empleado_id: emp.empleado_id
+  }))
+  
+  // Filtro por búsqueda
+  if (searchTerm.value) {
+    const search = searchTerm.value.toLowerCase()
+    resultado = resultado.filter(emp =>
+      emp.empleado.toLowerCase().includes(search)
+    )
   }
   
-  // Items para selects
-  const monthsItems = [
-    { title: 'Enero 2024', value: 'enero-2024' },
-    { title: 'Febrero 2024', value: 'febrero-2024' },
-    { title: 'Marzo 2024', value: 'marzo-2024' }
-  ]
+  // Filtro por tipo
+  if (selectedType.value === 'retardos') {
+    resultado = resultado.filter(emp => emp.retardos > 0)
+  } else if (selectedType.value === 'faltas') {
+    resultado = resultado.filter(emp => (emp.faltJustif + emp.faltInjustif) > 0)
+  }
   
-  const typesItems = [
-    { title: 'Asistencia', value: 'asistencia' },
-    { title: 'Retardos', value: 'retardos' },
-    { title: 'Faltas', value: 'faltas' }
-  ]
-  
-  // Data
-  const analyticsData = ref([
-    {
-      empleado: 'Luis Hernández',
-      diasTrabajados: 22,
-      retardos: 1,
-      faltJustif: 0,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 3,
-      dFdosTrabajados: 1
-    },
-    {
-      empleado: 'Carolina Reyes',
-      diasTrabajados: 20,
-      retardos: 0,
-      faltJustif: 2,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 5,
-      dFdosTrabajados: 0
-    },
-    {
-      empleado: 'Roberto Silva',
-      diasTrabajados: 18,
-      retardos: 3,
-      faltJustif: 1,
-      faltInjustif: 1,
-      incidencias: 1,
-      horasExtra: 2,
-      dFdosTrabajados: 1
-    },
-    {
-      empleado: 'Gabriela Morales',
-      diasTrabajados: 21,
-      retardos: 0,
-      faltJustif: 0,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 1,
-      dFdosTrabajados: 2
-    },
-    {
-      empleado: 'Fernando Castro',
-      diasTrabajados: 19,
-      retardos: 2,
-      faltJustif: 0,
-      faltInjustif: 2,
-      incidencias: 0,
-      horasExtra: 0,
-      dFdosTrabajados: 0
-    },
-    {
-      empleado: 'Daniela Ortega',
-      diasTrabajados: 22,
-      retardos: 1,
-      faltJustif: 1,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 0,
-      dFdosTrabajados: 1
-    },
-    {
-      empleado: 'Ángel Santos',
-      diasTrabajados: 17,
-      retardos: 4,
-      faltJustif: 2,
-      faltInjustif: 1,
-      incidencias: 0,
-      horasExtra: 1,
-      dFdosTrabajados: 0
-    },
-    {
-      empleado: 'Alejandra Pares',
-      diasTrabajados: 20,
-      retardos: 0,
-      faltJustif: 0,
-      faltInjustif: 0,
-      incidencias: 1,
-      horasExtra: 2,
-      dFdosTrabajados: 0
-    },
-    {
-      empleado: 'Luis Ríos',
-      diasTrabajados: 21,
-      retardos: 2,
-      faltJustif: 0,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 0,
-      dFdosTrabajados: 0
-    },
-    {
-      empleado: 'Patricia Mendoza',
-      diasTrabajados: 18,
-      retardos: 1,
-      faltJustif: 3,
-      faltInjustif: 0,
-      incidencias: 0,
-      horasExtra: 0,
-      dFdosTrabajados: 1
-    }
-  ])
-  
-  // Computed - Estadísticas
-  const estadisticas = computed(() => {
-    const totalEmpleados = analyticsData.value.length
-    const totalDiasTrabajados = analyticsData.value.reduce((sum, emp) => sum + emp.diasTrabajados, 0)
-    const totalRetardos = analyticsData.value.reduce((sum, emp) => sum + emp.retardos, 0)
-    const totalFaltas = analyticsData.value.reduce((sum, emp) => sum + emp.faltJustif + emp.faltInjustif, 0)
-    const totalHorasExtra = analyticsData.value.reduce((sum, emp) => sum + emp.horasExtra, 0)
-    
-    const promedioAsistencia = ((totalDiasTrabajados / (totalEmpleados * 22)) * 100).toFixed(1)
-    
+  return resultado
+})
+
+// Watch para recargar datos cuando cambien filtros
+watch([selectedMonth, selectedYear], async () => {
+  await cargarDatos()
+})
+
+// Computed - Estadísticas
+const estadisticas = computed(() => {
+  if (!analyticsData.value || analyticsData.value.length === 0) {
     return {
-      promedioAsistencia,
-      totalRetardos,
-      totalFaltas,
-      totalHorasExtra
+      promedioAsistencia: 0,
+      totalRetardos: 0,
+      totalFaltas: 0,
+      totalHorasExtra: 0
     }
-  })
-  
-  // Functions
-  const aplicarFiltros = () => {
-    mostrarMensaje('Filtros aplicados correctamente')
   }
+  
+  const totalEmpleados = analyticsData.value.length
+  const totalDiasTrabajados = analyticsData.value.reduce((sum, emp) => sum + emp.diasTrabajados, 0)
+  const totalRetardos = analyticsData.value.reduce((sum, emp) => sum + emp.retardos, 0)
+  const totalFaltas = analyticsData.value.reduce((sum, emp) => sum + emp.faltJustif + emp.faltInjustif, 0)
+  const totalHorasExtra = analyticsData.value.reduce((sum, emp) => sum + emp.horasExtra, 0)
+  
+  const diasHabiles = new Date(selectedYear.value, selectedMonth.value, 0).getDate()
+  const promedioAsistencia = totalEmpleados > 0 
+    ? ((totalDiasTrabajados / (totalEmpleados * diasHabiles)) * 100).toFixed(1)
+    : 0
+  
+  return {
+    promedioAsistencia,
+    totalRetardos,
+    totalFaltas,
+    totalHorasExtra
+  }
+})
+
+// Functions
+const aplicarFiltros = async () => {
+  await cargarDatos()
+  mostrarMensaje(`Filtros aplicados: ${analyticsData.value.length} registro(s) encontrados`)
+}
   
   const generarReporte = () => {
     mostrarMensaje('Generando reporte analítico...', 'info')

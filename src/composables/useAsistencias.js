@@ -5,6 +5,15 @@ import * as asistenciasService from '@/services/asistenciasService';
  * COMPOSABLE DE ASISTENCIAS
  * 
  * Maneja el estado y la lógica de negocio del módulo de asistencias
+ * 
+ * TABLAS DE BASE DE DATOS UTILIZADAS:
+ * - estado_asistencia: Códigos A, R, F, P, V, I (Asistencia, Retardo, Falta, Permiso, Vacaciones, Incidencia)
+ * - registro_asistencias: Registro diario de entrada/salida de empleados
+ * - justificantes: Gestión de justificaciones de incidencias
+ * - visitas: Registro de visitantes con nuevos campos (cargo_rol, motivo_visita, etc.)
+ * - horario_empleado: Horarios programados por día de semana (reemplaza tabla 'turno')
+ * - tipo_incidencia: Catálogo de tipos de incidencias
+ * - estado_incidencia: Estados de las incidencias
  */
 
 export function useAsistencias() {
@@ -94,9 +103,13 @@ export function useAsistencias() {
     
     try {
       const response = await asistenciasService.getTiposIncidencia();
+      console.log('🔵 COMPOSABLE - Respuesta completa:', response);
+      console.log('🔵 COMPOSABLE - response.data:', response.data);
       tiposIncidencia.value = response.data;
+      console.log('🔵 COMPOSABLE - tiposIncidencia.value asignado:', tiposIncidencia.value);
       return response;
     } catch (err) {
+      console.error('❌ COMPOSABLE - Error:', err);
       error.value = err.response?.data?.message || 'Error al cargar tipos de incidencia';
       throw err;
     } finally {
@@ -181,6 +194,46 @@ export function useAsistencias() {
   };
 
   /**
+   * Crear nueva visita
+   */
+  const crearVisita = async (datos) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await asistenciasService.crearVisita(datos);
+      // Recargar la lista después de crear
+      await cargarVisitas();
+      return response;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al crear visita';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * Actualizar visita (registrar salida)
+   */
+  const actualizarVisita = async (id, datos) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await asistenciasService.actualizarVisita(id, datos);
+      // Recargar la lista después de actualizar
+      await cargarVisitas();
+      return response;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al actualizar visita';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
    * Registrar asistencia
    */
   const registrarAsistencia = async (datos) => {
@@ -221,6 +274,8 @@ export function useAsistencias() {
     cargarDetalleAsistencias,
     cargarReporteAnalitico,
     cargarVisitas,
+    crearVisita,
+    actualizarVisita,
     registrarAsistencia
   };
 }

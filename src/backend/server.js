@@ -13,6 +13,7 @@ import config from './config/config.js';
 import s3Routes from './routes/s3.js'; // s3.js
 import contratosRoutes from './routes/contratos.js';
 import vacacionesRoutes from './routes/vacaciones.js';
+import asistenciasRoutes from './routes/asistencias.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -82,6 +83,9 @@ app.use('/api', contratosRoutes);
 
 // Rutas de vacaciones 
 app.use('/api/vacaciones', vacacionesRoutes);
+
+// Rutas de asistencias
+app.use('/api', asistenciasRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {

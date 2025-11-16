@@ -121,15 +121,28 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+import axios from 'axios'
 import jsPDF from 'jspdf'
 
-// Refs
-const selectedMonth = ref('enero-2024')
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Composable
+const {
+  visitas,
+  loading,
+  cargarVisitas
+} = useAsistencias()
+
+// Estados
+const selectedMonth = ref(new Date().getMonth() + 1)
+const selectedYear = ref(new Date().getFullYear())
 const selectedArea = ref('todas')
 const searchTerm = ref('')
 const busquedaError = ref(false)
 const generandoPdf = ref(false)
+const areas = ref([])
 
 // Snackbar
 const snackbar = ref({
@@ -146,108 +159,86 @@ const mostrarMensaje = (texto, color = 'success') => {
   }
 }
 
-// Items para selects
-const monthsItems = [
-  { title: 'Enero 2024', value: 'enero-2024' },
-  { title: 'Febrero 2024', value: 'febrero-2024' },
-  { title: 'Marzo 2024', value: 'marzo-2024' }
-]
+// Cargar datos iniciales
+onMounted(async () => {
+  await cargarAreas()
+  await cargarDatos()
+})
 
-const areasItems = [
-  { title: 'Todas las Áreas', value: 'todas' },
-  { title: 'Contratos', value: 'contratos' },
-  { title: 'Áreas', value: 'areas' },
-  { title: 'Vacaciones', value: 'vacaciones' },
-  { title: 'Incidencias', value: 'incidencias' },
-  { title: 'Asistencias', value: 'asistencias' }
-]
-
-// Data (master + visible)
-const originalVisits = [
-  {
-    visitante: 'Laura Hernández',
-    cargoRol: 'Analista legal',
-    areaVisitada: 'Contratos',
-    personaVisitada: 'Miriam Ríos',
-    empresaPertenece: 'Jurídica Integral S.A.',
-    horaIngreso: '09:00 a.m.',
-    horaSalida: '12:00 p.m.'
-  },
-  {
-    visitante: 'Jorge Ramírez',
-    cargoRol: 'Coordinador de operaciones',
-    areaVisitada: 'Áreas',
-    personaVisitada: 'Luis Martínez',
-    empresaPertenece: 'Logística MX',
-    horaIngreso: '10:15 a.m.',
-    horaSalida: '1:30 p.m.'
-  },
-  {
-    visitante: 'Sofía Méndez',
-    cargoRol: 'Asistente de RRHH',
-    areaVisitada: 'Contratos',
-    personaVisitada: 'Ana Torres',
-    empresaPertenece: 'RH Global',
-    horaIngreso: '08:45 a.m.',
-    horaSalida: '11:00 a.m.'
-  },
-  {
-    visitante: 'Carlos Vázquez',
-    cargoRol: 'Técnico de soporte',
-    areaVisitada: 'Incidencias',
-    personaVisitada: 'Jorge Ruiz',
-    empresaPertenece: 'Soluciones TI',
-    horaIngreso: '11:00 a.m.',
-    horaSalida: '2:00 p.m.'
-  },
-  {
-    visitante: 'Mariana López',
-    cargoRol: 'Coordinadora administrativa',
-    areaVisitada: 'Vacaciones',
-    personaVisitada: 'Patricia Gómez',
-    empresaPertenece: 'Corporativo Sur',
-    horaIngreso: '09:30 a.m.',
-    horaSalida: '12:30 p.m.'
-  },
-  {
-    visitante: 'Daniel Ortega',
-    cargoRol: 'Auditor externo',
-    areaVisitada: 'Contratos',
-    personaVisitada: 'Miriam Ríos',
-    empresaPertenece: 'Consultores Financieros',
-    horaIngreso: '10:00 a.m.',
-    horaSalida: '1:00 p.m.'
-  },
-  {
-    visitante: 'Fernanda Ruiz',
-    cargoRol: 'Supervisora de personal',
-    areaVisitada: 'Asistencias',
-    personaVisitada: 'Ana Torres',
-    empresaPertenece: 'RH Global',
-    horaIngreso: '08:30 a.m.',
-    horaSalida: '10:30 a.m.'
-  },
-  {
-    visitante: 'Luis Fernando Morales',
-    cargoRol: 'Coordinador de mantenimiento',
-    areaVisitada: 'Áreas',
-    personaVisitada: 'Luis Martínez',
-    empresaPertenece: 'Infraestructura Total',
-    horaIngreso: '11:15 a.m.',
-    horaSalida: '2:15 p.m.'
+const cargarAreas = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/areas`, { withCredentials: true })
+    areas.value = response.data.data || response.data || []
+  } catch (error) {
+    console.error('Error al cargar áreas:', error)
   }
-]
+}
 
-const visitsData = ref([...originalVisits])
+const cargarDatos = async () => {
+  try {
+    const filtros = {
+      mes: selectedMonth.value,
+      anio: selectedYear.value,
+      area: selectedArea.value !== 'todas' ? selectedArea.value : undefined
+    }
+    await cargarVisitas(filtros)
+  } catch (error) {
+    console.error('Error al cargar visitas:', error)
+    mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
+// Items para selects
+const monthsItems = computed(() => {
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return meses.map((mes, index) => ({
+    title: `${mes} ${selectedYear.value}`,
+    value: index + 1
+  }))
+})
+
+const areasItems = computed(() => [
+  { title: 'Todas las Áreas', value: 'todas' },
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre.toLowerCase() }))
+])
+
+const visitsData = computed(() => {
+  if (!visitas.value || visitas.value.length === 0) return []
+  
+  let resultado = visitas.value.map(v => ({
+    visitante: v.nombre_visitante || 'N/A',
+    cargoRol: v.cargo_rol || 'N/A',
+    areaVisitada: v.area_visitada || 'N/A',
+    personaVisitada: v.persona_visitada || 'N/A',
+    empresaPertenece: v.empresa || 'N/A',
+    horaIngreso: v.hora_entrada || 'N/A',
+    horaSalida: v.hora_salida || 'N/A'
+  }))
+  
+  // Filtro por búsqueda
+  if (searchTerm.value) {
+    const search = searchTerm.value.toLowerCase()
+    resultado = resultado.filter(v =>
+      v.visitante.toLowerCase().includes(search) ||
+      v.personaVisitada.toLowerCase().includes(search) ||
+      v.empresaPertenece.toLowerCase().includes(search)
+    )
+  }
+  
+  return resultado
+})
 
 // ================== COMPUTED ==================
 const mesSeleccionado = computed(() => {
-  const meses = {
-    'enero-2024': 'Enero 2024',
-    'febrero-2024': 'Febrero 2024',
-    'marzo-2024': 'Marzo 2024'
-  }
-  return meses[selectedMonth.value] || 'Enero 2024'
+  return monthsItems.value.find(m => m.value === selectedMonth.value)?.title || ''
+})
+
+// Watch para recargar datos cuando cambien filtros
+watch([selectedMonth, selectedYear, selectedArea], async () => {
+  await cargarDatos()
 })
 
 // ================== MÉTODOS ==================
@@ -256,7 +247,6 @@ const validarBusqueda = () => {
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
   if (searchTerm.value && !soloLetrasRegex.test(searchTerm.value)) {
     busquedaError.value = true
-    // Remover caracteres no válidos
     searchTerm.value = searchTerm.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
     mostrarMensaje('Solo se permiten letras y espacios en la búsqueda', 'warning')
   } else {
@@ -264,20 +254,9 @@ const validarBusqueda = () => {
   }
 }
 
-const aplicarFiltros = () => {
-  const area = (selectedArea.value || '').toLowerCase()
-  const term = (searchTerm.value || '').trim().toLowerCase()
-
-  const filtrados = originalVisits.filter(v => {
-    const cumpleArea = area === 'todas' || v.areaVisitada.toLowerCase() === area
-    const texto = `${v.visitante} ${v.personaVisitada} ${v.empresaPertenece}`.toLowerCase()
-    const cumpleBusqueda = term === '' || texto.includes(term)
-    return cumpleArea && cumpleBusqueda
-  })
-
-  visitsData.value = filtrados
-
-  mostrarMensaje(`Filtros aplicados: ${filtrados.length} registro(s) encontrados`)
+const aplicarFiltros = async () => {
+  await cargarDatos()
+  mostrarMensaje(`Filtros aplicados: ${visitsData.value.length} registro(s) encontrados`)
 }
 
 const generarReporte = async () => {
