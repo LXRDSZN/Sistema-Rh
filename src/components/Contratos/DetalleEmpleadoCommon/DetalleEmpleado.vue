@@ -64,7 +64,8 @@ const contratoActual = ref({
     tipoContrato: 'XXXXX',
     fechaInicioFin: 'XXXXX',
     salarioBase: 'XXXXX',
-    jornadaHorario: 'XXXXX',
+    jornadaLaboral: 'XXXXX',
+    horario: 'XXXXXX',
     estadoFirma: 'XXXXX'
 });
 
