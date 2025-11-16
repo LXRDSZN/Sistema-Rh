@@ -196,81 +196,122 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+import axios from 'axios'
 import jsPDF from 'jspdf'
 
-const selectedMonth = ref('enero-2024')
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Composable
+const {
+  reporteAsistencias,
+  detalleAsistencias,
+  loading,
+  cargarReporteAsistencias,
+  cargarDetalleAsistencias
+} = useAsistencias()
+
+// Estados
+const selectedMonth = ref(new Date().getMonth() + 1) // Mes actual
+const selectedYear = ref(new Date().getFullYear())
 const selectedArea = ref('todas')
 const searchTerm = ref('')
 const busquedaError = ref(false)
 const generandoPdf = ref(false)
+const areas = ref([])
 
 const snackbar = ref({ show: false, text: '', color: 'success' })
 const mostrarMensaje = (texto, color = 'success') => {
   snackbar.value = { show: true, text: texto, color }
 }
 
+// Cargar datos iniciales
+onMounted(async () => {
+  await cargarAreas()
+  await cargarDatos()
+})
+
+const cargarAreas = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/areas`, { withCredentials: true })
+    areas.value = response.data.data || response.data || []
+  } catch (error) {
+    console.error('Error al cargar áreas:', error)
+  }
+}
+
+const cargarDatos = async () => {
+  try {
+    const filtros = {
+      mes: selectedMonth.value,
+      anio: selectedYear.value,
+      area: selectedArea.value !== 'todas' ? selectedArea.value : undefined
+    }
+    await cargarReporteAsistencias(filtros)
+  } catch (error) {
+    console.error('Error al cargar reporte:', error)
+    mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
 // Items para selects
-const monthsItems = [
-  { title: 'Enero 2024', value: 'enero-2024' },
-  { title: 'Febrero 2024', value: 'febrero-2024' },
-  { title: 'Marzo 2024', value: 'marzo-2024' }
-]
+const monthsItems = computed(() => {
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return meses.map((mes, index) => ({
+    title: `${mes} ${selectedYear.value}`,
+    value: index + 1
+  }))
+})
 
-const areasItems = [
+const areasItems = computed(() => [
   { title: 'Todas las Áreas', value: 'todas' },
-  { title: 'Contratos', value: 'contratos' },
-  { title: 'Ventas', value: 'ventas' },
-  { title: 'Marketing', value: 'marketing' }
-]
-
-const originalSummaryData = [
-  { area: 'Contratos', totalEmpleados: 15, asistencia: '89%', retardos: 12, faltJustif: 5, faltInjustif: 3 },
-  { area: 'Ventas', totalEmpleados: 20, asistencia: '92%', retardos: 8, faltJustif: 3, faltInjustif: 2 },
-  { area: 'Marketing', totalEmpleados: 10, asistencia: '85%', retardos: 15, faltJustif: 7, faltInjustif: 4 }
-]
-
-const summaryData = ref([...originalSummaryData])
-
-const employeesData = ref([
-  { empleado: 'Julio Peña', puesto: 'Director comercial', area: 'Contratos', attendance: ['A','A','A','A','FJ','DF','DF','R','A','A','A','A','FJ','A','A','R','A','A','A','F','DF','DF','A','A','A','A','FJ','A','R','A','A'] },
-  { empleado: 'Martha Higadera', puesto: 'Gerente', area: 'Contratos', attendance: ['I','A','A','F','A','DF','DF','A','R','V','V','V','V','A','A','A','A','R','A','A','DF','DF','A','F','A','A','A','A','A','R','A'] },
-  { empleado: 'Joaquín Pérez', puesto: 'Key Account Manager', area: 'Ventas', attendance: ['A','A','FJ','A','R','DF','DF','A','A','A','R','A','A','A','F','A','A','A','A','A','DF','DF','R','A','A','A','A','FJ','A','A','A'] },
-  { empleado: 'Rafael Quijada', puesto: 'Ejecutivo', area: 'Ventas', attendance: ['A','A','A','A','A','DF','DF','A','A','A','A','F','R','A','A','A','A','A','R','A','DF','DF','A','A','A','F','A','A','A','A','A'] },
-  { empleado: 'Jose Martínez', puesto: 'Coordinador', area: 'Marketing', attendance: ['A','A','A','A','A','DF','DF','A','FJ','A','A','A','A','R','A','A','A','A','A','A','DF','DF','A','A','F','A','A','A','A','A','R'] },
-  { empleado: 'Zayra López', puesto: 'Asistente', area: 'Marketing', attendance: ['A','A','F','A','A','DF','DF','A','A','A','A','A','A','A','A','R','A','A','A','A','DF','DF','A','A','A','A','FJ','A','A','A','A'] }
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre.toLowerCase() }))
 ])
 
+const summaryData = computed(() => {
+  if (!reporteAsistencias.value?.resumenAreas) return []
+  return reporteAsistencias.value.resumenAreas.map(item => ({
+    area: item.area,
+    totalEmpleados: item.total_empleados || 0,
+    asistencia: `${item.porcentaje_asistencia || 0}%`,
+    retardos: item.retardos || 0,
+    faltJustif: item.faltas_justificadas || 0,
+    faltInjustif: item.faltas_injustificadas || 0,
+    area_id: item.id
+  }))
+})
+
+const employeesData = computed(() => {
+  if (!detalleAsistencias.value || detalleAsistencias.value.length === 0) return []
+  return detalleAsistencias.value.map(emp => ({
+    empleado: emp.empleado,
+    puesto: emp.puesto || 'Sin puesto',
+    area: selectedArea.value !== 'todas' ? selectedArea.value : emp.area,
+    attendance: emp.attendance || []
+  }))
+})
+
 const areaSeleccionada = computed(() => {
-  if (selectedArea.value === 'todas') return 'Todas las Áreas'
-  return selectedArea.value.charAt(0).toUpperCase() + selectedArea.value.slice(1)
+  return areasItems.value.find(a => a.value === selectedArea.value)?.title || 'Todas las Áreas'
 })
 
 const mesSeleccionado = computed(() => {
-  const meses = {
-    'enero-2024': 'Enero 2024',
-    'febrero-2024': 'Febrero 2024',
-    'marzo-2024': 'Marzo 2024'
-  }
-  return meses[selectedMonth.value] || 'Enero 2024'
+  return monthsItems.value.find(m => m.value === selectedMonth.value)?.title || ''
 })
 
 const diasEnMes = computed(() => {
-  const meses = {
-    'enero-2024': 31,
-    'febrero-2024': 29,
-    'marzo-2024': 31
-  }
-  return meses[selectedMonth.value] || 31
+  const year = selectedYear.value
+  const month = selectedMonth.value
+  const daysInMonth = new Date(year, month, 0).getDate()
+  return Array.from({ length: daysInMonth }, (_, i) => i + 1)
 })
 
 const employeesFiltered = computed(() => {
   let resultado = [...employeesData.value]
-  
-  // Filtro por área
-  if (selectedArea.value !== 'todas') {
-    resultado = resultado.filter(emp => emp.area.toLowerCase() === selectedArea.value)
-  }
   
   // Filtro por búsqueda
   if (searchTerm.value) {
@@ -283,6 +324,22 @@ const employeesFiltered = computed(() => {
   }
   
   return resultado
+})
+
+// Watch para recargar datos cuando cambien filtros
+watch([selectedMonth, selectedYear, selectedArea], async () => {
+  await cargarDatos()
+  // Cargar detalle si hay un área específica seleccionada
+  if (selectedArea.value !== 'todas') {
+    const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
+    if (areaObj) {
+      await cargarDetalleAsistencias({
+        mes: selectedMonth.value,
+        anio: selectedYear.value,
+        area_id: areaObj.id
+      })
+    }
+  }
 })
 
 const getStatusClass = (status) => {

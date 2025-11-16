@@ -146,6 +146,35 @@ export const getVisitas = async (filtros = {}) => {
 };
 
 /**
+ * Crear nueva visita
+ * @param {Object} datos - Datos de la visita
+ */
+export const crearVisita = async (datos) => {
+  try {
+    const response = await axios.post(`${API_URL}/asistencias/visitas`, datos);
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear visita:', error);
+    throw error;
+  }
+};
+
+/**
+ * Actualizar visita (registrar salida)
+ * @param {string} id - ID de la visita
+ * @param {Object} datos - { hora_salida }
+ */
+export const actualizarVisita = async (id, datos) => {
+  try {
+    const response = await axios.put(`${API_URL}/asistencias/visitas/${id}`, datos);
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar visita:', error);
+    throw error;
+  }
+};
+
+/**
  * Registrar asistencia (entrada o salida)
  * @param {Object} datos - { persona_id, tipo, hora }
  */
@@ -168,5 +197,7 @@ export default {
   getDetalleAsistencias,
   getReporteAnalitico,
   getVisitas,
+  crearVisita,
+  actualizarVisita,
   registrarAsistencia
 };

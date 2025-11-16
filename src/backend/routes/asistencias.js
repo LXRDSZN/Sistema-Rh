@@ -8,7 +8,10 @@ import {
   getDetalleAsistencias,
   getVisitas,
   getReporteAnalitico,
-  registrarAsistencia
+  registrarAsistencia,
+  crearVisita,
+  actualizarVisita,
+  inicializarTiposIncidencia
 } from '../controllers/asistencias.controllers.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
@@ -34,8 +37,13 @@ router.get('/asistencias/reporte/analitico', verificarToken, getReporteAnalitico
 
 // Visitas
 router.get('/asistencias/visitas', verificarToken, getVisitas);
+router.post('/asistencias/visitas', verificarToken, crearVisita);
+router.put('/asistencias/visitas/:id', verificarToken, actualizarVisita);
 
 // Registro de asistencia (entrada/salida)
 router.post('/asistencias/registrar', verificarToken, registrarAsistencia);
+
+// TODO: ELIMINAR EN PRODUCCIÓN - Endpoint temporal para inicializar tipos de incidencia (comentado)
+// router.post('/asistencias/init-tipos-incidencia', inicializarTiposIncidencia);
 
 export default router;
