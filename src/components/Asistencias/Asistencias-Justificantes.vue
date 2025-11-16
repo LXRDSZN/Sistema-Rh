@@ -77,6 +77,8 @@
                 variant="outlined"
                 density="compact"
                 hide-details
+                :loading="loading"
+                :disabled="loading"
               />
             </v-col>
             <v-col cols="12" sm="6" md="3">
@@ -246,9 +248,20 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in justificacionesFiltradas" :key="item.id || index">
-                <td class="text-center">{{ obtenerNombreEmpleado(item.empleado_id) }}</td>
-                <td class="text-center">{{ obtenerNombreTipoIncidencia(item.tipo_incidencia_id) }}</td>
+              <tr v-if="loading">
+                <td colspan="4" class="text-center py-4">
+                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
+                  <p class="mt-2">Cargando justificaciones...</p>
+                </td>
+              </tr>
+              <tr v-else-if="justificacionesFiltradas.length === 0">
+                <td colspan="4" class="text-center py-4 text-grey">
+                  No hay justificaciones registradas
+                </td>
+              </tr>
+              <tr v-for="(item, index) in justificacionesFiltradas" :key="item.id || index" v-else>
+                <td class="text-center">{{ item.empleado || 'N/A' }}</td>
+                <td class="text-center">{{ item.tipo_incidencia || 'N/A' }}</td>
                 <td class="text-center">{{ formatearFecha(item.fecha_inicio) }}</td>
                 <td class="text-center">
                   <span :class="obtenerClaseEstado(item.estado)">
@@ -276,14 +289,25 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in registroJustificaciones" :key="item.id || index">
-                <td class="text-center">{{ obtenerNombreEmpleado(item.empleado_id) }}</td>
-                <td class="text-center">{{ obtenerNombreArea(item.area_id) }}</td>
+              <tr v-if="loading">
+                <td colspan="6" class="text-center py-4">
+                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
+                  <p class="mt-2">Cargando registros...</p>
+                </td>
+              </tr>
+              <tr v-else-if="registroJustificaciones.length === 0">
+                <td colspan="6" class="text-center py-4 text-grey">
+                  No hay justificaciones registradas
+                </td>
+              </tr>
+              <tr v-for="(item, index) in registroJustificaciones" :key="item.id || index" v-else>
+                <td class="text-center">{{ item.empleado || 'N/A' }}</td>
+                <td class="text-center">{{ item.area || 'N/A' }}</td>
                 <td class="text-center">{{ formatearFecha(item.fecha_creacion) }}</td>
                 <td class="text-center">{{ item.motivo }}</td>
                 <td class="text-center">
-                  <div class="archivo-tabla" v-if="item.archivo_nombre">
-                    <span class="archivo-texto-tabla">{{ item.archivo_nombre }}</span>
+                  <div class="archivo-tabla" v-if="item.archivo_justificante">
+                    <span class="archivo-texto-tabla">{{ item.archivo_justificante }}</span>
                     <v-btn
                       icon
                       size="small"
@@ -324,10 +348,10 @@
         <v-card-text>
           <div v-if="justificacionSeleccionada" class="detalle-content">
             <div class="detalle-item">
-              <strong>Empleado:</strong> {{ obtenerNombreEmpleado(justificacionSeleccionada.empleado_id) }}
+              <strong>Empleado:</strong> {{ justificacionSeleccionada.empleado || 'N/A' }}
             </div>
             <div class="detalle-item">
-              <strong>Área:</strong> {{ obtenerNombreArea(justificacionSeleccionada.area_id) }}
+              <strong>Área:</strong> {{ justificacionSeleccionada.area || 'N/A' }}
             </div>
             <div class="detalle-item">
               <strong>Fecha de Inicio:</strong> {{ formatearFecha(justificacionSeleccionada.fecha_inicio) }}
@@ -336,15 +360,15 @@
               <strong>Fecha de Fin:</strong> {{ formatearFecha(justificacionSeleccionada.fecha_fin) }}
             </div>
             <div class="detalle-item">
-              <strong>Tipo de Incidencia:</strong> {{ obtenerNombreTipoIncidencia(justificacionSeleccionada.tipo_incidencia_id) }}
+              <strong>Tipo de Incidencia:</strong> {{ justificacionSeleccionada.tipo_incidencia || 'N/A' }}
             </div>
             <div class="detalle-item">
               <strong>Motivo:</strong> {{ justificacionSeleccionada.motivo }}
             </div>
-            <div class="detalle-item" v-if="justificacionSeleccionada.archivo_nombre">
+            <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
               <strong>Archivo:</strong> 
               <div class="archivo-detalle">
-                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_nombre }}</span>
+                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_justificante }}</span>
                 <v-btn
                   icon
                   size="small"
@@ -382,7 +406,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Composable de asistencias
+const {
+  justificantes,
+  tiposIncidencia,
+  loading,
+  cargarJustificantes,
+  cargarTiposIncidencia,
+  crearJustificante
+} = useAsistencias()
 
 // Estados para BD
 const ESTADOS_JUSTIFICACION = {
@@ -391,26 +429,9 @@ const ESTADOS_JUSTIFICACION = {
   RECHAZADO: 'rechazado'
 }
 
-// Datos simulando estructura de BD
-const empleados = ref([
-  { id: 1, nombre_completo: 'Juan Pérez', area_id: 1, activo: true },
-  { id: 2, nombre_completo: 'Mariana Botas', area_id: 2, activo: true },
-  { id: 3, nombre_completo: 'Juan Hidalgo', area_id: 1, activo: true },
-  { id: 4, nombre_completo: 'Marcela Valencia', area_id: 3, activo: true }
-])
-
-const areas = ref([
-  { id: 1, nombre: 'RRHH', activo: true },
-  { id: 2, nombre: 'Ventas', activo: true },
-  { id: 3, nombre: 'Operaciones', activo: true }
-])
-
-const tiposIncidencia = ref([
-  { id: 1, nombre: 'Tráfico', requiere_archivo: false },
-  { id: 2, nombre: 'Enfermedad', requiere_archivo: true },
-  { id: 3, nombre: 'Asuntos Familiares', requiere_archivo: false },
-  { id: 4, nombre: 'Cita Médica', requiere_archivo: true }
-])
+// Datos de empleados y áreas desde la BD
+const empleados = ref([])
+const areas = ref([])
 
 // Snackbar
 const snackbar = ref({
@@ -448,33 +469,59 @@ const monitoreo = ref({
   busqueda: ''
 })
 
-// Datos de ejemplo
-const justificaciones = ref([
-  { 
-    id: 1, 
-    empleado_id: 1, 
-    tipo_incidencia_id: 1, 
-    area_id: 1,
-    fecha_inicio: '2025-02-14', 
-    fecha_fin: '2025-02-14',
-    fecha_creacion: '2025-02-14T10:30:00',
-    motivo: 'Tráfico pesado en Periférico', 
-    estado: ESTADOS_JUSTIFICACION.APROBADO,
-    archivo_nombre: null
-  },
-  { 
-    id: 2, 
-    empleado_id: 2, 
-    tipo_incidencia_id: 2, 
-    area_id: 2,
-    fecha_inicio: '2025-08-20', 
-    fecha_fin: '2025-08-21',
-    fecha_creacion: '2025-08-19T15:45:00',
-    motivo: 'Gripe con fiebre', 
-    estado: ESTADOS_JUSTIFICACION.PENDIENTE,
-    archivo_nombre: 'justificante_medico.pdf'
+// Cargar datos iniciales
+onMounted(async () => {
+  try {
+    await cargarDatosIniciales()
+    await cargarTiposIncidencia()
+    console.log('Tipos de incidencia cargados:', tiposIncidencia.value)
+    await cargarJustificantes()
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error)
   }
-])
+})
+
+// Función para cargar empleados y áreas
+const cargarDatosIniciales = async () => {
+  try {
+    // Cargar empleados
+    const responseEmpleados = await axios.get(`${API_URL}/empleados`, { 
+      withCredentials: true 
+    })
+    
+    // Transformar los datos de empleados al formato esperado
+    const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
+    empleados.value = empleadosData.map(emp => {
+      // Si ya tiene el formato correcto (con nombre completo)
+      if (emp.nombre && !emp.apellido_paterno) {
+        // Extraer nombre, apellido_paterno del nombre completo
+        const partes = emp.nombre.split(' ')
+        return {
+          id: emp.id,
+          nombre: partes[0] || '',
+          apellido_paterno: partes[1] || '',
+          apellido_materno: partes[2] || '',
+          nombre_completo: emp.nombre,
+          area_id: emp.area_id
+        }
+      }
+      // Si tiene la estructura con campos separados
+      return {
+        ...emp,
+        nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
+      }
+    })
+
+    // Cargar áreas
+    const responseAreas = await axios.get(`${API_URL}/areas`, { 
+      withCredentials: true 
+    })
+    areas.value = responseAreas.data.data || responseAreas.data || []
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error)
+    mostrarMensaje('Error al cargar empleados y áreas', 'error')
+  }
+}
 
 const estadosItems = [
   { title: 'Todos los estados', value: 'todos' },
@@ -483,10 +530,10 @@ const estadosItems = [
   { title: 'Rechazado', value: ESTADOS_JUSTIFICACION.RECHAZADO }
 ]
 
-const areasItems = [
+const areasItems = computed(() => [
   { title: 'Todas las áreas', value: 'todas' },
-  ...areas.value.map(area => ({ title: area.nombre, value: area.id }))
-]
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
+])
 
 const periodosItems = [
   { title: 'Mes pasado', value: 'mes-pasado' },
@@ -494,63 +541,76 @@ const periodosItems = [
   { title: 'Último trimestre', value: 'trimestre' }
 ]
 
-const areasMonitoreoItems = [
+const areasMonitoreoItems = computed(() => [
   { title: 'Todas las áreas', value: null },
-  ...areas.value.map(area => ({ title: area.nombre, value: area.id }))
-]
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
+])
 
 // Computed
 const empleadosConPlaceholder = computed(() => {  
   return [
     { id: null, nombre_completo: 'Seleccionar Empleado', disabled: true }, 
-    ...empleados.value.filter(emp => emp.activo)
+    ...empleados.value
   ]
 })
 
 const tiposIncidenciaConPlaceholder = computed(() => {
+  const tipos = tiposIncidencia.value || []
+  console.log('📋 Tipos de incidencia RECIBIDOS:', tipos)
+  console.log('📊 Cantidad de tipos:', tipos.length)
+  console.log('🔍 Estructura primer tipo:', tipos[0])
+  
+  if (tipos.length === 0) {
+    return [{ id: null, nombre: 'Cargando tipos...', disabled: true }]
+  }
+  
   return [
     { id: null, nombre: 'Seleccionar Tipo', disabled: true }, 
-    ...tiposIncidencia.value
+    ...tipos
   ]
 })
 
 const justificacionesFiltradas = computed(() => {
-  let resultado = [...justificaciones.value]
+  let resultado = [...(justificantes.value || [])]
   
   // Filtro por búsqueda de empleado
   if (monitoreo.value.busqueda) {
     const busqueda = monitoreo.value.busqueda.toLowerCase().trim()
     resultado = resultado.filter(item => {
-      const empleado = empleados.value.find(emp => emp.id === item.empleado_id)
-      return empleado && empleado.nombre_completo.toLowerCase().includes(busqueda)
+      return item.empleado && item.empleado.toLowerCase().includes(busqueda)
     })
   }
   
   // Filtro por área
   if (monitoreo.value.area_id) {
-    resultado = resultado.filter(item => item.area_id === monitoreo.value.area_id)
+    resultado = resultado.filter(item => 
+      item.area && item.area.toLowerCase() === monitoreo.value.area_id.toLowerCase()
+    )
   }
   
   return resultado
 })
 
 const registroJustificaciones = computed(() => {
-  return justificaciones.value
+  return justificantes.value || []
 })
 
 // Funciones de utilidad
 const obtenerNombreEmpleado = (empleadoId) => {
+  if (!empleadoId) return 'N/A'
   const empleado = empleados.value.find(emp => emp.id === empleadoId)
-  return empleado ? empleado.nombre_completo : 'N/A'
+  return empleado ? `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim() : 'N/A'
 }
 
 const obtenerNombreArea = (areaId) => {
+  if (!areaId) return 'N/A'
   const area = areas.value.find(a => a.id === areaId)
   return area ? area.nombre : 'N/A'
 }
 
 const obtenerNombreTipoIncidencia = (tipoId) => {
-  const tipo = tiposIncidencia.value.find(t => t.id === tipoId)
+  if (!tipoId) return 'N/A'
+  const tipo = (tiposIncidencia.value || []).find(t => t.id === tipoId)
   return tipo ? tipo.nombre : 'N/A'
 }
 
@@ -603,8 +663,21 @@ const quitarArchivo = () => {
   mostrarMensaje('Archivo removido correctamente')
 }
 
-const aplicarFiltrosSuperior = () => {
-  mostrarMensaje('Filtros aplicados correctamente')
+const aplicarFiltrosSuperior = async () => {
+  try {
+    const filtros = {}
+    if (filtroEstado.value !== 'todos') {
+      filtros.estado = filtroEstado.value
+    }
+    if (filtroArea.value !== 'todas') {
+      filtros.area = filtroArea.value
+    }
+    
+    await cargarJustificantes(filtros)
+    mostrarMensaje('Filtros aplicados correctamente')
+  } catch (error) {
+    mostrarMensaje('Error al aplicar filtros', 'error')
+  }
 }
 
 const aplicarFiltrosMonitoreo = () => {
@@ -672,25 +745,27 @@ const guardarJustificacion = async () => {
 
     guardando.value = true
 
-    const nuevaJustificacion = {
-      id: Date.now(), // ID temporal
+    // Preparar datos para enviar al backend
+    const datosJustificante = {
       empleado_id: formulario.value.empleado_id,
       tipo_incidencia_id: formulario.value.tipo_incidencia_id,
-      area_id: empleados.value.find(emp => emp.id === formulario.value.empleado_id)?.area_id,
       fecha_inicio: formulario.value.fecha_inicio,
       fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
-      fecha_creacion: new Date().toISOString(),
       motivo: formulario.value.motivo,
-      estado: ESTADOS_JUSTIFICACION.PENDIENTE,
-      archivo_nombre: archivoPrevisualizacion.value ? archivoPrevisualizacion.value.name : null
+      archivo_justificante: archivoPrevisualizacion.value ? archivoPrevisualizacion.value.name : null
     }
-    
-    justificaciones.value.unshift(nuevaJustificacion)
+
+    // Llamar al composable para crear el justificante
+    await crearJustificante(datosJustificante)
     
     mostrarMensaje('Justificación guardada correctamente')
     limpiarFormulario()
     
+    // Recargar justificantes para mostrar el nuevo
+    await cargarJustificantes()
+    
   } catch (error) {
+    console.error('Error al guardar justificante:', error)
     mostrarMensaje('Error al guardar la justificación', 'error')
   } finally {
     guardando.value = false
@@ -723,7 +798,10 @@ const verArchivo = () => {
 
 const verArchivoRegistro = (item) => {
   // Simular vista de archivo desde BD
-  mostrarMensaje(`Visualizando archivo: ${item.archivo_nombre}`, 'info')
+  const nombreArchivo = item.archivo_justificante || item.archivo_nombre
+  if (nombreArchivo) {
+    mostrarMensaje(`Visualizando archivo: ${nombreArchivo}`, 'info')
+  }
 }
 </script>
 
