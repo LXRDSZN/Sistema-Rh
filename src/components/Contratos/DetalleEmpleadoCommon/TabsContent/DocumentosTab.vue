@@ -21,14 +21,14 @@
                 </div>
                 <div class="col-fecha">{{ doc.fechaSubida }}</div>
                 <div class="col-acciones">
-                    <button class="btn-icon btn-download" @click="$emit('descargar', doc)" title="Descargar">
-                        <span class="material-symbols-rounded">download</span>
+                    <button class="btn-icon btn-upload" @click="$emit('subir-reemplazo', doc)" title="Subir archivo">
+                        <span class="material-symbols-rounded">upload</span>
                     </button>
                     <button class="btn-icon btn-view" @click="$emit('ver', doc)" title="Ver">
                         <span class="material-symbols-rounded">visibility</span>
                     </button>
-                    <button class="btn-icon btn-share" @click="$emit('compartir', doc)" title="Compartir">
-                        <span class="material-symbols-rounded">share</span>
+                    <button class="btn-icon btn-download" @click="$emit('descargar', doc)" title="Descargar">
+                        <span class="material-symbols-rounded">download</span>
                     </button>
                     <button class="btn-icon btn-delete" @click="$emit('eliminar', doc)" title="Eliminar">
                         <span class="material-symbols-rounded">delete</span>
@@ -55,15 +55,16 @@
                 <div class="form-group">
                     <label>Subir documento (PDF)</label>
                     <div class="file-input-wrapper">
-                        <select v-model="archivoSeleccionado" class="form-select">
-                            <option value="">Seleccione</option>
-                            <option value="archivo1">Documento 1.pdf</option>
-                            <option value="archivo2">Documento 2.pdf</option>
-                        </select>
+                        <input type="file" ref="fileInput" @change="handleFileSelect" accept=".pdf" class="file-input"
+                            id="fileUpload" />
+                        <label for="fileUpload" class="file-input-label">
+                            <span class="material-symbols-rounded">upload_file</span>
+                            <span>{{ nombreArchivo || 'Seleccionar archivo' }}</span>
+                        </label>
                     </div>
                 </div>
 
-                <button class="btn-upload" @click="subirDocumento">
+                <button class="btn-submit" @click="subirDocumento">
                     Subir
                 </button>
             </div>
@@ -81,10 +82,25 @@ defineProps({
     }
 });
 
-const emit = defineEmits(['descargar', 'ver', 'compartir', 'eliminar', 'subir']);
+const emit = defineEmits(['subir-reemplazo', 'ver', 'descargar', 'eliminar', 'subir']);
 
 const tipoDocumento = ref('');
-const archivoSeleccionado = ref('');
+const archivoSeleccionado = ref(null);
+const nombreArchivo = ref('');
+const fileInput = ref(null);
+
+const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.type !== 'application/pdf') {
+            alert('Por favor seleccione solo archivos PDF');
+            event.target.value = '';
+            return;
+        }
+        archivoSeleccionado.value = file;
+        nombreArchivo.value = file.name;
+    }
+};
 
 const subirDocumento = () => {
     if (!tipoDocumento.value || !archivoSeleccionado.value) {
@@ -99,7 +115,11 @@ const subirDocumento = () => {
 
     // Limpiar campos
     tipoDocumento.value = '';
-    archivoSeleccionado.value = '';
+    archivoSeleccionado.value = null;
+    nombreArchivo.value = '';
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
 };
 </script>
 
@@ -129,7 +149,7 @@ const subirDocumento = () => {
 .table-header,
 .table-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1.2fr 1.8fr;
+    grid-template-columns: 2fr 1fr 1.2fr 2fr;
     gap: 1rem;
     padding: 1rem 1.5rem;
     align-items: center;
@@ -223,16 +243,18 @@ const subirDocumento = () => {
     font-size: 20px;
 }
 
-.btn-download {
+/* Verde - Subir archivo */
+.btn-upload {
     border-color: #10b981;
     color: #10b981;
 }
 
-.btn-download:hover {
+.btn-upload:hover {
     background-color: #10b981;
     color: white;
 }
 
+/* Azul - Ver */
 .btn-view {
     border-color: #3b82f6;
     color: #3b82f6;
@@ -243,16 +265,18 @@ const subirDocumento = () => {
     color: white;
 }
 
-.btn-share {
-    border-color: #333;
-    color: #333;
+/* Gris - Descargar */
+.btn-download {
+    border-color: #6b7280;
+    color: #6b7280;
 }
 
-.btn-share:hover {
-    background-color: #333;
+.btn-download:hover {
+    background-color: #6b7280;
     color: white;
 }
 
+/* Rojo - Eliminar */
 .btn-delete {
     border-color: #ef4444;
     color: #ef4444;
@@ -316,7 +340,47 @@ const subirDocumento = () => {
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
-.btn-upload {
+/* File Input Styling */
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 0.95rem;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-input-label .material-symbols-rounded {
+    color: #7c3aed;
+    font-size: 20px;
+}
+
+.file-input-label:hover {
+    border-color: #9ca3af;
+}
+
+.file-input:focus+.file-input-label {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.btn-submit {
     padding: 0.875rem 2.5rem;
     background-color: #7c3aed;
     color: white;
@@ -329,13 +393,13 @@ const subirDocumento = () => {
     height: fit-content;
 }
 
-.btn-upload:hover {
+.btn-submit:hover {
     background-color: #6d28d9;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
-.btn-upload:active {
+.btn-submit:active {
     transform: translateY(0);
 }
 
@@ -344,14 +408,14 @@ const subirDocumento = () => {
 
     .table-header,
     .table-row {
-        grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+        grid-template-columns: 1.5fr 1fr 1fr 2fr;
     }
 
     .upload-form {
         grid-template-columns: 1fr;
     }
 
-    .btn-upload {
+    .btn-submit {
         width: 100%;
     }
 }
