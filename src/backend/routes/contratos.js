@@ -87,6 +87,7 @@ router.get('/contratos/empleados-destacados', async (req, res) => {
             LEFT JOIN area a ON a.id = c.area_id
             WHERE p.tipo = 'Empleado'
             ORDER BY p.fecha_registro DESC
+            LIMIT 10
         `;
 
         const result = await pool.query(query);
@@ -126,6 +127,7 @@ router.get('/contratos/aspirantes-destacados', async (req, res) => {
             LEFT JOIN area a ON a.id = al.area_id
             WHERE p.tipo = 'Aspirante'
             ORDER BY p.fecha_registro DESC
+            LIMIT 10
         `;
 
         const result = await pool.query(query);
