@@ -42,9 +42,8 @@ router.get('/contratos/stats', async (req, res) => {
         // Contratos en proceso
         const procesoQuery = `
             SELECT COUNT(*) AS total
-            FROM contrato c
-            INNER JOIN estado_contrato ec ON ec.id = c.estado_id
-            WHERE ec.nombre ILIKE ANY (ARRAY['BORRADOR','EN FIRMA','EN PROCESO'])
+            FROM persona p
+            WHERE p.tipo = 'Aspirante'
         `;
         const proceso = await pool.query(procesoQuery);
 
