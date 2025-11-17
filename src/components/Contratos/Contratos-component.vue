@@ -18,21 +18,18 @@
       <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
         @cerrar="activeTab = 'inicio'" @renovar-contrato="handleRenovarContrato" />
 
-      <!-- Vista de Activos -->
-      <EnlaceActivos v-else-if="activeTab === 'activos'" :contratos="contratosActivos"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <!-- ✅ Sin pasar :contratos como prop -->
+      <EnlaceActivos v-else-if="activeTab === 'activos'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Próximos a Vencer -->
-      <EnlaceAVencer v-else-if="activeTab === 'avencer'" :contratos="contratosAVencer"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceAVencer v-else-if="activeTab === 'avencer'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Vencidos -->
-      <EnlaceVencidos v-else-if="activeTab === 'vencidos'" :contratos="contratosVencidos"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceVencidos v-else-if="activeTab === 'vencidos'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de En Proceso -->
-      <EnlaceEnProceso v-else-if="activeTab === 'proceso'" :contratos="contratosEnProceso"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceEnProceso v-else-if="activeTab === 'proceso'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de estadísticas -->
       <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: 18 }"
@@ -152,49 +149,7 @@ const cargarDatos = async () => {
   }
 };
 
-// ✅ COMPUTED PROPERTIES CORREGIDAS - Ahora funcionan correctamente
-const contratosActivos = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados que sean ACTIVOS
-    if (c.tipo !== 'empleado') return false;
 
-    // Los empleados de la página de inicio son los destacados y están activos por defecto
-    return c.estado_clase === 'activo' || !c.estado_clase;
-  })
-);
-
-const contratosAVencer = computed(() =>
-  contratos.value.filter(c => {
-    // En esta vista mostrar empleados próximos a vencer
-    // El campo estado_clase viene de la BD y puede ser 'próximo-a-vencer' o 'avencer'
-    return c.tipo === 'empleado' &&
-      (c.estado_clase?.toLowerCase().includes('avencer') ||
-        c.estado_clase?.toLowerCase().includes('próximo') ||
-        c.estado_clase?.toLowerCase().includes('vencer'));
-  })
-);
-
-const contratosVencidos = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados con contratos vencidos
-    return c.tipo === 'empleado' &&
-      c.estado_clase?.toLowerCase().includes('vencido');
-  })
-);
-
-const contratosEnProceso = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados en proceso (borrador, en firma, en proceso, etc)
-    if (c.tipo !== 'empleado') return false;
-
-    const estado = c.estado_clase?.toLowerCase() || '';
-    return estado.includes('proceso') ||
-      estado.includes('firma') ||
-      estado.includes('borrador') ||
-      estado.includes('evaluación') ||
-      estado.includes('revisión');
-  })
-);
 
 // Métodos para manejar eventos
 const handleCrearContrato = () => {
