@@ -188,6 +188,35 @@ export const registrarAsistencia = async (datos) => {
   }
 };
 
+/**
+ * Registrar asistencia por huella digital
+ * @param {number} huellaId - ID de la huella detectada por el sensor
+ */
+export const registrarAsistenciaPorHuella = async (huellaId) => {
+  try {
+    const response = await axios.post(`${API_URL}/asistencias/registrar-huella`, {
+      huella_id: huellaId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar asistencia por huella:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener checadas del día (pase de lista)
+ */
+export const getChecadasHoy = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/asistencias/checadas/hoy`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener checadas de hoy:', error);
+    throw error;
+  }
+};
+
 export default {
   getDashboardAsistencias,
   getJustificantes,
@@ -199,5 +228,7 @@ export default {
   getVisitas,
   crearVisita,
   actualizarVisita,
-  registrarAsistencia
+  registrarAsistencia,
+  registrarAsistenciaPorHuella,
+  getChecadasHoy
 };

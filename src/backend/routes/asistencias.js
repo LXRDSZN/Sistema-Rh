@@ -11,7 +11,9 @@ import {
   registrarAsistencia,
   crearVisita,
   actualizarVisita,
-  inicializarTiposIncidencia
+  inicializarTiposIncidencia,
+  registrarAsistenciaPorHuella,
+  getChecadasHoy
 } from '../controllers/asistencias.controllers.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
@@ -42,6 +44,12 @@ router.put('/asistencias/visitas/:id', verificarToken, actualizarVisita);
 
 // Registro de asistencia (entrada/salida)
 router.post('/asistencias/registrar', verificarToken, registrarAsistencia);
+
+// Checadas del día (pase de lista)
+router.get('/asistencias/checadas/hoy', verificarToken, getChecadasHoy);
+
+// Registro de asistencia por huella digital (sistema de pase de lista)
+router.post('/asistencias/registrar-huella', registrarAsistenciaPorHuella);
 
 // TODO: ELIMINAR EN PRODUCCIÓN - Endpoint temporal para inicializar tipos de incidencia (comentado)
 // router.post('/asistencias/init-tipos-incidencia', inicializarTiposIncidencia);

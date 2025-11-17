@@ -768,3 +768,190 @@ export const actualizarVisita = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET CHECADAS DE HOY - Listar registros de asistencia (pase de lista)
+ */
+export const getChecadasHoy = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT 
+         ch.id AS registro_id,
+         ch.tipo,
+         ch.fecha,
+         ch.hora,
+         p.nombre,
+         p.apellido_paterno,
+         p.apellido_materno,
+         pu.nombre AS puesto,
+         a.nombre AS area
+       FROM checada ch
+       INNER JOIN persona p ON ch.persona_id = p.id
+       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
+       LEFT JOIN area a ON ap.area_id = a.id
+       WHERE ch.fecha = CURRENT_DATE
+       ORDER BY ch.hora DESC`
+    );
+
+    const data = result.rows.map(row => ({
+      registro_id: row.registro_id,
+      empleado: {
+        nombre_completo: `${row.nombre} ${row.apellido_paterno} ${row.apellido_materno || ''}`.trim(),
+        area: row.area || 'Sin área',
+        puesto: row.puesto || 'Sin puesto',
+        turno: 'No especificado'
+      },
+      registro: {
+        tipo: row.tipo,
+        fecha: row.fecha,
+        hora: row.hora
+      }
+    }));
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error al obtener checadas de hoy:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener checadas de hoy',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * POST REGISTRAR ASISTENCIA POR HUELLA - Sistema de pase de lista con sensor
+ */
+export const registrarAsistenciaPorHuella = async (req, res) => {
+  try {
+    const { huella_id } = req.body;
+
+    console.log('Iniciando registro de asistencia por huella:', huella_id);
+
+    if (!huella_id && huella_id !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere huella_id'
+      });
+    }
+
+    // 1. Buscar el contrato con ese huella_id para obtener persona_id
+    const contratoResult = await db.query(
+      `SELECT c.persona_id, p.nombre, p.apellido_paterno, p.apellido_materno,
+              pu.nombre as puesto, a.nombre as area
+       FROM contrato c
+       INNER JOIN persona p ON c.persona_id = p.id
+       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
+       LEFT JOIN area a ON ap.area_id = a.id
+       WHERE c.huella_id = $1
+       LIMIT 1`,
+      [huella_id]
+    );
+
+    if (contratoResult.rows.length === 0) {
+      console.log('No se encontró contrato con huella_id:', huella_id);
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró empleado con esta huella'
+      });
+    }
+
+    const empleado = contratoResult.rows[0];
+    const persona_id = empleado.persona_id;
+    const fecha = new Date().toISOString().split('T')[0];
+    const hora = new Date().toTimeString().split(' ')[0];
+
+    console.log('Empleado encontrado:', {
+      persona_id,
+      nombre: `${empleado.nombre} ${empleado.apellido_paterno}`,
+      fecha,
+      hora
+    });
+
+    // 2. Verificar si ya tiene registros del día en la tabla checada
+    const registrosHoy = await db.query(
+      `SELECT id, tipo, hora
+       FROM checada
+       WHERE persona_id = $1 AND fecha = $2
+       ORDER BY hora`,
+      [persona_id, fecha]
+    );
+
+    let tipo;
+    let mensaje;
+
+    // 3. Lógica para determinar ENTRADA o SALIDA
+    if (registrosHoy.rows.length === 0) {
+      // No tiene registros hoy -> ENTRADA
+      tipo = 'entrada';
+      mensaje = 'Entrada registrada';
+    } else if (registrosHoy.rows.length === 1 && registrosHoy.rows[0].tipo === 'entrada') {
+      // Tiene entrada pero no salida -> SALIDA
+      tipo = 'salida';
+      mensaje = 'Salida registrada';
+    } else if (registrosHoy.rows.length >= 2) {
+      // Ya tiene entrada y salida -> No permitir más registros
+      console.log('Ya tiene entrada y salida registradas');
+      return res.status(400).json({
+        success: false,
+        message: 'Ya se registraron entrada y salida para hoy',
+        data: {
+          empleado: {
+            nombre_completo: `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim(),
+            area: empleado.area,
+            puesto: empleado.puesto,
+            turno: empleado.turno
+          },
+          registros: registrosHoy.rows
+        }
+      });
+    } else {
+      // Caso edge: tiene salida pero no entrada (no debería pasar, pero lo manejamos)
+      tipo = 'entrada';
+      mensaje = 'Entrada registrada (corrección)';
+    }
+
+    // 4. Insertar el registro en la tabla checada
+    const insertResult = await db.query(
+      `INSERT INTO checada (persona_id, fecha, hora, tipo)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [persona_id, fecha, hora, tipo]
+    );
+
+    console.log('Registro insertado en checada:', insertResult.rows[0].id);
+
+    // 5. Retornar información completa del empleado y el registro
+    return res.status(201).json({
+      success: true,
+      message: mensaje,
+      data: {
+        registro_id: insertResult.rows[0].id,
+        empleado: {
+          nombre_completo: `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim(),
+          area: empleado.area || 'Sin área',
+          puesto: empleado.puesto || 'Sin puesto',
+          turno: empleado.turno || 'No especificado'
+        },
+        registro: {
+          tipo: tipo,
+          fecha: fecha,
+          hora: hora
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al registrar asistencia por huella:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al registrar asistencia',
+      error: error.message
+    });
+  }
+};

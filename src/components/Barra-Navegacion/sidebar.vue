@@ -68,6 +68,9 @@
           <RouterLink to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
             <span>Reporte Analítico</span>
           </RouterLink>
+          <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Pase de lista / Huella</span>
+          </RouterLink>
         </div>
       </transition>
 
