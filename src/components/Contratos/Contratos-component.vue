@@ -160,11 +160,14 @@ const handleCrearContrato = () => {
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
 
+  // Normalizar tipo
+  const tipo = (contrato.tipo || '').toLowerCase().trim();
+
   // Verificar el tipo de contrato y redirigir al componente adecuado
-  if (contrato.tipo === 'empleado') {
+  if (tipo === 'empleado') {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
-  } else if (contrato.tipo === 'aspirante') {
+  } else if (tipo === 'aspirante') {
     aspiranteSeleccionado.value = contrato;
     activeTab.value = 'detalleAspirante';
   }
