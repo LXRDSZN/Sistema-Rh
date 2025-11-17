@@ -3,9 +3,9 @@
     <!-- Formulario de incidencias -->
     <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
     
-    <div class="content-inner">
+    <div class="content-inner" v-if="!loading">
       <div class="header-section">
-        <h1>Vista Para Asistencias</h1>
+        <h1>Asistencias</h1>
         <button class="btn-incidencia" @click="showIncidencia = true">+ Registrar Incidencia</button>
       </div>
       
@@ -14,19 +14,19 @@
         <h2>Estado actual</h2>
         <div class="estado-grid">
           <div class="stat-item">
-            <div class="stat-number">25</div>
+            <div class="stat-number">{{ dashboardData?.estadoActual?.presentes || 0 }}</div>
             <div class="stat-label">Presentes</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">1</div>
+            <div class="stat-number">{{ dashboardData?.estadoActual?.retardos || 0 }}</div>
             <div class="stat-label">Retardos</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">1</div>
+            <div class="stat-number">{{ dashboardData?.estadoActual?.ausencias || 0 }}</div>
             <div class="stat-label">Ausencias</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">5</div>
+            <div class="stat-number">{{ dashboardData?.estadoActual?.inactivos || 0 }}</div>
             <div class="stat-label">Inactivos</div>
           </div>
         </div>
@@ -38,19 +38,19 @@
         <div class="alertas-container">
           <div class="alerta alerta-warning">
             <span class="alerta-icon">⚠️</span>
-            <span class="alerta-text">Riesgo de patrón de ausencia: 2</span>
+            <span class="alerta-text">Riesgo de patrón de ausencia: {{ dashboardData?.alertas?.patronesAusencia || 0 }}</span>
           </div>
           <div class="alerta alerta-danger">
             <span class="alerta-icon">🔔</span>
-            <span class="alerta-text">Retardos críticos hoy: 1</span>
+            <span class="alerta-text">Retardos críticos hoy: {{ dashboardData?.alertas?.retardosCriticos || 0 }}</span>
           </div>
           <div class="alerta alerta-info">
             <span class="alerta-icon">ℹ️</span>
-            <span class="alerta-text">Ausencias/Permisos pendientes: 0</span>
+            <span class="alerta-text">Ausencias/Permisos pendientes: {{ dashboardData?.alertas?.permisosPendientes || 0 }}</span>
           </div>
           <div class="alerta alerta-gray">
             <span class="alerta-icon">🚫</span>
-            <span class="alerta-text">Acceso de empleado inactivo: 1</span>
+            <span class="alerta-text">Acceso de empleado inactivo: {{ dashboardData?.alertas?.accesoInactivos || 0 }}</span>
           </div>
         </div>
       </div>
@@ -61,7 +61,7 @@
         <div class="card">
           <h2>Tasa de puntualidad mensual</h2>
           <div class="puntualidad-container">
-            <div class="puntualidad-numero">95%</div>
+            <div class="puntualidad-numero">{{ dashboardData?.tasaPuntualidad || 0 }}%</div>
             <div class="puntualidad-label">Puntualidad</div>
           </div>
         </div>
@@ -83,38 +83,11 @@
           </div>
 
           <div class="barras-container">
-            <div class="barra-row">
-              <span class="barra-label">Lunes</span>
+            <div class="barra-row" v-for="(dia, index) in estadisticasSemanales" :key="index">
+              <span class="barra-label">{{ dia.dia }}</span>
               <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 15%;"></div>
-                <div class="barra-fill ausencias" style="left: 15%; width: 10%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Martes</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 8%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Miércoles</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 8%;"></div>
-              </div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Jueves</span>
-              <div class="barra-bg"></div>
-            </div>
-
-            <div class="barra-row">
-              <span class="barra-label">Viernes</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" style="width: 15%;"></div>
-                <div class="barra-fill ausencias" style="left: 15%; width: 10%;"></div>
+                <div class="barra-fill retardos" :style="{ width: calcularAncho(dia.retardos) }"></div>
+                <div class="barra-fill ausencias" :style="{ left: calcularAncho(dia.retardos), width: calcularAncho(dia.ausencias) }"></div>
               </div>
             </div>
           </div>
@@ -134,14 +107,59 @@
         </div>
       </div>
     </div>
+
+    <!-- Loading State -->
+    <div v-else class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando datos de asistencias...</p>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue'
 
 const showIncidencia = ref(false)
+
+// Composable
+const {
+  dashboardData,
+  loading,
+  cargarDashboard
+} = useAsistencias()
+
+// Cargar datos al montar
+onMounted(async () => {
+  await cargarDashboard()
+})
+
+// Estadísticas semanales procesadas
+const estadisticasSemanales = computed(() => {
+  if (!dashboardData.value?.estadisticasSemanales) {
+    return [
+      { dia: 'Lunes', retardos: 0, ausencias: 0 },
+      { dia: 'Martes', retardos: 0, ausencias: 0 },
+      { dia: 'Miércoles', retardos: 0, ausencias: 0 },
+      { dia: 'Jueves', retardos: 0, ausencias: 0 },
+      { dia: 'Viernes', retardos: 0, ausencias: 0 }
+    ]
+  }
+  
+  // Mapear días de la BD
+  return dashboardData.value.estadisticasSemanales.map(d => ({
+    dia: d.dia?.trim() || 'N/A',
+    retardos: parseInt(d.retardos) || 0,
+    ausencias: parseInt(d.ausencias) || 0
+  }))
+})
+
+// Calcular ancho de barra (máximo 10 = 100%)
+const calcularAncho = (valor) => {
+  const porcentaje = Math.min((valor / 10) * 100, 100)
+  return `${porcentaje}%`
+}
 </script>
 
 <style scoped>
@@ -423,6 +441,34 @@ h2, .card h2 {
   font-size: 0.75rem;
   color: #9ca3af;
   padding: 0 80px;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #4F39F6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 768px) {

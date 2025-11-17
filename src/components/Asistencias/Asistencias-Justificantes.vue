@@ -2,9 +2,8 @@
   <div class="justificaciones-content">
     <div class="content-inner">
       <h2 class="page-title">Gestión de Justificaciones</h2>
-      <br>
       
-      <!-- Filtros Superiores -->
+      <!-- Filtros superiores -->
       <div class="filtros-superiores">
         <v-select
           v-model="filtroEstado"
@@ -16,9 +15,12 @@
           hide-details
         />
 
+        <!-- Filtro de área superior CORREGIDO -->
         <v-select
           v-model="filtroArea"
           :items="areasItems"
+          item-title="title"
+          item-value="value"
           placeholder="Todas las áreas"
           class="filter-select input-white"
           variant="outlined"
@@ -35,12 +37,11 @@
         </v-btn>
       </div>
 
-      <!-- Formulario: Registrar Nueva Justificación -->
+      <!-- Formulario: Nueva Justificación -->
       <v-card class="card-formulario" elevation="0">
         <h2 class="card-titulo">Registrar Nueva Justificación</h2>
 
         <v-card-text class="card-text-custom">
-          <!-- Fila de Encabezados -->
           <v-row class="mb-0">
             <v-col cols="12" sm="6" md="3">
               <div class="form-header">Empleado*</div>
@@ -56,14 +57,13 @@
             </v-col>
           </v-row>
 
-          <!-- Fila de Inputs -->
           <v-row class="mt-0 mb-4 row-no-padding">
             <v-col cols="12" sm="6" md="3">
               <v-select
-                v-model="formulario.empleado"
+                v-model="formulario.empleado_id"
                 :items="empleadosConPlaceholder"
-                item-title="title"
-                item-value="value"
+                item-title="nombre_completo"
+                item-value="id"
                 class="input-white"
                 variant="outlined"
                 density="compact"
@@ -72,19 +72,21 @@
             </v-col>
             <v-col cols="12" sm="6" md="3">
               <v-select
-                v-model="formulario.tipoIncidencia"
+                v-model="formulario.tipo_incidencia_id"
                 :items="tiposIncidenciaConPlaceholder"
-                item-title="title"
-                item-value="value"
+                item-title="nombre"
+                item-value="id"
                 class="input-white"
                 variant="outlined"
                 density="compact"
                 hide-details
+                :loading="loading"
+                :disabled="loading"
               />
             </v-col>
             <v-col cols="12" sm="6" md="3">
               <v-text-field
-                v-model="formulario.fechaInicio"
+                v-model="formulario.fecha_inicio"
                 type="date"
                 placeholder="dd/mm/aaaa"
                 class="input-white"
@@ -95,7 +97,7 @@
             </v-col>
             <v-col cols="12" sm="6" md="3">
               <v-text-field
-                v-model="formulario.fechaFin"
+                v-model="formulario.fecha_fin"
                 type="date"
                 placeholder="dd/mm/aaaa"
                 class="input-white"
@@ -106,7 +108,6 @@
             </v-col>
           </v-row>
 
-          <!-- Motivo/Descripción -->
           <div class="mb-6">
             <label class="form-label">Motivo/Descripción*</label>
             <v-textarea
@@ -116,10 +117,10 @@
               rows="4"
               variant="outlined"
               hide-details
+              counter="500"
+              :rules="[v => !v || v.length <= 500 || 'Máximo 500 caracteres']"
             />
           </div>
-
-          <!-- Cargar Justificante -->
           <div class="mb-6">
             <label class="form-label label-spacing">Cargar Justificante (Opcional)</label>
             <div class="archivo-selector">
@@ -136,19 +137,47 @@
                 ref="fileInput" 
                 @change="manejarArchivoSeleccionado" 
                 class="file-input-hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               />
+            </div>
+            <!-- Vista previa del archivo -->
+            <div v-if="archivoPrevisualizacion" class="archivo-preview">
+              <div class="archivo-info">
+                <span class="archivo-texto">{{ nombreArchivo }}</span>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="verArchivo"
+                  color="#5E47FF"
+                  class="ml-2"
+                >
+                  <v-icon size="20">mdi-eye</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="quitarArchivo"
+                  color="#ef4444"
+                  class="action-btn"
+                >
+                  <v-icon size="20">mdi-close</v-icon>
+                </v-btn>
+              </div>
             </div>
           </div>
 
-          <!-- Botones de Acción -->
+          <!-- Botones -->
           <div class="form-botones">
             <v-btn
               color="#5E47FF"
               class="btn-action"
-              @click="guardarIncidencia"
+              @click="guardarJustificacion"
+              :loading="guardando"
             >
               <v-icon left size="18">mdi-content-save</v-icon>
-              Guardar Incidencias
+              Guardar Justificación
             </v-btn>
             <v-btn
               color="#5E47FF"
@@ -162,12 +191,10 @@
         </v-card-text>
       </v-card>
 
-      <!-- Monitoreo de Incidencias -->
       <v-card class="card-monitoreo" elevation="0">
-        <h2 class="card-titulo">Monitoreo de Incidencias</h2>
+        <h2 class="card-titulo">Monitoreo de Justificaciones</h2>
 
         <v-card-text>
-          <!-- Filtros de Monitoreo -->
           <div class="filtros-monitoreo">
             <v-select
               v-model="monitoreo.periodo"
@@ -179,9 +206,12 @@
               hide-details
             />
 
+            <!-- Filtro de área monitoreo CORREGIDO -->
             <v-select
-              v-model="monitoreo.area"
+              v-model="monitoreo.area_id"
               :items="areasMonitoreoItems"
+              item-title="title"
+              item-value="value"
               placeholder="Todas las áreas"
               class="filter-select-monitor input-white"
               variant="outlined"
@@ -195,8 +225,9 @@
               class="search-input-monitor input-white"
               variant="outlined"
               density="compact"
-              clearable
               hide-details
+              @input="validarBusqueda"
+              :class="{ 'input-error': busquedaError }"
             >
               <template v-slot:append-inner>
                 <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
@@ -211,25 +242,34 @@
               Aplicar Filtro
             </v-btn>
           </div>
-
-          <!-- Tabla de Monitoreo -->
           <v-table class="tabla-monitoreo">
             <thead>
               <tr>
                 <th class="text-center">Empleado</th>
-                <th class="text-center">Tipo de Incidencias</th>
+                <th class="text-center">Tipo de Incidencia</th>
                 <th class="text-center">Fecha</th>
                 <th class="text-center">Estado</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in incidenciasFiltradas" :key="index">
-                <td class="text-center">{{ item.empleado }}</td>
-                <td class="text-center">{{ item.tipoIncidencia }}</td>
-                <td class="text-center">{{ item.fecha }}</td>
+              <tr v-if="loading">
+                <td colspan="4" class="text-center py-4">
+                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
+                  <p class="mt-2">Cargando justificaciones...</p>
+                </td>
+              </tr>
+              <tr v-else-if="justificacionesFiltradas.length === 0">
+                <td colspan="4" class="text-center py-4 text-grey">
+                  No hay justificaciones registradas
+                </td>
+              </tr>
+              <tr v-for="(item, index) in justificacionesFiltradas" :key="item.id || index" v-else>
+                <td class="text-center">{{ item.empleado || 'N/A' }}</td>
+                <td class="text-center">{{ item.tipo_incidencia || 'N/A' }}</td>
+                <td class="text-center">{{ formatearFecha(item.fecha_inicio) }}</td>
                 <td class="text-center">
-                  <span :class="item.estado === 'A tiempo' ? 'estado-a-tiempo' : 'estado-ausente'">
-                    {{ item.estado }}
+                  <span :class="obtenerClaseEstado(item.estado)">
+                    {{ obtenerTextoEstado(item.estado) }}
                   </span>
                 </td>
               </tr>
@@ -238,9 +278,8 @@
         </v-card-text>
       </v-card>
 
-      <!-- Registro de Incidencias -->
       <v-card class="card-registro" elevation="0">
-        <h2 class="card-titulo">Registro de Incidencias</h2>
+        <h2 class="card-titulo">Registro de Justificaciones</h2>
 
         <v-card-text>
           <v-table class="tabla-registro">
@@ -250,21 +289,50 @@
                 <th class="text-center">Área</th>
                 <th class="text-center">Fecha</th>
                 <th class="text-center">Motivo</th>
+                <th class="text-center">Archivo</th>
                 <th class="text-center tabla-acciones-header"></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in registroIncidencias" :key="index">
-                <td class="text-center">{{ item.empleado }}</td>
-                <td class="text-center">{{ item.area }}</td>
-                <td class="text-center">{{ item.fecha }}</td>
+              <tr v-if="loading">
+                <td colspan="6" class="text-center py-4">
+                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
+                  <p class="mt-2">Cargando registros...</p>
+                </td>
+              </tr>
+              <tr v-else-if="registroJustificaciones.length === 0">
+                <td colspan="6" class="text-center py-4 text-grey">
+                  No hay justificaciones registradas
+                </td>
+              </tr>
+              <tr v-for="(item, index) in registroJustificaciones" :key="item.id || index" v-else>
+                <td class="text-center">{{ item.empleado || 'N/A' }}</td>
+                <td class="text-center">{{ item.area || 'N/A' }}</td>
+                <td class="text-center">{{ formatearFecha(item.fecha_creacion) }}</td>
                 <td class="text-center">{{ item.motivo }}</td>
+                <td class="text-center">
+                  <div class="archivo-tabla" v-if="item.archivo_justificante">
+                    <span class="archivo-texto-tabla">{{ item.archivo_justificante }}</span>
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="verArchivoRegistro(item)"
+                      color="#5E47FF"
+                      class="ml-1"
+                    >
+                      <v-icon size="18">mdi-eye</v-icon>
+                    </v-btn>
+                  </div>
+                  <span v-else class="text-grey">Sin archivo</span>
+                </td>
                 <td class="text-center">
                   <v-btn
                     icon
                     size="small"
                     variant="text"
                     @click="verDetalle(item)"
+                    color="#5E47FF"
                   >
                     <v-icon size="20">mdi-plus-circle</v-icon>
                   </v-btn>
@@ -276,41 +344,99 @@
       </v-card>
     </div>
 
-    <!-- Snackbar para mensajes -->
+    <!-- Dialog para ver detalles -->
+    <v-dialog v-model="dialogDetalle" max-width="600px">
+      <v-card>
+        <v-card-title class="dialog-title">
+          Detalle de Justificación
+        </v-card-title>
+        <v-card-text>
+          <div v-if="justificacionSeleccionada" class="detalle-content">
+            <div class="detalle-item">
+              <strong>Empleado:</strong> {{ justificacionSeleccionada.empleado || 'N/A' }}
+            </div>
+            <div class="detalle-item">
+              <strong>Área:</strong> {{ justificacionSeleccionada.area || 'N/A' }}
+            </div>
+            <div class="detalle-item">
+              <strong>Fecha de Inicio:</strong> {{ formatearFecha(justificacionSeleccionada.fecha_inicio) }}
+            </div>
+            <div class="detalle-item">
+              <strong>Fecha de Fin:</strong> {{ formatearFecha(justificacionSeleccionada.fecha_fin) }}
+            </div>
+            <div class="detalle-item">
+              <strong>Tipo de Incidencia:</strong> {{ justificacionSeleccionada.tipo_incidencia || 'N/A' }}
+            </div>
+            <div class="detalle-item">
+              <strong>Motivo:</strong> {{ justificacionSeleccionada.motivo }}
+            </div>
+            <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
+              <strong>Archivo:</strong> 
+              <div class="archivo-detalle">
+                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_justificante }}</span>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="verArchivoRegistro(justificacionSeleccionada)"
+                  color="#5E47FF"
+                  class="ml-1"
+                >
+                  <v-icon size="18">mdi-eye</v-icon>
+                </v-btn>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="#5E47FF" @click="dialogDetalle = false">Cerrar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
-      :timeout="3000"
+      :timeout="5000"
+      location="bottom center"
+      min-width="auto"
+      class="custom-snackbar"
     >
-      {{ snackbar.text }}
+      <div class="snackbar-content">
+        {{ snackbar.text }}
+      </div>
     </v-snackbar>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+import axios from 'axios'
 
-// Constantes
-const ESTADOS = {
-  TODOS: 'todos',
-  A_TIEMPO: 'a-tiempo',
-  AUSENTE: 'ausente',
-  PENDIENTE: 'pendiente'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Composable de asistencias
+const {
+  justificantes,
+  tiposIncidencia,
+  loading,
+  cargarJustificantes,
+  cargarTiposIncidencia,
+  crearJustificante
+} = useAsistencias()
+
+// Estados para BD
+const ESTADOS_JUSTIFICACION = {
+  PENDIENTE: 'pendiente',
+  APROBADO: 'aprobado',
+  RECHAZADO: 'rechazado'
 }
 
-const AREAS = {
-  TODAS: 'todas',
-  RRHH: 'rrhh',
-  VENTAS: 'ventas',
-  OPERACIONES: 'operaciones'
-}
-
-const TIPOS_INCIDENCIA = {
-  TRAFICO: 'trafico',
-  ENFERMEDAD: 'enfermedad',
-  FAMILIARES: 'familiares',
-  MEDICA: 'medica'
-}
+// Datos de empleados y áreas desde la BD
+const empleados = ref([])
+const areas = ref([])
 
 // Snackbar
 const snackbar = ref({
@@ -319,6 +445,216 @@ const snackbar = ref({
   color: 'success'
 })
 
+// Estados de UI
+const dialogDetalle = ref(false)
+const justificacionSeleccionada = ref(null)
+const guardando = ref(false)
+const busquedaError = ref(false)
+
+// Archivo
+const fileInput = ref(null)
+const nombreArchivo = ref('Ningún archivo seleccionado')
+const archivoPrevisualizacion = ref(null)
+
+// Datos del formulario
+const formulario = ref({
+  empleado_id: null,
+  tipo_incidencia_id: null,
+  fecha_inicio: '',
+  fecha_fin: '',
+  motivo: ''
+})
+
+// Filtros
+const filtroEstado = ref('todos')
+const filtroArea = ref('todas')
+const monitoreo = ref({
+  periodo: 'mes-pasado',
+  area_id: null,
+  busqueda: ''
+})
+
+// Cargar datos iniciales
+onMounted(async () => {
+  try {
+    await cargarDatosIniciales()
+    await cargarTiposIncidencia()
+    console.log('Tipos de incidencia cargados:', tiposIncidencia.value)
+    await cargarJustificantes()
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error)
+  }
+})
+
+// Función para cargar empleados y áreas
+const cargarDatosIniciales = async () => {
+  try {
+    // Cargar empleados
+    const responseEmpleados = await axios.get(`${API_URL}/empleados`, { 
+      withCredentials: true 
+    })
+    
+    // Transformar los datos de empleados al formato esperado
+    const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
+    empleados.value = empleadosData.map(emp => {
+      // Si ya tiene el formato correcto (con nombre completo)
+      if (emp.nombre && !emp.apellido_paterno) {
+        // Extraer nombre, apellido_paterno del nombre completo
+        const partes = emp.nombre.split(' ')
+        return {
+          id: emp.id,
+          nombre: partes[0] || '',
+          apellido_paterno: partes[1] || '',
+          apellido_materno: partes[2] || '',
+          nombre_completo: emp.nombre,
+          area_id: emp.area_id
+        }
+      }
+      // Si tiene la estructura con campos separados
+      return {
+        ...emp,
+        nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
+      }
+    })
+
+    // Cargar áreas
+    const responseAreas = await axios.get(`${API_URL}/areas`, { 
+      withCredentials: true 
+    })
+    areas.value = responseAreas.data.data || responseAreas.data || []
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error)
+    mostrarMensaje('Error al cargar empleados y áreas', 'error')
+  }
+}
+
+const estadosItems = [
+  { title: 'Todos los estados', value: 'todos' },
+  { title: 'Pendiente', value: ESTADOS_JUSTIFICACION.PENDIENTE },
+  { title: 'Aprobado', value: ESTADOS_JUSTIFICACION.APROBADO },
+  { title: 'Rechazado', value: ESTADOS_JUSTIFICACION.RECHAZADO }
+]
+
+const areasItems = computed(() => [
+  { title: 'Todas las áreas', value: 'todas' },
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
+])
+
+const periodosItems = [
+  { title: 'Mes pasado', value: 'mes-pasado' },
+  { title: 'Este mes', value: 'este-mes' },
+  { title: 'Último trimestre', value: 'trimestre' }
+]
+
+const areasMonitoreoItems = computed(() => [
+  { title: 'Todas las áreas', value: null },
+  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
+])
+
+// Computed
+const empleadosConPlaceholder = computed(() => {  
+  return [
+    { id: null, nombre_completo: 'Seleccionar Empleado', disabled: true }, 
+    ...empleados.value
+  ]
+})
+
+const tiposIncidenciaConPlaceholder = computed(() => {
+  const tipos = tiposIncidencia.value || []
+  console.log('📋 Tipos de incidencia RECIBIDOS:', tipos)
+  console.log('📊 Cantidad de tipos:', tipos.length)
+  console.log('🔍 Estructura primer tipo:', tipos[0])
+  
+  if (tipos.length === 0) {
+    return [{ id: null, nombre: 'Cargando tipos...', disabled: true }]
+  }
+  
+  return [
+    { id: null, nombre: 'Seleccionar Tipo', disabled: true }, 
+    ...tipos
+  ]
+})
+
+const justificacionesFiltradas = computed(() => {
+  let resultado = [...(justificantes.value || [])]
+  
+  // Filtro por búsqueda de empleado
+  if (monitoreo.value.busqueda) {
+    const busqueda = monitoreo.value.busqueda.toLowerCase().trim()
+    resultado = resultado.filter(item => {
+      return item.empleado && item.empleado.toLowerCase().includes(busqueda)
+    })
+  }
+  
+  // Filtro por área
+  if (monitoreo.value.area_id) {
+    resultado = resultado.filter(item => 
+      item.area && item.area.toLowerCase() === monitoreo.value.area_id.toLowerCase()
+    )
+  }
+  
+  return resultado
+})
+
+const registroJustificaciones = computed(() => {
+  return justificantes.value || []
+})
+
+// Funciones de utilidad
+const obtenerNombreEmpleado = (empleadoId) => {
+  if (!empleadoId) return 'N/A'
+  const empleado = empleados.value.find(emp => emp.id === empleadoId)
+  return empleado ? `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim() : 'N/A'
+}
+
+const obtenerNombreArea = (areaId) => {
+  if (!areaId) return 'N/A'
+  const area = areas.value.find(a => a.id === areaId)
+  return area ? area.nombre : 'N/A'
+}
+
+const obtenerNombreTipoIncidencia = (tipoId) => {
+  if (!tipoId) return 'N/A'
+  const tipo = (tiposIncidencia.value || []).find(t => t.id === tipoId)
+  return tipo ? tipo.nombre : 'N/A'
+}
+
+const obtenerClaseEstado = (estado) => {
+  const clases = {
+    [ESTADOS_JUSTIFICACION.PENDIENTE]: 'estado-pendiente',
+    [ESTADOS_JUSTIFICACION.APROBADO]: 'estado-aprobado',
+    [ESTADOS_JUSTIFICACION.RECHAZADO]: 'estado-rechazado'
+  }
+  return clases[estado] || 'estado-pendiente'
+}
+
+const obtenerTextoEstado = (estado) => {
+  const textos = {
+    [ESTADOS_JUSTIFICACION.PENDIENTE]: 'Pendiente',
+    [ESTADOS_JUSTIFICACION.APROBADO]: 'Aprobado',
+    [ESTADOS_JUSTIFICACION.RECHAZADO]: 'Rechazado'
+  }
+  return textos[estado] || 'Pendiente'
+}
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'N/A'
+  return new Date(fecha).toLocaleDateString('es-ES')
+}
+
+// Validación de búsqueda 
+const validarBusqueda = () => {
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
+  if (monitoreo.value.busqueda && !soloLetrasRegex.test(monitoreo.value.busqueda)) {
+    busquedaError.value = true
+    // Remover caracteres no válidos
+    monitoreo.value.busqueda = monitoreo.value.busqueda.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+  } else {
+    busquedaError.value = false
+  }
+}
+
+// Funciones principales
 const mostrarMensaje = (texto, color = 'success') => {
   snackbar.value = {
     show: true,
@@ -327,120 +663,26 @@ const mostrarMensaje = (texto, color = 'success') => {
   }
 }
 
-// Filtros superiores
-const filtroEstado = ref(ESTADOS.TODOS)
-const filtroArea = ref(AREAS.TODAS)
+const quitarArchivo = () => {
+  limpiarArchivo()
+  mostrarMensaje('Archivo removido correctamente')
+}
 
-const estadosItems = [
-  { title: 'Todos los estados', value: ESTADOS.TODOS },
-  { title: 'A tiempo', value: ESTADOS.A_TIEMPO },
-  { title: 'Ausente', value: ESTADOS.AUSENTE },
-  { title: 'Pendiente', value: ESTADOS.PENDIENTE }
-]
-
-const areasItems = [
-  { title: 'Todas las áreas', value: AREAS.TODAS },
-  { title: 'RRHH', value: AREAS.RRHH },
-  { title: 'Ventas', value: AREAS.VENTAS },
-  { title: 'Operaciones', value: AREAS.OPERACIONES }
-]
-
-// Formulario
-const formulario = ref({
-  empleado: '',
-  tipoIncidencia: '',
-  fechaInicio: '',
-  fechaFin: '',
-  motivo: ''
-})
-
-const empleadosItems = [
-  { title: 'Juan Pérez', value: 'juan' },
-  { title: 'Mariana Botas', value: 'mariana' },
-  { title: 'Juan Hidalgo', value: 'hidalgo' },
-  { title: 'Marcela Valencia', value: 'marcela' }
-]
-
-const empleadosConPlaceholder = computed(() => {  
-  if (!formulario.value.empleado) {
-    return [
-      { title: 'Seleccionar Empleado', value: '', disabled: true }, 
-      ...empleadosItems
-    ]
+const aplicarFiltrosSuperior = async () => {
+  try {
+    const filtros = {}
+    if (filtroEstado.value !== 'todos') {
+      filtros.estado = filtroEstado.value
+    }
+    if (filtroArea.value !== 'todas') {
+      filtros.area = filtroArea.value
+    }
+    
+    await cargarJustificantes(filtros)
+    mostrarMensaje('Filtros aplicados correctamente')
+  } catch (error) {
+    mostrarMensaje('Error al aplicar filtros', 'error')
   }
-  return empleadosItems
-})
-
-const tiposIncidenciaItems = [
-  { title: 'Tráfico', value: TIPOS_INCIDENCIA.TRAFICO },
-  { title: 'Enfermedad', value: TIPOS_INCIDENCIA.ENFERMEDAD },
-  { title: 'Asuntos Familiares', value: TIPOS_INCIDENCIA.FAMILIARES },
-  { title: 'Cita Médica', value: TIPOS_INCIDENCIA.MEDICA }
-]
-
-const tiposIncidenciaConPlaceholder = computed(() => {
-  if (!formulario.value.tipoIncidencia) {
-    return [
-      { title: 'Seleccionar Tipo', value: '', disabled: true }, 
-      ...tiposIncidenciaItems
-    ]
-  }
-  return tiposIncidenciaItems
-})
-
-// Archivo
-const fileInput = ref(null)
-const nombreArchivo = ref('Ningún archivo seleccionado')
-
-// Filtros de monitoreo
-const monitoreo = ref({
-  periodo: 'mes-pasado',
-  area: AREAS.TODAS,
-  busqueda: ''
-})
-
-const periodosItems = [
-  { title: 'Mes pasado', value: 'mes-pasado' },
-  { title: 'Este mes', value: 'este-mes' },
-  { title: 'Último trimestre', value: 'trimestre' }
-]
-
-const areasMonitoreoItems = [
-  { title: 'Todas las áreas', value: AREAS.TODAS },
-  { title: 'RRHH', value: AREAS.RRHH },
-  { title: 'Ventas', value: AREAS.VENTAS }
-]
-
-// Datos
-const incidenciasMonitoreo = ref([
-  { empleado: 'Juan Pérez', tipoIncidencia: 'Tráfico', fecha: '14/02/2025', estado: 'A tiempo' },
-  { empleado: 'Mariana Botas', tipoIncidencia: 'Tráfico', fecha: '20/08/2025', estado: 'A tiempo' },
-  { empleado: 'Juan Hidalgo', tipoIncidencia: 'Enfermedad', fecha: '10/03/2025', estado: 'Ausente' },
-  { empleado: 'Marcela Valencia', tipoIncidencia: 'Asuntos Familiares', fecha: '09/09/2025', estado: 'Ausente' }
-])
-
-const registroIncidencias = ref([
-  { empleado: 'Juan Pérez', area: 'RRHH', fecha: '14/02/2025', motivo: 'Tráfico' },
-  { empleado: 'Mariana Botas', area: 'Asistencias/Retardos', fecha: '20/08/2025', motivo: 'Tráfico' }
-])
-
-// Computed
-const incidenciasFiltradas = computed(() => {
-  let resultado = [...incidenciasMonitoreo.value]
-  
-  if (monitoreo.value.busqueda) {
-    const busqueda = monitoreo.value.busqueda.toLowerCase().trim()
-    resultado = resultado.filter(item => 
-      item.empleado.toLowerCase().includes(busqueda)
-    )
-  }
-  
-  return resultado
-})
-
-// Funciones
-const aplicarFiltrosSuperior = () => {
-  mostrarMensaje('Filtros superiores aplicados')
 }
 
 const aplicarFiltrosMonitoreo = () => {
@@ -456,58 +698,227 @@ const abrirSelectorArchivo = () => {
 const manejarArchivoSeleccionado = (event) => {
   try {
     const archivo = event.target.files?.[0]
-    nombreArchivo.value = archivo ? archivo.name : 'Ningún archivo seleccionado'
+    if (archivo) {
+      nombreArchivo.value = archivo.name
+      archivoPrevisualizacion.value = archivo
+      
+      // Validar tipo de archivo
+      const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 
+                              'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      if (!tiposPermitidos.includes(archivo.type)) {
+        mostrarMensaje('Tipo de archivo no permitido', 'error')
+        limpiarArchivo()
+        return
+      }
+      
+      // Validar tamaño (max 5MB)
+      if (archivo.size > 5 * 1024 * 1024) {
+        mostrarMensaje('El archivo no debe superar los 5MB', 'error')
+        limpiarArchivo()
+        return
+      }
+      
+      mostrarMensaje('Archivo seleccionado correctamente')
+    }
   } catch (error) {
     mostrarMensaje('Error al seleccionar archivo', 'error')
   }
 }
 
-const guardarIncidencia = () => {
-  try {
-    if (!formulario.value.empleado || !formulario.value.tipoIncidencia || 
-        !formulario.value.fechaInicio || !formulario.value.motivo) {
-      mostrarMensaje('Por favor complete todos los campos obligatorios', 'warning')
-      return
-    }
-    
-    mostrarMensaje('Incidencia guardada correctamente')
-    limpiarFormulario()
-  } catch (error) {
-    mostrarMensaje('Error al guardar la incidencia', 'error')
-  }
-}
-
-const limpiarFormulario = () => {
-  formulario.value = {
-    empleado: '',
-    tipoIncidencia: '',
-    fechaInicio: '',
-    fechaFin: '',
-    motivo: ''
-  }
+const limpiarArchivo = () => {
   nombreArchivo.value = 'Ningún archivo seleccionado'
-  
+  archivoPrevisualizacion.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
 
+const guardarJustificacion = async () => {
+  try {
+    // Validaciones
+    if (!formulario.value.empleado_id || !formulario.value.tipo_incidencia_id || 
+        !formulario.value.fecha_inicio || !formulario.value.motivo) {
+      mostrarMensaje('Por favor complete todos los campos obligatorios', 'warning')
+      return
+    }
+
+    // Validar que la fecha fin no sea menor que la fecha inicio
+    if (formulario.value.fecha_fin && formulario.value.fecha_fin < formulario.value.fecha_inicio) {
+      mostrarMensaje('La fecha de fin no puede ser anterior a la fecha de inicio', 'error')
+      return
+    }
+
+    guardando.value = true
+
+    // Preparar datos para enviar al backend
+    const datosJustificante = {
+      empleado_id: formulario.value.empleado_id,
+      tipo_incidencia_id: formulario.value.tipo_incidencia_id,
+      fecha_inicio: formulario.value.fecha_inicio,
+      fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
+      motivo: formulario.value.motivo,
+      archivo_justificante: archivoPrevisualizacion.value ? archivoPrevisualizacion.value.name : null
+    }
+
+    // Llamar al composable para crear el justificante
+    await crearJustificante(datosJustificante)
+    
+    mostrarMensaje('Justificación guardada correctamente')
+    limpiarFormulario()
+    
+    // Recargar justificantes para mostrar el nuevo
+    await cargarJustificantes()
+    
+  } catch (error) {
+    console.error('Error al guardar justificante:', error)
+    mostrarMensaje('Error al guardar la justificación', 'error')
+  } finally {
+    guardando.value = false
+  }
+}
+
+const limpiarFormulario = () => {
+  formulario.value = {
+    empleado_id: null,
+    tipo_incidencia_id: null,
+    fecha_inicio: '',
+    fecha_fin: '',
+    motivo: ''
+  }
+  limpiarArchivo()
+}
+
 const verDetalle = (item) => {
-  if (item) {
-    mostrarMensaje(`Ver detalle de: ${item.empleado}`, 'info')
+  justificacionSeleccionada.value = item
+  dialogDetalle.value = true
+}
+
+const verArchivo = () => {
+  if (archivoPrevisualizacion.value) {
+    // Simular vista de archivo
+    const url = URL.createObjectURL(archivoPrevisualizacion.value)
+    window.open(url, '_blank')
+  }
+}
+
+const verArchivoRegistro = (item) => {
+  // Simular vista de archivo desde BD
+  const nombreArchivo = item.archivo_justificante || item.archivo_nombre
+  if (nombreArchivo) {
+    mostrarMensaje(`Visualizando archivo: ${nombreArchivo}`, 'info')
   }
 }
 </script>
 
 <style scoped>
+.estado-pendiente {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.estado-aprobado {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.estado-rechazado {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.input-error :deep(.v-field) {
+  border-color: #ef4444 !important;
+}
+
+.custom-snackbar {
+  border-radius: 8px;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  min-width: 300px !important;
+  justify-content: center !important;
+}
+
+.snackbar-content {
+  text-align: center;
+  padding: 8px 16px;
+}
+
+/* Estilos para archivos */
+.archivo-info {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.archivo-texto {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.archivo-tabla {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archivo-texto-tabla {
+  font-size: 0.875rem;
+  color: #374151;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archivo-detalle {
+  display: flex;
+  align-items: center;
+}
+
+.archivo-texto-detalle {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Estilos para el detalle */
+.detalle-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detalle-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.detalle-item strong {
+  min-width: 140px;
+  color: #544F65;
+}
+
+.dialog-title {
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  color: #544F65;
+}
+
 .justificaciones-content {
   flex: 1;
-  padding: 2rem;
+  padding: 0rem !important;
   display: flex;
   align-items: flex-start;
   width: 100%;
   box-sizing: border-box;
   background-color: #E4E4E7;
+  margin-left: auto;
 }
 
 .content-inner {
@@ -520,7 +931,8 @@ const verDetalle = (item) => {
   font-size: 1.5rem;
   font-weight: 600;
   color: #1f2937;
-  margin: 0;
+  margin: 0 0rem 2rem 1rem;
+  padding: 0.2rem;
 }
 
 /* Inputs con fondo blanco */
@@ -536,9 +948,9 @@ const verDetalle = (item) => {
   gap: 1rem;
   width: 100%;
   max-width: 700px;
-  padding: 0.5rem;
+  padding: 1;
   box-sizing: border-box;
-  margin-bottom: 0.2rem;
+  margin-bottom: 2rem;
 }
 
 .filter-select {
@@ -555,12 +967,11 @@ const verDetalle = (item) => {
 .card-formulario,
 .card-monitoreo,
 .card-registro {
-  padding: 0.5;
+  padding: 0.2rem;
   background-color: #FAFAFA;
   box-sizing: border-box;
   border-radius: 12px;
-  margin-bottom: 2rem;
-  margin-top: 2rem;
+  margin-bottom: 1.7rem;
 }
 
 .card-titulo {

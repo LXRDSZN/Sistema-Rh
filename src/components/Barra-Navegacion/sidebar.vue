@@ -68,6 +68,9 @@
           <RouterLink to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
             <span>Reporte Analítico</span>
           </RouterLink>
+          <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Pase de lista / Huella</span>
+          </RouterLink>
         </div>
       </transition>
 
@@ -98,6 +101,9 @@
           </RouterLink>
           <RouterLink to="/Contratos/registro-huellas" class="dropdown-item" @click.stop="closeContratosMenu">
             <span>Registro de huellas</span>
+          </RouterLink>
+          <RouterLink to="/Contratos/historial" class="dropdown-item" @click.stop="closeContratosMenu">
+            <span>Historial</span>
           </RouterLink>
         </div>
       </transition>

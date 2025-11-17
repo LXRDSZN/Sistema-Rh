@@ -16,8 +16,12 @@
                 <span class="value">{{ contrato.salarioBase }}</span>
             </div>
             <div class="info-item">
-                <span class="label">Jornada laboral y horario:</span>
-                <span class="value">{{ contrato.jornadaHorario }}</span>
+                <span class="label">Jornada laboral:</span>
+                <span class="value">{{ contrato.jornadaLaboral }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Horario:</span>
+                <span class="value">{{ contrato.estadoFirma }}</span>
             </div>
             <div class="info-item">
                 <span class="label">Estado de firma:</span>

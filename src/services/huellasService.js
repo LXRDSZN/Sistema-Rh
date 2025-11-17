@@ -49,7 +49,8 @@ export const updateHuellaId = async (contratoId, huellaId) => {
 export const getESP32Status = async (esp32Ip) => {
   try {
     const response = await axios.get(`http://${esp32Ip}/api/status`, {
-      timeout: 5000
+      timeout: 5000,
+      withCredentials: false // Importante: no enviar cookies al ESP32 para evitar problemas de CORS
     });
     return response.data;
   } catch (error) {
@@ -64,7 +65,8 @@ export const getESP32Status = async (esp32Ip) => {
 export const enrollFingerprint = async (esp32Ip) => {
   try {
     const response = await axios.post(`http://${esp32Ip}/api/enroll`, {}, {
-      timeout: 60000 // 60 segundos timeout para el proceso de enrolado
+      timeout: 60000, // 60 segundos timeout para el proceso de enrolado
+      withCredentials: false
     });
     return response.data;
   } catch (error) {
@@ -82,7 +84,8 @@ export const deleteFingerprint = async (esp32Ip, fingerprintId) => {
     formData.append('id', fingerprintId);
     
     const response = await axios.post(`http://${esp32Ip}/api/delete`, formData, {
-      timeout: 10000
+      timeout: 10000,
+      withCredentials: false
     });
     return response.data;
   } catch (error) {
@@ -97,7 +100,8 @@ export const deleteFingerprint = async (esp32Ip, fingerprintId) => {
 export const toggleScan = async (esp32Ip) => {
   try {
     const response = await axios.post(`http://${esp32Ip}/api/scan`, {}, {
-      timeout: 5000
+      timeout: 5000,
+      withCredentials: false
     });
     return response.data;
   } catch (error) {
@@ -112,7 +116,8 @@ export const toggleScan = async (esp32Ip) => {
 export const clearAllFingerprints = async (esp32Ip) => {
   try {
     const response = await axios.post(`http://${esp32Ip}/api/clear`, {}, {
-      timeout: 10000
+      timeout: 10000,
+      withCredentials: false
     });
     return response.data;
   } catch (error) {

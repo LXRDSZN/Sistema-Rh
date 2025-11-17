@@ -45,6 +45,11 @@ const router = createRouter({
       component: () => import('../views/Asistencias/AsistenciasView.vue')
     },
     {
+      path: '/Asistencias/pase-lista',
+      name: 'AsistenciasPaseLista',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
       path: '/Contratos',
       name: 'Contratos',
       component: () => import('../views/Contratos/ContratosView.vue')
@@ -68,6 +73,11 @@ const router = createRouter({
       path: '/Contratos/registro-huellas',
       name: 'ContratosRegistroHuellas',
       component: () => import('../views/Contratos/RegistroHuellasView.vue')
+    },
+     {
+      path: '/Contratos/historial',
+      name: 'historial',
+      component: () => import('../views/Contratos/ContratosView.vue')
     },
     {
       path: '/Vacaciones',
