@@ -5,14 +5,20 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import ContratosListView from './ContratosListView.vue';
+import { useContratos } from '@/composables/useContratos';
 
-defineProps({
-    contratos: {
-        type: Array,
-        required: true
-    }
-});
+const { obtenerContratosPorEstado } = useContratos();
+const contratos = ref([]);
 
 defineEmits(['revisar-contrato', 'volver-inicio']);
+
+onMounted(async () => {
+    try {
+        contratos.value = await obtenerContratosPorEstado('proceso');
+    } catch (error) {
+        console.error('Error al cargar contratos en proceso:', error);
+    }
+});
 </script>
