@@ -256,13 +256,13 @@ export const subirArchivo = async (req, res) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    // Generar presigned URL válida por 7 días (604800 segundos)
+    // Generar presigned URL indefinida (sin expiración)
     const getCommand = new GetObjectCommand({
       Bucket: config.aws.bucket,
       Key: nombreUnico
     });
     
-    const storageUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: 604800 }); // 7 días
+    const storageUrl = await getSignedUrl(s3Client, getCommand); // Sin expiración
 
     res.status(200).json({
       success: true,
