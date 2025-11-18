@@ -59,10 +59,38 @@ export const useContratos = () => {
         }
     };
 
+    /**
+    * Obtiene el encabezado del empleado
+    */
+    const obtenerEncabezadoEmpleado = async (personaId) => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/empleado/${personaId}/encabezado`);
+            return response.data.encabezado;
+        } catch (error) {
+            console.error('Error al obtener encabezado:', error);
+            throw error;
+        }
+    };
+
+    /**
+    * Obtiene el contrato actual del empleado
+    */
+    const obtenerContratoActualEmpleado = async (personaId) => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/empleado/${personaId}/contrato-actual`);
+            return response.data.contrato;
+        } catch (error) {
+            console.error('Error al obtener contrato actual:', error);
+            throw error;
+        }
+    };
+
     return {
         obtenerEstadisticas,
         obtenerEmpleadosDestacados,
         obtenerAspirantesDestacados,
-        obtenerContratosPorEstado
+        obtenerContratosPorEstado,
+        obtenerEncabezadoEmpleado,
+        obtenerContratoActualEmpleado 
     };
 };
