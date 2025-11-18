@@ -41,6 +41,9 @@
       <!-- Vista de Crear Contrato -->
       <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
 
+      <!-- Vista de Registro de Solicitud -->
+      <EnlaceRegistroSolicitud v-else-if="activeTab === 'registro'" @volver-inicio="activeTab = 'inicio'" />
+
       <!-- ✅ Agregar en el bloque de vistas -->
       <EnlaceHistorial v-else-if="activeTab === 'historial'" :contratos="contratosHistorico"
         @volver-inicio="activeTab = 'inicio'" @ver-contrato="handleRevisarContrato"
@@ -62,6 +65,7 @@ import EnlaceVencidos from './EnlacesNavegacion/EnlaceVencidos.vue';
 import EnlaceEnProceso from './EnlacesNavegacion/EnlaceEnProceso.vue';
 import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
+import EnlaceRegistroSolicitud from './EnlacesNavegacion/EnlaceRegistroSolicitud.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 import DetalleAspirante from './DetalleAspiranteRefactored.vue';
 import DetalleEmpleado from './DetalleEmpleadoCommon/DetalleEmpleado.vue';

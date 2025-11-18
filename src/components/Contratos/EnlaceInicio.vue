@@ -14,6 +14,9 @@
             <button class="btn-incidencia" @click="registrarIncidencia">
                 + Registrar Incidencia
             </button>
+            <button class="btn-registro" @click="irARegistro">
+                📝 Registro de Solicitud
+            </button>
         </div>
 
         <!-- Tarjetas de estadísticas clickeables (4 en una línea) -->
@@ -58,7 +61,8 @@
                     <div class="table-body">
                         <div v-for="empleado in empleadosFiltrados" :key="empleado.id" class="table-row empleado-row">
                             <div class="col-datos">
-                                <img :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
+                                <img v-if="empleado.avatar" :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
+                                <div v-else class="avatar avatar-placeholder">👤</div>
                                 <div class="datos-info">
                                     <div class="nombre">{{ empleado.nombre }}</div>
                                     <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
@@ -93,7 +97,8 @@
                         <div v-for="aspirante in aspirantesFiltrados" :key="aspirante.id"
                             class="table-row aspirante-row">
                             <div class="col-datos">
-                                <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
+                                <img v-if="aspirante.avatar" :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
+                                <div v-else class="avatar avatar-placeholder">👤</div>
                                 <div class="datos-info">
                                     <div class="nombre">{{ aspirante.nombre }}</div>
                                     <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
@@ -184,6 +189,10 @@ const cambiarVista = (vista) => {
 
 const registrarIncidencia = () => {
     emit('registrar-incidencia');
+};
+
+const irARegistro = () => {
+    emit('cambiar-vista', 'registro');
 };
 </script>
 
@@ -277,6 +286,32 @@ const registrarIncidencia = () => {
 .btn-incidencia:active {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(79, 57, 246, 0.3);
+}
+
+.btn-registro {
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-registro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.btn-registro:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 
@@ -471,6 +506,15 @@ const registrarIncidencia = () => {
     height: 50px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d4e9ff;
+    font-size: 24px;
+    color: #666;
 }
 
 .datos-info {
