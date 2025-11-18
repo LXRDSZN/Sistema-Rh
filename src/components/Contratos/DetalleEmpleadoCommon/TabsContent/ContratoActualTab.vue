@@ -29,7 +29,6 @@
             </div>
         </div>
 
-        <button class="btn-renovar" @click="$emit('renovar')">Renovar</button>
     </div>
 </template>
 
@@ -41,10 +40,11 @@ defineProps({
     }
 });
 
-defineEmits(['renovar']);
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
+
 .contrato-actual-content h3 {
     font-size: 1.2rem;
     font-weight: 600;
