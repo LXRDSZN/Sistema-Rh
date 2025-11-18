@@ -579,4 +579,97 @@ router.get('/contratos/estadisticas/resumen', async (req, res) => {
     }
 });
 
+// Endpoint para obtener historial de contratos
+router.get('/contratos/historial', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id,
+                p.nombre,
+                p.apellido_paterno,
+                p.apellido_materno,
+                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', p.apellido_materno) AS nombre_empleado,
+                c.tipo_contrato,
+                c.fecha_inicio,
+                a.nombre AS area_nombre,
+                a.id AS area_id
+            FROM contrato c
+            JOIN persona p ON p.id = c.persona_id
+            JOIN area a ON a.id = c.area_id
+            WHERE c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'Activo')
+            ORDER BY c.fecha_inicio DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener historial:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Obtener tipos de contratos (para filtro)
+// ========================================
+router.get('/contratos/tipos', async (req, res) => {
+    try {
+        const query = `
+            SELECT DISTINCT tipo_contrato
+            FROM contrato
+            WHERE tipo_contrato IS NOT NULL
+            ORDER BY tipo_contrato
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener tipos:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Obtener áreas (para filtros)
+// ========================================
+router.get('/contratos/areas', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, nombre
+            FROM area
+            ORDER BY nombre
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener áreas:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+
 export default router;

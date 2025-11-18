@@ -137,6 +137,38 @@ export const useContratos = () => {
         }
     };
 
+    // HItorial
+
+    const obtenerHistorialContratos = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/historial`);
+            return response.data.data || [];
+        } catch (error) {
+            console.error('Error al obtener historial:', error);
+            return [];
+        }
+    };
+
+    const obtenerTiposContratos = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/tipos`);
+            return response.data.data || [];
+        } catch (error) {
+            console.error('Error al obtener tipos:', error);
+            return [];
+        }
+    };
+
+    const obtenerAreas = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/areas`);
+            return response.data.data || [];
+        } catch (error) {
+            console.error('Error al obtener áreas:', error);
+            return [];
+        }
+    };
+
     return {
         obtenerEstadisticas,
         obtenerEmpleadosDestacados,
@@ -147,6 +179,9 @@ export const useContratos = () => {
         obtenerDistribucionTipo,
         obtenerContratosPorArea,
         obtenerEstadoProceso,
-        obtenerEstadisticasGenerales
+        obtenerEstadisticasGenerales,
+        obtenerHistorialContratos,
+        obtenerTiposContratos,
+        obtenerAreas
     };
 };
