@@ -61,7 +61,11 @@ export function useAreasData() {
       'ADMIN': 'Admin',
       'EMPLEADO': 'Empleado',
       'JEFE_AREA': 'Jefe de Área',
-      'JEFE_RH': 'Jefe de Recursos Humanos'
+      'JEFE_RH': 'Jefe de Recursos Humanos',
+      'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+      'JEFE_CONTRATOS': 'Jefe de Contratos',
+      'JEFE_VACACIONES': 'Jefe de Vacaciones',
+      'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
     };
     return formato[nombre] || nombre;
   };

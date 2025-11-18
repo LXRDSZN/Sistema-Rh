@@ -363,12 +363,140 @@ export const getSolicitudesVacaciones = async (req, res) => {
 };
 
 /**
+ * GET TODAS LAS SOLICITUDES - Para Admin/Jefe RH
+ */
+export const getAllSolicitudesVacaciones = async (req, res) => {
+  try {
+    const userRole = req.user?.rol;
+    const personaId = req.user?.personaId;
+    
+    console.log('📋 Obteniendo solicitudes de vacaciones...', { rol: userRole, personaId });
+
+    let query = `
+      SELECT 
+        vs.id,
+        vs.persona_id,
+        vs.dias_solicitados,
+        vs.descripcion,
+        vs.estado,
+        vs.archivo_id,
+        vs.fecha_solicitud,
+        vs.aprobado_por,
+        vs.fecha_aprobacion,
+        p.nombre as nombre_empleado,
+        p.apellido_paterno,
+        p.apellido_materno,
+        a.nombre as area,
+        a.id as area_id,
+        ap.puesto_id
+      FROM vacacion_solicitud vs
+      JOIN persona p ON vs.persona_id = p.id
+      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      LEFT JOIN area a ON ap.area_id = a.id
+    `;
+
+    let params = [];
+    let paramCount = 1;
+
+    // Si es Jefe de Área (o uno de los jefes especializados), solo mostrar solicitudes de su área
+    if (userRole && ['JEFE_AREA', 'JEFE_ASISTENCIAS', 'JEFE_CONTRATOS', 'JEFE_VACACIONES', 'JEFE_INCIDENCIAS'].includes(userRole)) {
+      query += `
+        WHERE ap.area_id IN (
+          SELECT ap2.area_id
+          FROM asignacion_puesto ap2
+          WHERE ap2.persona_id = $${paramCount}
+          AND ap2.fecha_fin IS NULL
+        )
+      `;
+      params.push(personaId);
+      paramCount++;
+    } else if (userRole && userRole !== 'ADMIN' && userRole !== 'JEFE_RH') {
+      // Si es empleado regular, no puede ver el listado general
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para ver todas las solicitudes'
+      });
+    }
+
+    query += ` ORDER BY vs.fecha_solicitud DESC`;
+
+    const result = await db.query(query, params);
+
+    console.log('✅ Solicitudes obtenidas:', result.rows.length);
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('❌ Error al obtener todas las solicitudes:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener solicitudes de vacaciones',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET SOLICITUDES POR ÁREA - Para Jefe de Área
+ */
+export const getSolicitudesVacacionesByArea = async (req, res) => {
+  try {
+    const { areaId } = req.params;
+
+    console.log('📋 Obteniendo solicitudes de vacaciones del área:', areaId);
+
+    const result = await db.query(`
+      SELECT 
+        vs.id,
+        vs.persona_id,
+        vs.dias_solicitados,
+        vs.descripcion,
+        vs.estado,
+        vs.archivo_id,
+        vs.fecha_solicitud,
+        vs.aprobado_por,
+        vs.fecha_aprobacion,
+        p.nombre as nombre_empleado,
+        p.apellido_paterno,
+        p.apellido_materno,
+        a.nombre as area,
+        ap.puesto_id
+      FROM vacacion_solicitud vs
+      JOIN persona p ON vs.persona_id = p.id
+      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      LEFT JOIN area a ON ap.area_id = a.id
+      WHERE ap.area_id = $1
+      ORDER BY vs.fecha_solicitud DESC
+    `, [areaId]);
+
+    console.log('✅ Solicitudes del área obtenidas:', result.rows.length);
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('❌ Error al obtener solicitudes por área:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener solicitudes de vacaciones',
+      error: error.message
+    });
+  }
+};
+
+/**
  * GET DÍAS DE UNA SOLICITUD - Obtener todos los días asociados a una solicitud
  */
 export const getDiasSolicitud = async (req, res) => {
   try {
     const { solicitudId } = req.params;
 
+    console.log(`📅 Obteniendo días para solicitud: ${solicitudId}`);
 
     const result = await db.query(
       `SELECT 
@@ -381,6 +509,7 @@ export const getDiasSolicitud = async (req, res) => {
       [solicitudId]
     );
 
+    console.log(`✅ Días encontrados: ${result.rows.length}`, result.rows);
 
     return res.json({
       success: true,
@@ -464,11 +593,14 @@ export const todasLasSolicitudes = async (req, res) => {
 export const aprobarSolicitud = async (req, res) => {
   try {
     const { solicitudId } = req.params;
+    const userRole = req.user?.rol;
+    const personaId = req.user?.personaId;
 
     console.log('✅ Aprobando solicitud:', solicitudId);
     console.log('📝 Usuario que aprueba:', {
-      personaId: req.user.personaId,
-      nombre: req.user.nombre
+      personaId,
+      nombre: req.user.nombre,
+      rol: userRole
     });
 
     const client = await db.connect();
@@ -476,13 +608,53 @@ export const aprobarSolicitud = async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // Verificar que la solicitud existe y obtener el área del empleado
+      const solicitudCheck = await client.query(
+        `SELECT vs.id, vs.persona_id, ap.area_id
+         FROM vacacion_solicitud vs
+         JOIN persona p ON vs.persona_id = p.id
+         LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+         WHERE vs.id = $1`,
+        [solicitudId]
+      );
+
+      if (solicitudCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          message: 'Solicitud no encontrada'
+        });
+      }
+
+      const solicitud = solicitudCheck.rows[0];
+      const areaIdSolicitud = solicitud.area_id;
+
+      // Si es Jefe de Área, verificar que sea de su propia área
+      if (userRole && ['JEFE_AREA', 'JEFE_ASISTENCIAS', 'JEFE_CONTRATOS', 'JEFE_VACACIONES', 'JEFE_INCIDENCIAS'].includes(userRole)) {
+        const jefeAreaCheck = await client.query(
+          `SELECT ap.area_id
+           FROM asignacion_puesto ap
+           WHERE ap.persona_id = $1
+           AND ap.fecha_fin IS NULL`,
+          [personaId]
+        );
+
+        if (jefeAreaCheck.rows.length === 0 || jefeAreaCheck.rows[0].area_id !== areaIdSolicitud) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({
+            success: false,
+            message: 'No tienes permiso para aprobar solicitudes de otra área'
+          });
+        }
+      }
+
       // Actualizar estado a 'Aprobada'
       const result = await client.query(
         `UPDATE vacacion_solicitud
          SET estado = 'Aprobada', aprobado_por = $1, fecha_aprobacion = CURRENT_DATE
          WHERE id = $2
          RETURNING id, estado, fecha_aprobacion`,
-        [req.user.personaId, solicitudId]
+        [personaId, solicitudId]
       );
 
       if (result.rows.length === 0) {
@@ -526,11 +698,14 @@ export const aprobarSolicitud = async (req, res) => {
 export const rechazarSolicitud = async (req, res) => {
   try {
     const { solicitudId } = req.params;
+    const userRole = req.user?.rol;
+    const personaId = req.user?.personaId;
 
     console.log('❌ Rechazando solicitud:', solicitudId);
     console.log('📝 Usuario que rechaza:', {
-      personaId: req.user.personaId,
-      nombre: req.user.nombre
+      personaId,
+      nombre: req.user.nombre,
+      rol: userRole
     });
 
     const client = await db.connect();
@@ -538,13 +713,53 @@ export const rechazarSolicitud = async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // Verificar que la solicitud existe y obtener el área del empleado
+      const solicitudCheck = await client.query(
+        `SELECT vs.id, vs.persona_id, ap.area_id
+         FROM vacacion_solicitud vs
+         JOIN persona p ON vs.persona_id = p.id
+         LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+         WHERE vs.id = $1`,
+        [solicitudId]
+      );
+
+      if (solicitudCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          message: 'Solicitud no encontrada'
+        });
+      }
+
+      const solicitud = solicitudCheck.rows[0];
+      const areaIdSolicitud = solicitud.area_id;
+
+      // Si es Jefe de Área, verificar que sea de su propia área
+      if (userRole && ['JEFE_AREA', 'JEFE_ASISTENCIAS', 'JEFE_CONTRATOS', 'JEFE_VACACIONES', 'JEFE_INCIDENCIAS'].includes(userRole)) {
+        const jefeAreaCheck = await client.query(
+          `SELECT ap.area_id
+           FROM asignacion_puesto ap
+           WHERE ap.persona_id = $1
+           AND ap.fecha_fin IS NULL`,
+          [personaId]
+        );
+
+        if (jefeAreaCheck.rows.length === 0 || jefeAreaCheck.rows[0].area_id !== areaIdSolicitud) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({
+            success: false,
+            message: 'No tienes permiso para rechazar solicitudes de otra área'
+          });
+        }
+      }
+
       // Actualizar estado a 'Rechazada'
       const result = await client.query(
         `UPDATE vacacion_solicitud
          SET estado = 'Rechazada', aprobado_por = $1, fecha_aprobacion = CURRENT_DATE
          WHERE id = $2
          RETURNING id, estado, fecha_aprobacion`,
-        [req.user.personaId, solicitudId]
+        [personaId, solicitudId]
       );
 
       if (result.rows.length === 0) {

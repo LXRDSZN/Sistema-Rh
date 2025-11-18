@@ -13,17 +13,22 @@ router.use(verificarToken);
 // Obtener empleado actual
 router.get('/empleado-actual', vacacionesController.getEmpleadoActual);
 
-// Obtener vacaciones del empleado
-router.get('/:empleadoId', vacacionesController.getVacacionesEmpleado);
+// RUTAS ESPECÍFICAS PRIMERO (sin parámetros dinámicos)
+// Obtener todas las solicitudes (para Admin/Jefe RH)
+router.get('/solicitudes/all', vacacionesController.getAllSolicitudesVacaciones);
 
-// Obtener todas las solicitudes (para RH/Admin)
-router.get('/admin/todas', vacacionesController.todasLasSolicitudes);
-
-// Obtener solicitudes del empleado
-router.get('/solicitudes/:empleadoId', vacacionesController.getSolicitudesVacaciones);
+// Obtener solicitudes por área (para Jefe de Área)
+router.get('/solicitudes/area/:areaId', vacacionesController.getSolicitudesVacacionesByArea);
 
 // Obtener días de una solicitud
 router.get('/dias/:solicitudId', vacacionesController.getDiasSolicitud);
+
+// RUTAS CON PARÁMETROS DINÁMICOS AL FINAL
+// Obtener solicitudes del empleado
+router.get('/solicitudes/:empleadoId', vacacionesController.getSolicitudesVacaciones);
+
+// Obtener vacaciones del empleado
+router.get('/:empleadoId', vacacionesController.getVacacionesEmpleado);
 
 // Crear solicitud de vacaciones
 router.post('/solicitud', upload.single('archivo'), vacacionesController.crearSolicitudVacaciones);

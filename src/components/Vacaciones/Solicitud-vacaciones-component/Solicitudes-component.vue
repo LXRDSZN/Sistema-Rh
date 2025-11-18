@@ -169,6 +169,7 @@
 
 <script>
 import * as vacacionesService from '@/services/vacacionesService.js';
+import { useAuth } from '@/composables/useAuth.js';
 
 export default {
   name: 'SolicitudesVacaciones',
@@ -193,7 +194,9 @@ export default {
       this.loading = true;
       try {
         console.log('📋 Cargando solicitudes de vacaciones...');
-
+        
+        const { user, hasRole } = useAuth();
+        
         // Primero obtener el empleado actual
         const empleadoResp = await vacacionesService.getEmpleadoActual();
 
@@ -201,17 +204,30 @@ export default {
           throw new Error('No se pudo obtener datos del empleado');
         }
 
-        const empleadoId = empleadoResp.data.id;
+        const empleadoActualId = empleadoResp.data.id;
+        const areaActual = empleadoResp.data.area_id;
 
-        // Obtener solicitudes del empleado
-        const solicitudesResp = await vacacionesService.getSolicitudesVacaciones(empleadoId);
+        let solicitudesResp;
+
+        // Verificar rol del usuario (nombres en mayúsculas: ADMIN, JEFE_RH, JEFE_AREA, EMPLEADO)
+        if (hasRole('ADMIN') || hasRole('JEFE_RH')) {
+          // Admin y Jefe RH: obtienen TODAS las solicitudes
+          console.log('👤 Jefe RH/Admin - Cargando TODAS las solicitudes');
+          solicitudesResp = await vacacionesService.getAllSolicitudesVacaciones();
+        } else if (hasRole('JEFE_AREA')) {
+          // Jefe de Área: obtiene solicitudes de su área
+          console.log('👥 Jefe de Área - Cargando solicitudes de su área');
+          solicitudesResp = await vacacionesService.getSolicitudesVacacionesByArea(areaActual);
+        } else {
+          // Empleado: obtiene solo sus solicitudes
+          console.log('👤 Empleado - Cargando solo sus solicitudes');
+          solicitudesResp = await vacacionesService.getSolicitudesVacaciones(empleadoActualId);
+        }
 
         if (solicitudesResp.success) {
-          // Mapear las solicitudes y agregar datos adicionales
+          // Mapear las solicitudes
           this.requests = solicitudesResp.data.map(sol => ({
-            ...sol,
-            nombre_empleado: empleadoResp.data.nombre,
-            departamento: empleadoResp.data.departamento
+            ...sol
           }));
 
           console.log('✅ Solicitudes cargadas:', this.requests.length);

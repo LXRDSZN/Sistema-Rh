@@ -107,6 +107,10 @@
               <option value="">Seleccionar rol...</option>
               <option v-if="userRole === 'ADMIN'" value="JEFE_RH">Jefe de Recursos Humanos</option>
               <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_AREA">Jefe de Área</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_ASISTENCIAS">Jefe de Asistencias</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_CONTRATOS">Jefe de Contratos</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
               <option value="EMPLEADO">Empleado</option>
             </select>
           </div>

@@ -130,10 +130,13 @@
           <RouterLink to="/Vacaciones/Historial-de-vacaciones" class="dropdown-item" @click.stop="closeVacacionesMenu">
             <span>Historial</span>
           </RouterLink>
-          <RouterLink to="/Vacaciones/Solicitudes-de-vacaciones" class="dropdown-item"
-            @click.stop="closeVacacionesMenu">
+          <div 
+            class="dropdown-item" 
+            :class="{ disabled: !canAccessSolicitudes }"
+            :title="!canAccessSolicitudes ? 'No tienes permisos para ver esto' : ''"
+            @click.stop="canAccessSolicitudes && router.push('/Vacaciones/Solicitudes-de-vacaciones')">
             <span>Solicitudes</span>
-          </RouterLink>
+          </div>
         </div>
       </transition>
 
@@ -203,6 +206,12 @@ const formattedRole = computed(() => {
     'EMPLEADO': 'Empleado'
   };
   return roleMap[userRole.value] || userRole.value;
+});
+
+// Verificar si el usuario puede acceder a solicitudes de vacaciones
+const canAccessSolicitudes = computed(() => {
+  const { hasRole } = useAuth();
+  return hasRole('ADMIN') || hasRole('JEFE_RH') || hasRole('JEFE_AREA');
 });
 
 function toggleSidebar() {
@@ -635,6 +644,21 @@ a:active {
 
 .desplegar {
   cursor: pointer;
+}
+
+/* Estilos para items deshabilitados */
+.dropdown-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #999;
+  pointer-events: none;
+}
+
+.dropdown-item.disabled:hover {
+  background-color: inherit;
+}
+
+.desplegar {
   border: 2px solid transparent;
   transition: border .1s;
 }

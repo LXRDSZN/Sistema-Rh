@@ -226,6 +226,9 @@ export default {
         this.loading = true;
         console.log('📋 Cargando solicitudes de vacaciones...');
 
+        // Limpiar estado anterior
+        this.dayStatus = {};
+
         // Obtener empleado actual
         const empleadoResp = await vacacionesService.getEmpleadoActual();
 
@@ -234,6 +237,7 @@ export default {
         }
 
         const empleadoId = empleadoResp.data.id;
+        console.log('👤 ID del empleado:', empleadoId);
 
         // Obtener todas las solicitudes del empleado
         const solicitudesResp = await vacacionesService.getSolicitudesVacaciones(empleadoId);
@@ -243,34 +247,58 @@ export default {
 
           // Procesar las solicitudes y marcar los días en el calendario
           for (const solicitud of solicitudesResp.data) {
-            // Obtener los días específicos de cada solicitud
-            const diasResp = await vacacionesService.getDiasSolicitud(solicitud.id);
+            console.log(`📝 Procesando solicitud ${solicitud.id}, Estado: ${solicitud.estado}, Días: ${solicitud.dias_solicitados}`);
+            
+            try {
+              // Obtener los días específicos de cada solicitud
+              const diasResp = await vacacionesService.getDiasSolicitud(solicitud.id);
 
-            if (diasResp.success) {
-              // Marcar cada día según el estado de la solicitud
-              for (const dia of diasResp.data) {
-                const fechaDia = dia.fecha_dia; // formato: YYYY-MM-DD
+              if (diasResp.success && diasResp.data && diasResp.data.length > 0) {
+                console.log(`  📅 Días obtenidos: ${diasResp.data.length}`);
+                
+                // Marcar cada día según el estado de la solicitud
+                for (const dia of diasResp.data) {
+                  // Convertir fecha ISO a formato YYYY-MM-DD
+                  let fechaDia = dia.fecha_dia;
+                  
+                  // Si es una cadena ISO (contiene T), convertir a YYYY-MM-DD
+                  if (typeof fechaDia === 'string' && fechaDia.includes('T')) {
+                    fechaDia = fechaDia.split('T')[0];
+                  }
+                  
+                  console.log(`    📆 ${fechaDia} → ${solicitud.estado}`);
 
-                if (solicitud.estado === 'Pendiente') {
-                  this.dayStatus[fechaDia] = 'requested';
-                } else if (solicitud.estado === 'Aprobada') {
-                  this.dayStatus[fechaDia] = 'approved';
-                } else if (solicitud.estado === 'Rechazada') {
-                  // Los días rechazados se marcan nuevamente como disponibles
-                  delete this.dayStatus[fechaDia];
-                } else if (solicitud.estado === 'Cancelada') {
-                  delete this.dayStatus[fechaDia];
+                  if (solicitud.estado === 'Pendiente') {
+                    this.dayStatus[fechaDia] = 'requested';
+                  } else if (solicitud.estado === 'Aprobada') {
+                    this.dayStatus[fechaDia] = 'approved';
+                  } else if (solicitud.estado === 'Rechazada') {
+                    // Los días rechazados se marcan nuevamente como disponibles
+                    delete this.dayStatus[fechaDia];
+                  } else if (solicitud.estado === 'Cancelada') {
+                    delete this.dayStatus[fechaDia];
+                  }
                 }
+              } else {
+                console.warn(`  ⚠️ No se obtuvieron días para la solicitud ${solicitud.id}`);
               }
+            } catch (diasError) {
+              console.error(`  ❌ Error cargando días para solicitud ${solicitud.id}:`, diasError);
             }
           }
 
-          console.log('✅ Días marcados en calendario');
+          console.log('✅ dayStatus actualizado:', this.dayStatus);
+          
+          // Actualizar festivos después de cargar solicitudes
+          this.updateVisibleMonthHolidays();
         }
       } catch (error) {
         console.error('❌ Error cargando solicitudes:', error);
       } finally {
         this.loading = false;
+        // Forzar actualización del calendario
+        this.$forceUpdate();
+        console.log('🔄 Calendar forzado a actualizar');
       }
     },
 
@@ -431,14 +459,25 @@ export default {
     }
   },
   watch: {
-    currentMonth() { this.updateVisibleMonthHolidays(); },
-    currentYear() { this.updateVisibleMonthHolidays(); }
+    currentMonth() { 
+      this.updateVisibleMonthHolidays();
+      this.loadSolicitudes(); // Recargar solicitudes al cambiar mes
+    },
+    currentYear() { 
+      this.updateVisibleMonthHolidays();
+      this.loadSolicitudes(); // Recargar solicitudes al cambiar año
+    }
   },
   mounted() {
     console.log('🎯 Componente Vacaciones montado');
     this.updateVisibleMonthHolidays();
     this.loadSolicitudes(); // Cargar solicitudes desde BD
     window.addEventListener('click', this.onGlobalClick);
+  },
+  activated() {
+    // Se ejecuta cuando el componente vuelve a ser visible (después de KeepAlive o navegación)
+    console.log('🎯 Componente Vacaciones activado - recargando solicitudes');
+    this.loadSolicitudes();
   },
   beforeUnmount() {
     window.removeEventListener('click', this.onGlobalClick);
