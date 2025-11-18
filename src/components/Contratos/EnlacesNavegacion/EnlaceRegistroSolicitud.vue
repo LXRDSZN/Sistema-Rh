@@ -389,7 +389,11 @@ const formatearNombrePuesto = (nombre) => {
     'ADMIN': 'Administrador',
     'EMPLEADO': 'Empleado',
     'JEFE_RH': 'Jefe de Recursos Humanos',
-    'JEFE_AREA': 'Jefe de Área'
+    'JEFE_AREA': 'Jefe de Área',
+    'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+    'JEFE_CONTRATOS': 'Jefe de Contratos',
+    'JEFE_VACACIONES': 'Jefe de Vacaciones',
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
   };
   return mapa[nombre] || nombre;
 };

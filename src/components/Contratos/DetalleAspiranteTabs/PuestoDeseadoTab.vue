@@ -21,7 +21,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Puesto solicitado:</span>
-                        <span class="puesto-value">{{ aspirante.puesto || 'XXXXXXXXX' }}</span>
+                        <span class="puesto-value">{{ puestoFormateado }}</span>
                     </div>
                 </div>
 
@@ -99,11 +99,37 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
     aspirante: {
         type: Object,
         required: true
     }
+});
+
+/**
+ * Formatea el nombre del puesto para mostrarlo en la UI
+ */
+const formatearNombrePuesto = (nombre) => {
+  const formato = {
+    'ADMIN': 'Admin',
+    'EMPLEADO': 'Empleado',
+    'JEFE_AREA': 'Jefe de Área',
+    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+    'JEFE_CONTRATOS': 'Jefe de Contratos',
+    'JEFE_VACACIONES': 'Jefe de Vacaciones',
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+  };
+  return formato[nombre] || nombre;
+};
+
+/**
+ * Computed property para formatear el puesto deseado
+ */
+const puestoFormateado = computed(() => {
+  return formatearNombrePuesto(props.aspirante.puesto) || 'XXXXXXXXX';
 });
 </script>
 
