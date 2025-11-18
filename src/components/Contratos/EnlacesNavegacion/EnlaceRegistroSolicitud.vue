@@ -226,30 +226,38 @@
           <div class="form-group">
             <label>CURP</label>
             <div class="file-input">
-              <input type="file" @change="manejarArchivo('curpFile', $event)" />
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('curpFile', $event)" />
               <span v-if="formulario.curpFile">✓</span>
             </div>
+            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <span v-if="erroresArchivos.curpFile" class="error">{{ erroresArchivos.curpFile }}</span>
           </div>
           <div class="form-group">
             <label>INE</label>
             <div class="file-input">
-              <input type="file" @change="manejarArchivo('ineFile', $event)" />
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('ineFile', $event)" />
               <span v-if="formulario.ineFile">✓</span>
             </div>
+            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <span v-if="erroresArchivos.ineFile" class="error">{{ erroresArchivos.ineFile }}</span>
           </div>
           <div class="form-group">
             <label>Comprobante Domicilio</label>
             <div class="file-input">
-              <input type="file" @change="manejarArchivo('domicilioFile', $event)" />
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('domicilioFile', $event)" />
               <span v-if="formulario.domicilioFile">✓</span>
             </div>
+            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <span v-if="erroresArchivos.domicilioFile" class="error">{{ erroresArchivos.domicilioFile }}</span>
           </div>
           <div class="form-group">
             <label>CV</label>
             <div class="file-input">
-              <input type="file" @change="manejarArchivo('cvFile', $event)" />
+              <input type="file" accept=".pdf,.doc,.docx" @change="manejarArchivo('cvFile', $event)" />
               <span v-if="formulario.cvFile">✓</span>
             </div>
+            <small class="file-hint">PDF, DOC, DOCX - Máx 10MB</small>
+            <span v-if="erroresArchivos.cvFile" class="error">{{ erroresArchivos.cvFile }}</span>
           </div>
         </div>
       </section>
@@ -337,6 +345,13 @@ const formulario = ref({
   aceptoPrivacidad: false
 });
 
+const erroresArchivos = ref({
+  curpFile: '',
+  ineFile: '',
+  domicilioFile: '',
+  cvFile: ''
+});
+
 // Cargar catálogos al montar el componente
 const cargarCatalogos = async () => {
   try {
@@ -412,9 +427,38 @@ const manejarFoto = (event) => {
 
 const manejarArchivo = (campo, event) => {
   const archivo = event.target.files[0];
-  if (archivo) {
-    formulario.value[campo] = archivo;
+  erroresArchivos.value[campo] = '';
+  
+  if (!archivo) return;
+  
+  // Definir límites de peso y formatos permitidos
+  const configArchivos = {
+    curpFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
+    ineFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
+    domicilioFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
+    cvFile: { maxSize: 10 * 1024 * 1024, formatos: ['pdf', 'doc', 'docx'] }
+  };
+  
+  const config = configArchivos[campo];
+  const extension = archivo.name.split('.').pop().toLowerCase();
+  const tamanoMB = (archivo.size / (1024 * 1024)).toFixed(2);
+  
+  // Validar formato
+  if (!config.formatos.includes(extension)) {
+    erroresArchivos.value[campo] = `Formato no permitido. Acepta: ${config.formatos.join(', ').toUpperCase()}`;
+    event.target.value = '';
+    return;
   }
+  
+  // Validar peso
+  if (archivo.size > config.maxSize) {
+    const maxMB = config.maxSize / (1024 * 1024);
+    erroresArchivos.value[campo] = `Archivo muy pesado (${tamanoMB}MB). Máximo: ${maxMB}MB`;
+    event.target.value = '';
+    return;
+  }
+  
+  formulario.value[campo] = archivo;
 };
 
 const agregarFormacion = () => {
@@ -909,6 +953,22 @@ const volver = () => {
   transform: translateY(-50%);
   color: #27ae60;
   font-weight: bold;
+}
+
+.file-input .error {
+  position: static;
+  transform: none;
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+}
+
+.file-hint {
+  display: block;
+  color: #7f8c8d;
+  font-size: 12px;
+  margin-top: 5px;
 }
 
 .form-actions {
