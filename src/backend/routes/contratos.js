@@ -342,4 +342,113 @@ router.patch('/contratos/:id/huella', async (req, res) => {
     }
 });
 
+// ========================================
+// OBTENER ENCABEZADO DE EMPLEADO
+// ========================================
+router.get('/contratos/empleado/:personaId/encabezado', async (req, res) => {
+    try {
+        const { personaId } = req.params;
+
+        const query = `
+            SELECT
+                p.id AS persona_id,
+                p.nombre,
+                p.apellido_paterno,
+                p.apellido_materno,
+                p.foto_url,
+                p.estado_empleado,
+                p.fecha_registro AS fecha_ingreso,
+                a.nombre AS area,
+                pu.nombre AS puesto
+            FROM persona p
+            LEFT JOIN contrato c ON c.persona_id = p.id
+                AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+            LEFT JOIN area a ON a.id = c.area_id
+            LEFT JOIN puesto pu ON pu.id = c.puesto_id
+            WHERE p.id = $1
+            AND p.tipo = 'Empleado'
+        `;
+
+        const result = await pool.query(query, [personaId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Empleado no encontrado'
+            });
+        }
+
+        res.json({
+            ok: true,
+            encabezado: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error al obtener encabezado del empleado:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// OBTENER CONTRATO ACTUAL DEL EMPLEADO
+// ========================================
+router.get('/contratos/empleado/:personaId/contrato-actual', async (req, res) => {
+    try {
+        const { personaId } = req.params;
+
+        const query = `
+            SELECT
+                c.id AS contrato_id,
+                pc.nombre AS tipo_contrato,
+                c.fecha_inicio,
+                c.fecha_fin,
+                c.salario_mensual,
+                c.modalidad,
+                c.observaciones,
+                ec.nombre AS estado_firma,
+                j.nombre AS jornada,
+                je.hora_entrada,
+                je.hora_salida,
+                c.archivo_id
+            FROM contrato c
+            LEFT JOIN plantilla_contrato pc ON pc.id = c.plantilla_id
+            LEFT JOIN estado_contrato ec ON ec.id = c.estado_id
+            LEFT JOIN jornada_empleado je ON je.persona_id = c.persona_id
+            LEFT JOIN jornada j ON j.id = je.jornada_id
+            WHERE c.persona_id = $1
+            AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+            ORDER BY c.fecha_inicio DESC
+            LIMIT 1
+        `;
+
+        const result = await pool.query(query, [personaId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Contrato activo no encontrado'
+            });
+        }
+
+        res.json({
+            ok: true,
+            contrato: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error al obtener contrato actual:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+
+
+
+
 export default router;
