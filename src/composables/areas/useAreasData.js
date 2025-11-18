@@ -39,7 +39,11 @@ export function useAreasData() {
     try {
       const response = await getEmpleados();
       if (response.success) {
-        empleados.value = response.data;
+        // Formatear los nombres de puestos en los empleados
+        empleados.value = response.data.map(emp => ({
+          ...emp,
+          titulo: formatearNombrePuesto(emp.titulo)
+        }));
       }
     } catch (err) {
       error.value = 'Error al cargar empleados';
@@ -47,6 +51,23 @@ export function useAreasData() {
     } finally {
       isLoading.value = false;
     }
+  };
+
+  /**
+   * Formatea el nombre del puesto para mostrarlo en la UI
+   */
+  const formatearNombrePuesto = (nombre) => {
+    const formato = {
+      'ADMIN': 'Admin',
+      'EMPLEADO': 'Empleado',
+      'JEFE_AREA': 'Jefe de Área',
+      'JEFE_RH': 'Jefe de Recursos Humanos',
+      'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+      'JEFE_CONTRATOS': 'Jefe de Contratos',
+      'JEFE_VACACIONES': 'Jefe de Vacaciones',
+      'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+    };
+    return formato[nombre] || nombre;
   };
 
   /**
@@ -70,7 +91,12 @@ export function useAreasData() {
     try {
       const response = await getPuestos();
       if (response.success) {
-        puestos.value = response.data;
+        // Formatear los nombres de los puestos para mostrar
+        puestos.value = response.data.map(puesto => ({
+          ...puesto,
+          nombreOriginal: puesto.nombre, // Guardar el nombre original
+          nombre: formatearNombrePuesto(puesto.nombre) // Nombre formateado para UI
+        }));
       }
     } catch (err) {
       console.error('Error al cargar puestos:', err);
@@ -86,6 +112,15 @@ export function useAreasData() {
    */
   const abrirModal = (empleado) => {
     empleadoSeleccionado.value = { ...empleado };
+    console.log('📋 Abriendo modal con empleado:', {
+      nombre: empleado.nombre,
+      area_id: empleado.area_id,
+      puesto_id: empleado.puesto_id,
+      departamento: empleado.departamento,
+      titulo: empleado.titulo
+    });
+    console.log('📚 Áreas disponibles:', areas.value.length);
+    console.log('📚 Puestos disponibles:', puestos.value.length);
     modalAbierto.value = true;
   };
 
@@ -107,6 +142,10 @@ export function useAreasData() {
       const area = areas.value.find(a => a.nombre === departamento);
       if (area) {
         empleadoSeleccionado.value.area_id = area.id;
+        console.log('✅ Área encontrada:', { departamento, area_id: area.id });
+      } else {
+        console.warn('⚠️ No se encontró el área:', departamento, 'en la lista de áreas:', areas.value);
+        // No establecer area_id como null si no se encuentra
       }
     }
   };
@@ -121,6 +160,11 @@ export function useAreasData() {
       const puesto = puestos.value.find(p => p.nombre === titulo);
       if (puesto) {
         empleadoSeleccionado.value.puesto_id = puesto.id;
+        console.log('✅ Puesto encontrado:', { titulo, puesto_id: puesto.id });
+      } else {
+        console.warn('⚠️ No se encontró el puesto:', titulo, 'en la lista de puestos:', puestos.value);
+        // No establecer puesto_id como null si no se encuentra
+        // Mantener el valor anterior si existía
       }
     }
   };
@@ -138,17 +182,36 @@ export function useAreasData() {
    * Guarda los cambios del empleado editado
    * Hace una llamada a la API para actualizar los datos
    */
-  const guardarCambios = async () => {
+  const guardarCambios = async (motivoCambio = '') => {
     if (!empleadoSeleccionado.value) return;
     
     isLoading.value = true;
     error.value = null;
 
     try {
+      // Validar que los IDs requeridos estén presentes
+      if (!empleadoSeleccionado.value.puesto_id) {
+        error.value = 'No se ha seleccionado un puesto válido';
+        console.error('❌ Error: puesto_id no está definido', empleadoSeleccionado.value);
+        alert('Error: No se ha seleccionado un puesto válido. Por favor, selecciona un título de trabajo.');
+        return;
+      }
+
+      if (!empleadoSeleccionado.value.area_id) {
+        error.value = 'No se ha seleccionado un área válida';
+        console.error('❌ Error: area_id no está definido', empleadoSeleccionado.value);
+        alert('Error: No se ha seleccionado un área válida. Por favor, selecciona un departamento.');
+        return;
+      }
+
       const asignacion = {
         area_id: empleadoSeleccionado.value.area_id,
-        puesto_id: empleadoSeleccionado.value.puesto_id
+        puesto_id: empleadoSeleccionado.value.puesto_id,
+        motivo: motivoCambio,
+        categoria: empleadoSeleccionado.value.categoria
       };
+
+      console.log('📤 Enviando asignación:', asignacion);
 
       const response = await updateEmpleadoAsignacion(
         empleadoSeleccionado.value.id,

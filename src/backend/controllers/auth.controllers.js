@@ -96,6 +96,15 @@ export const login = async (req, res) => {
     // Enviar token como cookie HTTP-only
     res.cookie('token', token, config.cookie);
 
+    // Registrar sesión activa en la tabla sesiones_activas
+    // Usar SQL para calcular la expiración (más confiable que JavaScript Date)
+    await db.query(
+      `INSERT INTO sesiones_activas (usuario_id, inicio, expiracion, token)
+       VALUES ($1, NOW(), NOW() + INTERVAL '5 minutes', $2)
+       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = NOW() + INTERVAL '5 minutes'`,
+      [user.usuario_id, token]
+    );
+
     // Registrar acceso en bitácora
     await db.query(
       `INSERT INTO bitacora_accesos (usuario_id, ip, inicio)
@@ -152,7 +161,8 @@ export const register = async (req, res) => {
     password,
     sexo,
     fechaNacimiento,
-    rol
+    rol,
+    esRegistroPorJefeArea
   } = req.body;
 
   // Normalizar datos - priorizar formato completo
@@ -168,7 +178,8 @@ export const register = async (req, res) => {
   console.log('📝 Registrando usuario:', { 
     nombre: nombreFinal, 
     email: emailFinal, 
-    rol: rolFinal 
+    rol: rolFinal,
+    esRegistroPorJefeArea: esRegistroPorJefeArea
   });
 
   try {
@@ -196,7 +207,7 @@ export const register = async (req, res) => {
       await client.query('BEGIN');
       console.log('✅ Transacción iniciada');
 
-      // 1. Crear persona
+      // 1. Crear persona (todos son 'Empleado', el rol específico se asigna en usuario_rol)
       const personaResult = await client.query(
         `INSERT INTO persona 
          (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
@@ -209,7 +220,8 @@ export const register = async (req, res) => {
       );
 
       const personaId = personaResult.rows[0].id;
-      console.log('✅ Persona creada con ID:', personaId);
+      console.log('✅ Persona creada como Empleado con ID:', personaId);
+      console.log('📋 Rol asignado será:', rolFinal);
 
       // 2. Crear usuario
       const usuarioResult = await client.query(
@@ -236,7 +248,51 @@ export const register = async (req, res) => {
 
       console.log('✅ Rol asignado:', rolFinal);
 
-      // 4. Crear token JWT para login automático (solo si es desde SignUp)
+      // 4. Si es registro por Jefe de Área y el usuario no es EMPLEADO, asignar área automáticamente
+      if (esRegistroPorJefeArea && req.user) {
+        console.log('📍 Asignando área automáticamente...');
+        console.log('Usuario autenticado:', req.user);
+        
+        // Obtener el área del Jefe de Área autenticado
+        const jefeAreaResult = await client.query(
+          `SELECT DISTINCT ap.area_id, p.nombre as puesto_nombre
+           FROM asignacion_puesto ap
+           JOIN puesto p ON ap.puesto_id = p.id
+           WHERE ap.persona_id = $1 AND ap.es_principal = true
+           LIMIT 1`,
+          [req.user.personaId]
+        );
+
+        if (jefeAreaResult.rows.length > 0) {
+          const { area_id, puesto_nombre } = jefeAreaResult.rows[0];
+          console.log(`📍 Área del Jefe: ${area_id}, Puesto: ${puesto_nombre}`);
+
+          // Obtener el puesto_id basado en el rol
+          const puestoResult = await client.query(
+            `SELECT id FROM puesto WHERE nombre = $1`,
+            [rolFinal]
+          );
+
+          if (puestoResult.rows.length > 0) {
+            const puestoId = puestoResult.rows[0].id;
+            
+            // Crear asignación de puesto
+            await client.query(
+              `INSERT INTO asignacion_puesto (persona_id, puesto_id, area_id, fecha_inicio, es_principal)
+               VALUES ($1, $2, $3, NOW(), true)`,
+              [personaId, puestoId, area_id]
+            );
+
+            console.log(`✅ Usuario asignado a área ${area_id} con puesto ${rolFinal}`);
+          } else {
+            console.log(`⚠️ Puesto ${rolFinal} no encontrado, continuando sin asignación de área`);
+          }
+        } else {
+          console.log('⚠️ No se encontró área del Jefe de Área autenticado');
+        }
+      }
+
+      // 5. Crear token JWT para login automático (solo si es desde SignUp)
       const token = jwt.sign(
         {
           usuarioId: usuarioId,
@@ -285,11 +341,22 @@ export const register = async (req, res) => {
  */
 export const logout = async (req, res) => {
   try {
+    const token = req.cookies.token;
+    
     // Limpiar cookie
     res.clearCookie('token');
 
-    // Si hay usuario autenticado, actualizar bitácora
+    // Si hay usuario autenticado, actualizar bitácora y eliminar sesión activa
     if (req.user) {
+      // Eliminar sesión activa
+      if (token) {
+        await db.query(
+          `DELETE FROM sesiones_activas WHERE token = $1`,
+          [token]
+        );
+      }
+
+      // Actualizar bitácora
       await db.query(
         `UPDATE bitacora_accesos 
          SET fin = NOW()

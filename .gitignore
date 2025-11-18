@@ -13,6 +13,8 @@ dist
 dist-ssr
 coverage
 *.local
+.env
+.env.local
 
 /cypress/videos/
 /cypress/screenshots/
@@ -26,5 +28,9 @@ coverage
 *.njsproj
 *.sln
 *.sw?
-
 *.tsbuildinfo
+
+# Test files (internal use only)
+tests/
+*.test.js
+*.spec.js

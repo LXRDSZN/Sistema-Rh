@@ -4,7 +4,6 @@
     <IncidenciasFormulario v-if="showIncidencia" @cerrar="closeIncidencia" @incidencia-creada="onIncidenciaCreada" />
 
     <!-- Mostrar el componente de solicitud en su propia vista cuando showSolicitud sea true -->
-    <!-- Cambiado a v-else-if para que solo una de las vistas (incidencia o solicitud) se muestre -->
     <SolicitudComponent
       v-else-if="showSolicitud"
       :selected-dates="selectedDates"
@@ -13,7 +12,7 @@
       @submitted="handleSolicitudSubmitted"
     />
 
-    <!-- Vista principal original (sin modificar clases ni estilos). Se envuelve en template para no agregar nodos extra -->
+    <!-- Vista principal original -->
     <template v-else>
       <!-- Header: título y botón en la misma línea -->
       <header class="header">
@@ -22,7 +21,6 @@
         </div>
 
         <div class="header-right">
-          <!-- Cambiado solo el handler: ahora abre el componente -->
           <button class="btn-incident" @click="openIncidencia">Registrar Incidencia</button>
         </div>
       </header>
@@ -112,7 +110,7 @@
             </div>
           </div>
 
-          <!-- Footer strip with actions (single button with + and text "Solicitar") -->
+          <!-- Footer strip with actions -->
           <div class="footer-strip-wrap">
             <div class="card-footer">
               <div class="available-info">
@@ -143,6 +141,8 @@ import VacacionIncidenciaComponent from './Vacacion-incidencia-component/Vacacio
 import SolicitudComponent from './Solicitud-vacaciones-component/Solicitud-component.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 
+import * as vacacionesService from '@/services/vacacionesService.js';
+
 export default {
   name: 'Vacaciones',
   components: {
@@ -169,7 +169,7 @@ export default {
         return arr;
       })(),
 
-      // mapa de estados por fecha YYYY-MM-DD -> state
+      // mapa de estados por fecha YYYY-MM-DD
       dayStatus: {},
 
       // selección temporal
@@ -179,7 +179,13 @@ export default {
       showIncidencia: false,
 
       // flag para mostrar el componente de solicitud
-      showSolicitud: false
+      showSolicitud: false,
+
+      // Lista de festivos
+      defaultFixedHolidays: ['01-01', '05-01', '12-25'],
+
+      // Loading
+      loading: true
     };
   },
   computed: {
@@ -187,7 +193,7 @@ export default {
       const year = this.currentYear;
       const month = this.currentMonth;
       const firstOfMonth = new Date(year, month, 1);
-      const startWeekday = firstOfMonth.getDay(); // 0..6
+      const startWeekday = firstOfMonth.getDay();
       const totalCells = 42;
       const firstCellDate = new Date(year, month, 1 - startWeekday);
 
@@ -202,7 +208,6 @@ export default {
       return cells;
     },
     availableDaysCount() {
-      // Cuenta 'available' dentro del mes visible
       let count = 0;
       for (const cell of this.calendarCells) {
         if (cell.otherMonth) continue;
@@ -213,6 +218,90 @@ export default {
     }
   },
   methods: {
+    /**
+     * Cargar solicitudes de vacaciones desde la BD
+     */
+    async loadSolicitudes() {
+      try {
+        this.loading = true;
+        console.log('📋 Cargando solicitudes de vacaciones...');
+
+        // Limpiar estado anterior
+        this.dayStatus = {};
+
+        // Obtener empleado actual
+        const empleadoResp = await vacacionesService.getEmpleadoActual();
+
+        if (!empleadoResp.success) {
+          throw new Error('No se pudo obtener datos del empleado');
+        }
+
+        const empleadoId = empleadoResp.data.id;
+        console.log('👤 ID del empleado:', empleadoId);
+
+        // Obtener todas las solicitudes del empleado
+        const solicitudesResp = await vacacionesService.getSolicitudesVacaciones(empleadoId);
+
+        if (solicitudesResp.success) {
+          console.log('✅ Solicitudes cargadas:', solicitudesResp.data.length);
+
+          // Procesar las solicitudes y marcar los días en el calendario
+          for (const solicitud of solicitudesResp.data) {
+            console.log(`📝 Procesando solicitud ${solicitud.id}, Estado: ${solicitud.estado}, Días: ${solicitud.dias_solicitados}`);
+            
+            try {
+              // Obtener los días específicos de cada solicitud
+              const diasResp = await vacacionesService.getDiasSolicitud(solicitud.id);
+
+              if (diasResp.success && diasResp.data && diasResp.data.length > 0) {
+                console.log(`  📅 Días obtenidos: ${diasResp.data.length}`);
+                
+                // Marcar cada día según el estado de la solicitud
+                for (const dia of diasResp.data) {
+                  // Convertir fecha ISO a formato YYYY-MM-DD
+                  let fechaDia = dia.fecha_dia;
+                  
+                  // Si es una cadena ISO (contiene T), convertir a YYYY-MM-DD
+                  if (typeof fechaDia === 'string' && fechaDia.includes('T')) {
+                    fechaDia = fechaDia.split('T')[0];
+                  }
+                  
+                  console.log(`    📆 ${fechaDia} → ${solicitud.estado}`);
+
+                  if (solicitud.estado === 'Pendiente') {
+                    this.dayStatus[fechaDia] = 'requested';
+                  } else if (solicitud.estado === 'Aprobada') {
+                    this.dayStatus[fechaDia] = 'approved';
+                  } else if (solicitud.estado === 'Rechazada') {
+                    // Los días rechazados se marcan nuevamente como disponibles
+                    delete this.dayStatus[fechaDia];
+                  } else if (solicitud.estado === 'Cancelada') {
+                    delete this.dayStatus[fechaDia];
+                  }
+                }
+              } else {
+                console.warn(`  ⚠️ No se obtuvieron días para la solicitud ${solicitud.id}`);
+              }
+            } catch (diasError) {
+              console.error(`  ❌ Error cargando días para solicitud ${solicitud.id}:`, diasError);
+            }
+          }
+
+          console.log('✅ dayStatus actualizado:', this.dayStatus);
+          
+          // Actualizar festivos después de cargar solicitudes
+          this.updateVisibleMonthHolidays();
+        }
+      } catch (error) {
+        console.error('❌ Error cargando solicitudes:', error);
+      } finally {
+        this.loading = false;
+        // Forzar actualización del calendario
+        this.$forceUpdate();
+        console.log('🔄 Calendar forzado a actualizar');
+      }
+    },
+
     fmtKey(date) {
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -220,24 +309,31 @@ export default {
       return `${y}-${m}-${d}`;
     },
 
-    // Datos de ejemplo para reproducir la imagen (Septiembre 2025)
-    fillExampleData() {
-      const map = {};
-      const y = 2025, mm = '09';
-      // 01..05 -> approved (verde #00C951)
-      for (let d = 1; d <= 5; d++) map[`${y}-${mm}-${String(d).padStart(2,'0')}`] = 'approved';
-      // 08..12 -> requested (amarillo #FCC800)
-      for (let d = 8; d <= 12; d++) map[`${y}-${mm}-${String(d).padStart(2,'0')}`] = 'requested';
-      // 16 -> holiday (rojo #E7000B)
-      map[`${y}-${mm}-16`] = 'holiday';
-      // 22..26 -> to-request (azul/morado #4F39F6)
-      for (let d = 22; d <= 26; d++) map[`${y}-${mm}-${String(d).padStart(2,'0')}`] = 'to-request';
-      // fill rest as available
-      for (let d = 1; d <= 30; d++) {
-        const key = `${y}-${mm}-${String(d).padStart(2,'0')}`;
-        if (!map[key]) map[key] = 'available';
+    isHoliday(date) {
+      const mmdd = String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      return this.defaultFixedHolidays.includes(mmdd);
+    },
+
+    updateVisibleMonthHolidays() {
+      const newStatus = { ...this.dayStatus };
+
+      for (const cell of this.calendarCells) {
+        if (cell.otherMonth) continue;
+        if (this.isHoliday(cell.date)) {
+          // Solo marcar como festivo si no tiene otro estado (requested, approved, etc)
+          if (!newStatus[cell.dateKey] || newStatus[cell.dateKey] === 'available') {
+            newStatus[cell.dateKey] = 'holiday';
+          }
+        }
       }
-      this.dayStatus = map;
+
+      this.dayStatus = newStatus;
+
+      // Limpiar selecciones fuera del mes visible
+      this.selectedDates = this.selectedDates.filter(k => {
+        const [y, m] = k.split('-');
+        return Number(y) === this.currentYear && (Number(m) - 1) === this.currentMonth;
+      });
     },
 
     statusOf(dateKey) {
@@ -296,40 +392,28 @@ export default {
       const key = cell.dateKey;
       const idx = this.selectedDates.indexOf(key);
       if (idx !== -1) {
-        // deselect
         this.selectedDates.splice(idx, 1);
         if (this.dayStatus[key] === 'to-request') this.dayStatus[key] = 'available';
       } else {
-        // select
         this.selectedDates.push(key);
         this.dayStatus[key] = 'to-request';
       }
     },
 
-    // Nuevo comportamiento: abrir la ventana de Solicitud
     requestSelected() {
       if (!this.selectedDates.length) return;
-      // Abrimos la vista de Solicitud y le pasamos selectedDates como prop
-      // No modificamos dayStatus aquí: la acción final (confirmar/submit) la manejará la ventana de Solicitud o handleSolicitudSubmitted
       this.showSolicitud = true;
     },
 
-    // Handler que se ejecuta cuando la ventana de Solicitud emite 'submitted'
-    handleSolicitudSubmitted(payload) {
-      // payload puede contener datos adicionales (ej. comentario, adjunto, etc.)
-      // Aquí mantenemos la funcionalidad original: marcar las fechas seleccionadas como 'requested' y limpiar la selección
+    async handleSolicitudSubmitted(payload) {
       this.selectedDates.forEach(k => { this.dayStatus[k] = 'requested'; });
       this.selectedDates = [];
-
-      // Cerrar la ventana de solicitud
       this.showSolicitud = false;
 
-      // Notificación (simulada). En producción reemplazar con toast o similar
-      // eslint-disable-next-line no-alert
-      alert('Solicitud enviada (simulado).');
+      // Recargar las solicitudes después de enviar una nueva
+      await this.loadSolicitudes();
 
-      // Emitir o realizar más acciones con payload si es necesario
-      // console.log('Solicitud payload:', payload);
+      // alert('Solicitud enviada.');
     },
 
     onGlobalClick(e) {
@@ -370,17 +454,30 @@ export default {
       }, 3000);
     },
 
-    // Métodos para abrir/cerrar la vista de solicitud
     closeSolicitud() {
       this.showSolicitud = false;
     }
   },
+  watch: {
+    currentMonth() { 
+      this.updateVisibleMonthHolidays();
+      this.loadSolicitudes(); // Recargar solicitudes al cambiar mes
+    },
+    currentYear() { 
+      this.updateVisibleMonthHolidays();
+      this.loadSolicitudes(); // Recargar solicitudes al cambiar año
+    }
+  },
   mounted() {
-    // Inicializamos ejemplo para que coincida con la imagen
-    this.fillExampleData();
-    this.currentMonth = 8; // septiembre (0-based)
-    this.currentYear = 2025;
+    console.log('🎯 Componente Vacaciones montado');
+    this.updateVisibleMonthHolidays();
+    this.loadSolicitudes(); // Cargar solicitudes desde BD
     window.addEventListener('click', this.onGlobalClick);
+  },
+  activated() {
+    // Se ejecuta cuando el componente vuelve a ser visible (después de KeepAlive o navegación)
+    console.log('🎯 Componente Vacaciones activado - recargando solicitudes');
+    this.loadSolicitudes();
   },
   beforeUnmount() {
     window.removeEventListener('click', this.onGlobalClick);
@@ -434,7 +531,6 @@ export default {
   letter-spacing: 1px;
 }
 
-/* Registrar Incidencia button color preserved */
 .btn-incident {
   background-color: #5932EA;
   color: #ffffff;
@@ -495,7 +591,6 @@ export default {
   border-radius: 6px;
   box-shadow: 0 8px 18px rgba(17,24,39,0.06), inset 0 -3px 6px rgba(255,255,255,0.3);
 }
-/* Exact colors requested */
 .dot.available {
   background: #ffffff;
   border: 1px solid #e6e6e9;
@@ -564,7 +659,7 @@ export default {
   border-radius: 12px;
   padding: 22px 18px 18px 18px;
   box-shadow: 0 8px 30px rgba(17, 24, 39, 0.02);
-  margin-top: 8px; /* space for pill overlap */
+  margin-top: 8px;
 }
 .weekday-row {
   display: grid;
@@ -593,7 +688,7 @@ export default {
 }
 .day-cell.other-month { opacity: 0.32; cursor: default; }
 
-/* Day box (white) */
+/* Day box */
 .day-box {
   width: 60px;
   height: 52px;
@@ -605,7 +700,7 @@ export default {
   box-shadow: 0 6px 16px rgba(17,24,39,0.03);
 }
 
-/* Day pill (colored states) and default look for available */
+/* Day pill */
 .day-pill {
   width: 46px;
   height: 40px;
@@ -615,14 +710,14 @@ export default {
   justify-content: center;
   transition: transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s ease, background .18s ease;
   background: transparent;
-  color: #111827; /* default number = black */
+  color: #111827;
   font-weight: 700;
   font-size: 14px;
   box-shadow: none;
 }
 .day-number { display: inline-block; }
 
-/* States colors using provided hex codes */
+/* States colors */
 .day-pill.approved {
   background: linear-gradient(180deg,#00C951,#00B944);
   color: #fff;
@@ -644,14 +739,13 @@ export default {
   box-shadow: 0 12px 30px rgba(79,57,246,0.12);
   animation: pop .28s cubic-bezier(.2,.9,.3,1);
 }
-/* available keeps the white box and black number */
 .day-pill.available {
   background: transparent;
   color: #111827;
   box-shadow: none;
 }
 
-/* Dim other-month numbers */
+/* Dim other-month */
 .day-cell.other-month .day-box { background: #fbfbfb; }
 .day-cell.other-month .day-pill { color: #9aa0a6; }
 
@@ -681,10 +775,8 @@ export default {
 }
 .available-info { color: #666; font-size: 14px; }
 
-/* actions */
 .footer-actions { display: flex; align-items: center; gap: 12px; }
 
-/* Request button uses provided color #27272A and shows + and text "Solicitar" */
 .btn-request {
   background: var(--btn-request);
   color: #fff;

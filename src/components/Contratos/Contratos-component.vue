@@ -1,24 +1,22 @@
 <template>
   <div class="contratos-content">
     <!-- Formulario de incidencias -->
-    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false"
-      @incidencia-creada="onIncidenciaCreada" />
+    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
 
-    <!-- Animación de éxito -->
-    <div v-if="showSuccess" class="success-toast">
-      <div class="success-content">✓ Incidencia registrada exitosamente</div>
-    </div>
-
-    <!-- Vista de Inicio (usando componente EnlaceInicio) -->
+    <!-- Vista de Inicio -->
     <EnlaceInicio v-if="activeTab === 'inicio'" :contratos="contratos" :stats="stats"
       @crear-contrato="handleCrearContrato" @revisar-contrato="handleRevisarContrato" @cambiar-vista="cambiarVista"
       @registrar-incidencia="showIncidencia = true" />
 
     <!-- Otras vistas -->
     <div v-else class="other-view">
-      <!-- ✅ Vista de Detalle del Aspirante (versión refactorizada) -->
-      <DetalleAspirante v-if="activeTab === 'detalle'" :aspirante="aspiranteSeleccionado"
+      <!-- Detalle del Aspirante -->
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante'" :aspirante="aspiranteSeleccionado"
         @cerrar="activeTab = 'inicio'" />
+
+      <!-- Detalle del Empleado -->
+      <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
+        @cerrar="activeTab = 'inicio'" @renovar-contrato="handleRenovarContrato" />
 
       <!-- Vista de Activos -->
       <EnlaceActivos v-else-if="activeTab === 'activos'" :contratos="contratosActivos"
@@ -37,14 +35,19 @@
         @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de estadísticas -->
-      <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: 456, vacantes: 18 }"
+      <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: 18 }"
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de Crear Contrato -->
       <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Otra Pantalla -->
-      <OtraPantalla v-else-if="activeTab === 'otra'" @volver-inicio="activeTab = 'inicio'" />
+      <!-- Vista de Registro de Solicitud -->
+      <EnlaceRegistroSolicitud v-else-if="activeTab === 'registro'" @volver-inicio="activeTab = 'inicio'" />
+
+      <!-- ✅ Agregar en el bloque de vistas -->
+      <EnlaceHistorial v-else-if="activeTab === 'historial'" :contratos="contratosHistorico"
+        @volver-inicio="activeTab = 'inicio'" @ver-contrato="handleRevisarContrato"
+        @descargar-contrato="handleDescargarContrato" />
     </div>
   </div>
 </template>
@@ -53,6 +56,8 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
+import { useContratos } from '@/composables/useContratos';
+
 import EnlaceInicio from './EnlaceInicio.vue';
 import EnlaceActivos from './EnlacesNavegacion/EnlaceActivos.vue';
 import EnlaceAVencer from './EnlacesNavegacion/EnlaceAVencer.vue';
@@ -60,18 +65,37 @@ import EnlaceVencidos from './EnlacesNavegacion/EnlaceVencidos.vue';
 import EnlaceEnProceso from './EnlacesNavegacion/EnlaceEnProceso.vue';
 import EnlaceEstadisticas from './EnlacesNavegacion/EnlaceEstadisticas.vue';
 import EnlaceCrearContrato from './EnlacesNavegacion/EnlaceCrearContrato.vue';
-import OtraPantalla from './EnlacesNavegacion/OtraPantalla.vue';
+import EnlaceRegistroSolicitud from './EnlacesNavegacion/EnlaceRegistroSolicitud.vue';
 import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue';
 import DetalleAspirante from './DetalleAspiranteRefactored.vue';
+import DetalleEmpleado from './DetalleEmpleadoCommon/DetalleEmpleado.vue';
+import EnlaceHistorial from './EnlacesNavegacion/EnlaceHistorial.vue';
 
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref('inicio');
-const searchQuery = ref('');
 const showIncidencia = ref(false);
-const showSuccess = ref(false);
 const aspiranteSeleccionado = ref(null);
+const empleadoSeleccionado = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
+
+// Estados reactivos
+const stats = ref({
+  activos: 0,
+  proximosVencer: 0,
+  vencidos: 0,
+  enProceso: 0
+});
+
+const contratos = ref([]);
+const loading = ref(false);
+
+// Composable para API
+const {
+  obtenerEstadisticas,
+  obtenerEmpleadosDestacados,
+  obtenerAspirantesDestacados
+} = useContratos();
 
 // Función para manejar incidencia creada
 const onIncidenciaCreada = () => {
@@ -88,203 +112,88 @@ const updateTabFromRoute = () => {
     activeTab.value = 'estadisticas';
   } else if (route.path === '/Contratos/crear') {
     activeTab.value = 'crear';
-  } else if (route.path === '/Contratos/otra') {
-    activeTab.value = 'otra';
-  } else {
+  } else if (route.path === '/Contratos/registro-huellas') {
+    activeTab.value = 'registro-huellas';
+  }
+  else if (route.path === '/Contratos/historial') {
+    activeTab.value = 'historial';
+  }
+  else {
     activeTab.value = 'inicio';
   }
 };
-
-// Watch para cambios en la ruta
-watch(() => route.path, () => {
-  updateTabFromRoute();
-}, { immediate: true });
-
-// Al montar el componente
-onMounted(() => {
-  updateTabFromRoute();
-});
 
 // Función para volver al inicio
 const volverInicio = () => {
   router.push('/Contratos');
 };
 
-const stats = ref({
-  activos: 47,
-  proximosVencer: 9,
-  vencidos: 2,
-  enProceso: 13
-});
+// Función para cargar datos de la API
+const cargarDatos = async () => {
+  loading.value = true;
+  try {
+    // Cargar estadísticas
+    stats.value = await obtenerEstadisticas();
 
-const contratos = ref([
-  {
-    id: 1,
-    nombre: 'Andres Medina Hernandez',
-    tipo: 'empleado',
-    estadoTexto: 'ACTIVO',
-    estadoClase: 'activo',
-    puesto: 'GERENTE',
-    area: 'VACACIONES',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    estado: 'activo',
-    fase: 'Evaluación',
-    cuenta: 'CUENTA EJECUTIVA',
-    fechaInicio: '2024-01-15',
-    fechaVencimiento: '2025-12-31',
-    curp: 'TOAB961211HSLRRR08',
-    rfc: 'TOAB961211ABC',
-    nss: '12345678901',
-    fechaNacimiento: '12/11/1996',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-123-4567',
-    domicilio: 'Calle Ejemplo #123, Col. Centro',
-    estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-08-16'
-  },
-  {
-    id: 2,
-    nombre: 'Beto Sanchez Perez',
-    tipo: 'empleado',
-    estadoTexto: 'BAJA',
-    estadoClase: 'baja',
-    puesto: 'GERENTE',
-    area: 'ASISTENCIAS',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    estado: 'avencer',
-    fase: 'Revisión',
-    cuenta: 'CUENTA EJECUTIVA',
-    fechaInicio: '2024-03-10',
-    fechaVencimiento: '2025-11-15',
-    curp: 'SOAL901205HDFNLX09',
-    rfc: 'SOAL901205XYZ',
-    nss: '98765432109',
-    fechaNacimiento: '05/12/1990',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-987-6543',
-    domicilio: 'Av. Principal #456, Col. Norte',
-    estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-07-20'
-  },
-  {
-    id: 3,
-    nombre: 'Steven Niño Genio',
-    tipo: 'empleado',
-    estadoTexto: 'ACTIVO',
-    estadoClase: 'activo',
-    puesto: 'GERENTE',
-    area: 'CONTRATOS',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    estado: 'vencido',
-    fase: 'Evaluación',
-    cuenta: 'CUENTA CORPORATIVA',
-    fechaInicio: '2023-06-20',
-    fechaVencimiento: '2024-06-20',
-    curp: 'BOJC880315HMCDNR07',
-    rfc: 'BOJC880315DEF',
-    nss: '45678901234',
-    fechaNacimiento: '15/03/1988',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-456-7890',
-    domicilio: 'Boulevard Central #789, Col. Sur',
-    estadoProceso: 'FINALIZADO',
-    fechaRegistro: '2025-06-10'
-  },
-  {
-    id: 4,
-    nombre: 'Braulio Torres Arispe',
-    tipo: 'aspirante',
-    estadoTexto: 'Revisión',
-    estadoClase: 'revision',
-    puesto: 'GERENTE',
-    area: 'VACACIONES',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    estado: 'proceso',
-    fase: 'Revisión',
-    cuenta: 'CUENTA EJECUTIVA',
-    fechaInicio: '2024-09-01',
-    fechaVencimiento: '2026-09-01',
-    curp: 'TOAB961211HSLRRR08',
-    rfc: 'TOAB961211ABC',
-    nss: '12345678901',
-    fechaNacimiento: '12/11/1996',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-123-4567',
-    domicilio: 'Calle Ejemplo #123, Col. Centro',
-    estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-09-01'
-  },
-  {
-    id: 5,
-    nombre: 'Alejandro Solano Hala',
-    tipo: 'aspirante',
-    estadoTexto: 'Revisión',
-    estadoClase: 'revision',
-    puesto: 'GERENTE',
-    area: 'ASISTENCIAS',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    estado: 'proceso',
-    fase: 'Revisión',
-    cuenta: 'CUENTA EJECUTIVA',
-    fechaInicio: '2024-09-15',
-    fechaVencimiento: '2026-09-15',
-    curp: 'SOAL901205HDFNLX09',
-    rfc: 'SOAL901205XYZ',
-    nss: '98765432109',
-    fechaNacimiento: '05/12/1990',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-987-6543',
-    domicilio: 'Av. Principal #456, Col. Norte',
-    estadoProceso: 'EN REVISIÓN',
-    fechaRegistro: '2025-09-15'
-  },
-  {
-    id: 6,
-    nombre: 'Juan Carlos Bodoque',
-    tipo: 'aspirante',
-    estadoTexto: 'Evaluación',
-    estadoClase: 'evaluacion',
-    puesto: 'GERENTE',
-    area: 'CONTRATOS',
-    avatar: 'https://i.pravatar.cc/150?img=6',
-    estado: 'proceso',
-    fase: 'Evaluación',
-    cuenta: 'CUENTA CORPORATIVA',
-    fechaInicio: '2024-10-01',
-    fechaVencimiento: '2026-10-01',
-    curp: 'BOJC880315HMCDNR07',
-    rfc: 'BOJC880315DEF',
-    nss: '45678901234',
-    fechaNacimiento: '15/03/1988',
-    sexo: 'Masculino',
-    nacionalidad: 'Mexicana',
-    telefono: '555-456-7890',
-    domicilio: 'Boulevard Central #789, Col. Sur',
-    estadoProceso: 'EN EVALUACIÓN',
-    fechaRegistro: '2025-10-01'
+    // Cargar empleados y aspirantes destacados
+    const [empleados, aspirantes] = await Promise.all([
+      obtenerEmpleadosDestacados(),
+      obtenerAspirantesDestacados()
+    ]);
+
+    // Combinar empleados y aspirantes
+    contratos.value = [...empleados, ...aspirantes];
+
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+    alert('Error al cargar datos del dashboard');
+  } finally {
+    loading.value = false;
   }
-]);
+};
 
-// Computed properties para filtrar contratos por estado
+// ✅ COMPUTED PROPERTIES CORREGIDAS - Ahora funcionan correctamente
 const contratosActivos = computed(() =>
-  contratos.value.filter(c => c.estado === 'activo')
+  contratos.value.filter(c => {
+    // Filtrar empleados que sean ACTIVOS
+    if (c.tipo !== 'empleado') return false;
+
+    // Los empleados de la página de inicio son los destacados y están activos por defecto
+    return c.estado_clase === 'activo' || !c.estado_clase;
+  })
 );
 
 const contratosAVencer = computed(() =>
-  contratos.value.filter(c => c.estado === 'avencer')
+  contratos.value.filter(c => {
+    // En esta vista mostrar empleados próximos a vencer
+    // El campo estado_clase viene de la BD y puede ser 'próximo-a-vencer' o 'avencer'
+    return c.tipo === 'empleado' &&
+      (c.estado_clase?.toLowerCase().includes('avencer') ||
+        c.estado_clase?.toLowerCase().includes('próximo') ||
+        c.estado_clase?.toLowerCase().includes('vencer'));
+  })
 );
 
 const contratosVencidos = computed(() =>
-  contratos.value.filter(c => c.estado === 'vencido')
+  contratos.value.filter(c => {
+    // Filtrar empleados con contratos vencidos
+    return c.tipo === 'empleado' &&
+      c.estado_clase?.toLowerCase().includes('vencido');
+  })
 );
 
 const contratosEnProceso = computed(() =>
-  contratos.value.filter(c => c.estado === 'proceso')
+  contratos.value.filter(c => {
+    // Filtrar empleados en proceso (borrador, en firma, en proceso, etc)
+    if (c.tipo !== 'empleado') return false;
+
+    const estado = c.estado_clase?.toLowerCase() || '';
+    return estado.includes('proceso') ||
+      estado.includes('firma') ||
+      estado.includes('borrador') ||
+      estado.includes('evaluación') ||
+      estado.includes('revisión');
+  })
 );
 
 // Métodos para manejar eventos
@@ -295,14 +204,62 @@ const handleCrearContrato = () => {
 // Método para manejar revisión de contrato
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
-  aspiranteSeleccionado.value = contrato;
-  activeTab.value = 'detalle';
+
+  // Verificar el tipo de contrato y redirigir al componente adecuado
+  if (contrato.tipo === 'empleado') {
+    empleadoSeleccionado.value = contrato;
+    activeTab.value = 'detalleEmpleado';
+  } else if (contrato.tipo === 'aspirante') {
+    aspiranteSeleccionado.value = contrato;
+    activeTab.value = 'detalleAspirante';
+  }
+};
+
+// Función para manejar la renovación de contrato
+const handleRenovarContrato = () => {
+  activeTab.value = 'crear';
 };
 
 // Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
+  // Los datos ya están cargados y los computed properties se encargan del filtro
 };
+
+// Computed para historial
+const contratosHistorico = computed(() =>
+  contratos.value.filter(c =>
+    c.estado_clase === 'terminado' ||
+    c.estado_clase === 'cancelado' ||
+    c.estado_clase === 'suspendido'
+  )
+);
+
+// Método para manejar descarga de contrato
+const handleDescargarContrato = async (contrato) => {
+  console.log('Descargar contrato:', contrato);
+
+  try {
+    // Aquí puedes implementar la descarga del PDF
+    // Por ejemplo, usando tu sistema S3
+    alert(`Descargando contrato de ${contrato.nombre}`);
+  } catch (error) {
+    console.error('Error al descargar:', error);
+    alert('Error al descargar el contrato');
+  }
+};
+
+
+// Watch para cambios en la ruta
+watch(() => route.path, () => {
+  updateTabFromRoute();
+}, { immediate: true });
+
+// Al montar el componente
+onMounted(async () => {
+  updateTabFromRoute();
+  await cargarDatos();
+});
 </script>
 
 <style scoped>
@@ -321,10 +278,7 @@ const cambiarVista = (vista) => {
 }
 
 .other-view {
-  background-color: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background-color: transparent;
 }
 
 /* Animación de éxito */

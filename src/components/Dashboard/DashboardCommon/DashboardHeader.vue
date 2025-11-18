@@ -58,31 +58,31 @@ defineEmits(['openRegisterModal', 'logout']);
 }
 
 .role-badge {
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
 }
 
 .role-badge.admin {
-  background: #FEF3C7;
-  color: #92400E;
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 .role-badge.jefe_rh {
   background: #DBEAFE;
-  color: #1E40AF;
+  color: #2563EB;
 }
 
 .role-badge.jefe_area {
-  background: #E0E7FF;
-  color: #3730A3;
+  background: #D1FAE5;
+  color: #059669;
 }
 
 .role-badge.empleado {
-  background: #F3F4F6;
-  color: #374151;
+  background: #E0E7FF;
+  color: #6366F1;
 }
 
 .permissions-count {
@@ -100,36 +100,46 @@ defineEmits(['openRegisterModal', 'logout']);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .register-btn {
-  background: #6366F1;
-  color: white;
+  background: white;
+  color: #6366F1;
 }
 
 .register-btn:hover {
-  background: #4F46E5;
+  background: #F5F5FF;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.15);
+}
+
+.register-btn .material-symbols-rounded {
+  font-size: 20px;
+  color: #6366F1;
 }
 
 .logout-btn {
   background: white;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+  color: #EF4444;
 }
 
 .logout-btn:hover {
-  background: #F9FAFB;
-  color: #374151;
-  border-color: #D1D5DB;
+  background: #FEF2F2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.15);
+}
+
+.logout-btn .material-symbols-rounded {
+  font-size: 20px;
+  color: #EF4444;
 }
 
 @media (max-width: 768px) {

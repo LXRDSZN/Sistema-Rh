@@ -8,7 +8,13 @@ import empleadosRoutes from './routes/empleados.js';
 import incidenciasRoutes from './routes/incidencias.js';
 import areasRoutes from './routes/areas.js';
 import uploadsRoutes from './routes/uploads.js';
+import dashboardRoutes from './routes/dashboard.js';
 import config from './config/config.js';
+import s3Routes from './routes/s3.js'; // s3.js
+import contratosRoutes from './routes/contratos.js';
+import vacacionesRoutes from './routes/vacaciones.js';
+import asistenciasRoutes from './routes/asistencias.js';
+import solicitudesRoutes from './routes/solicitudes.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -24,22 +30,33 @@ await connectDB();
 
 // ========== MIDDLEWARES ==========
 
+// Parsear JSON en el body de las peticiones - con límite aumentado para archivos
+// IMPORTANTE: Debe ir PRIMERO, ANTES de CORS
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
 // CORS - Habilitar peticiones desde el frontend
 app.use(cors({
   origin: config.server.frontendUrl,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+  maxAge: 86400
 }));
 
-// Parsear JSON en el body de las peticiones
-app.use(express.json());
-
-// Parsear cookies
+// Parsear cookies - DEBE IR DESPUÉS de los body parsers
 app.use(cookieParser());
 
 // Servir archivos estáticos
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+
+// ========== MIDDLEWARE DE DEBUG (opcional) ==========
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  
+  next();
+});
 
 // ========== RUTAS ==========
 
@@ -58,10 +75,50 @@ app.use('/api', areasRoutes);
 // Rutas de uploads
 app.use('/api', uploadsRoutes);
 
+// Rutas de dashboard
+app.use('/api', dashboardRoutes);
+
+// Rutas para integración con AWS S3 (gestión de archivos y buckets)
+app.use('/api', s3Routes);
+
+// Rutas de contratos
+app.use('/api', contratosRoutes);
+
+// Rutas de vacaciones 
+app.use('/api/vacaciones', vacacionesRoutes);
+
+// Rutas de asistencias
+app.use('/api', asistenciasRoutes);
+
+// Rutas de solicitudes de empleo
+app.use('/api/solicitudes', solicitudesRoutes);
+
 // Ruta de health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// ========== LIMPIEZA DE SESIONES EXPIRADAS ==========
+// Ejecutar cada 2 minutos para eliminar sesiones expiradas (sesiones duran 5 min)
+import { db } from './models/db.js';
+
+const limpiarSesionesExpiradas = async () => {
+  try {
+    const result = await db.query(
+      `DELETE FROM sesiones_activas WHERE expiracion < NOW()`
+    );
+    if (result.rowCount > 0) {
+      console.log(`🧹 Limpieza: ${result.rowCount} sesiones expiradas eliminadas`);
+    }
+  } catch (error) {
+    console.error('❌ Error al limpiar sesiones expiradas:', error);
+  }
+};
+
+// Ejecutar limpieza cada 2 minutos (frecuente dado que las sesiones expiran en 5 min)
+setInterval(limpiarSesionesExpiradas, 2 * 60 * 1000);
+// Ejecutar limpieza inicial al arrancar
+limpiarSesionesExpiradas();
 
 // ========== INICIAR SERVIDOR ==========
 app.listen(config.server.port, () => {
@@ -69,6 +126,6 @@ app.listen(config.server.port, () => {
   console.log(`✅ Servidor corriendo en el puerto ${config.server.port}`);
   console.log(`🌐 Frontend: ${config.server.frontendUrl}`);
   console.log(`🔌 API: http://localhost:${config.server.port}/api`);
+  console.log('🔄 Limpieza automática de sesiones: Activada');
   console.log('================================\n');
 });
-

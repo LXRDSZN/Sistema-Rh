@@ -146,6 +146,35 @@ export const getVisitas = async (filtros = {}) => {
 };
 
 /**
+ * Crear nueva visita
+ * @param {Object} datos - Datos de la visita
+ */
+export const crearVisita = async (datos) => {
+  try {
+    const response = await axios.post(`${API_URL}/asistencias/visitas`, datos);
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear visita:', error);
+    throw error;
+  }
+};
+
+/**
+ * Actualizar visita (registrar salida)
+ * @param {string} id - ID de la visita
+ * @param {Object} datos - { hora_salida }
+ */
+export const actualizarVisita = async (id, datos) => {
+  try {
+    const response = await axios.put(`${API_URL}/asistencias/visitas/${id}`, datos);
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar visita:', error);
+    throw error;
+  }
+};
+
+/**
  * Registrar asistencia (entrada o salida)
  * @param {Object} datos - { persona_id, tipo, hora }
  */
@@ -159,6 +188,35 @@ export const registrarAsistencia = async (datos) => {
   }
 };
 
+/**
+ * Registrar asistencia por huella digital
+ * @param {number} huellaId - ID de la huella detectada por el sensor
+ */
+export const registrarAsistenciaPorHuella = async (huellaId) => {
+  try {
+    const response = await axios.post(`${API_URL}/asistencias/registrar-huella`, {
+      huella_id: huellaId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar asistencia por huella:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener checadas del día (pase de lista)
+ */
+export const getChecadasHoy = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/asistencias/checadas/hoy`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener checadas de hoy:', error);
+    throw error;
+  }
+};
+
 export default {
   getDashboardAsistencias,
   getJustificantes,
@@ -168,5 +226,9 @@ export default {
   getDetalleAsistencias,
   getReporteAnalitico,
   getVisitas,
-  registrarAsistencia
+  crearVisita,
+  actualizarVisita,
+  registrarAsistencia,
+  registrarAsistenciaPorHuella,
+  getChecadasHoy
 };

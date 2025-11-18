@@ -7,14 +7,14 @@
  */
 
 /**
- * Lista de departamentos disponibles en el sistema
+ * Lista de áreas/módulos disponibles en el sistema
  */
 export const DEPARTAMENTOS = [
+  'Areas',
   'Contratos',
   'Asistencias',
-  'Incidencias',
   'Vacaciones',
-  'Areas'
+  'Incidencias'
 ];
 
 /**
@@ -22,6 +22,10 @@ export const DEPARTAMENTOS = [
  */
 export const TITULOS = [
   'Jefe de área',
+  'Jefe de Asistencias',
+  'Jefe de Contratos',
+  'Jefe de Vacaciones',
+  'Jefe de Incidencias',
   'Empleado',
   'Supervisor',
   'Gerente'

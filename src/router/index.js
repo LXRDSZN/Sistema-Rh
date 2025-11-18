@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/Login/LoginView.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,6 +46,11 @@ const router = createRouter({
       component: () => import('../views/Asistencias/AsistenciasView.vue')
     },
     {
+      path: '/Asistencias/pase-lista',
+      name: 'AsistenciasPaseLista',
+      component: () => import('../views/Asistencias/AsistenciasView.vue')
+    },
+    {
       path: '/Contratos',
       name: 'Contratos',
       component: () => import('../views/Contratos/ContratosView.vue')
@@ -65,6 +71,16 @@ const router = createRouter({
       component: () => import('../views/Contratos/ContratosView.vue')
     },
     {
+      path: '/Contratos/registro-huellas',
+      name: 'ContratosRegistroHuellas',
+      component: () => import('../views/Contratos/RegistroHuellasView.vue')
+    },
+     {
+      path: '/Contratos/historial',
+      name: 'historial',
+      component: () => import('../views/Contratos/ContratosView.vue')
+    },
+    {
       path: '/Vacaciones',
       name: 'Vacaciones',
       component: () => import('../views/Vacaciones/VacacionesView.vue')
@@ -76,7 +92,8 @@ const router = createRouter({
     },{
       path: '/Vacaciones/Solicitudes-de-vacaciones',
       name: 'VacacionesSolicitudes',
-      component: () => import('../views/Vacaciones/Solicitudes/SolicitudesView.vue')
+      component: () => import('../views/Vacaciones/Solicitudes/SolicitudesView.vue'),
+      meta: { requiredRoles: ['ADMIN', 'JEFE_RH', 'JEFE_AREA'] }
     },
     {
       path: '/Incidencias',
@@ -95,5 +112,31 @@ const router = createRouter({
     }
   ]
 })
+
+// Guard de navegación para verificar roles
+router.beforeEach((to, from, next) => {
+  const { user } = useAuth();
+  
+  // Si la ruta requiere roles específicos
+  if (to.meta.requiredRoles) {
+    if (!user.value) {
+      // No autenticado, redirigir a login
+      next('/');
+      return;
+    }
+    
+    // Verificar si el rol del usuario está en los roles requeridos (case-insensitive)
+    const userRolLower = user.value.rol?.toLowerCase();
+    const rolesRequeridos = to.meta.requiredRoles.map(r => r.toLowerCase());
+    
+    if (!rolesRequeridos.includes(userRolLower)) {
+      // Rol no permitido, redirigir a dashboard
+      next('/Dashboard');
+      return;
+    }
+  }
+  
+  next();
+});
 
 export default router

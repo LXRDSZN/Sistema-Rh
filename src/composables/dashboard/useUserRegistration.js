@@ -1,9 +1,11 @@
 import { ref } from 'vue';
 import axios from 'axios';
 import { useToast } from 'vue-toast-notification';
+import { useAuth } from '@/composables/useAuth';
 
 export function useUserRegistration() {
   const toast = useToast();
+  const { userRole } = useAuth();
   const isRegistering = ref(false);
   const showRegisterModal = ref(false);
   
@@ -47,8 +49,11 @@ export function useUserRegistration() {
       // Convertir sexo de texto a código
       const sexoCodigo = newUser.value.sexo === 'Mujer' ? 'F' : 'M';
 
-      // Enviar datos al backend
-      const response = await axios.post('http://localhost:5000/api/register', {
+      // Obtener el área del usuario autenticado si es Jefe de Área
+      const esJefeArea = ['JEFE_AREA', 'JEFE_ASISTENCIAS', 'JEFE_CONTRATOS', 'JEFE_VACACIONES', 'JEFE_INCIDENCIAS'].includes(userRole.value);
+
+      // Enviar datos al backend usando la ruta protegida
+      const response = await axios.post('http://localhost:5000/api/register-dashboard', {
         nombre: newUser.value.nombre,
         apellidoPaterno: newUser.value.apellido_paterno,
         apellidoMaterno: newUser.value.apellido_materno || '',
@@ -56,7 +61,10 @@ export function useUserRegistration() {
         password: newUser.value.password,
         sexo: sexoCodigo,
         fechaNacimiento: newUser.value.fecha_nacimiento || '1990-01-01',
-        rol: newUser.value.rol || 'EMPLEADO'
+        rol: newUser.value.rol || 'EMPLEADO',
+        esRegistroPorJefeArea: esJefeArea
+      }, {
+        withCredentials: true
       });
 
       if (response.data.success) {
