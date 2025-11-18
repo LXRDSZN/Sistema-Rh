@@ -447,8 +447,136 @@ router.get('/contratos/empleado/:personaId/contrato-actual', async (req, res) =>
     }
 });
 
+// ========================================
+// Todo esto es de la ventana estadisticas 
+// ========================================
 
+// ENDPOINT: Distribución por tipo de contrato
+router.get('/contratos/estadisticas/distribucion-tipo', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                tipo_contrato AS tipo,
+                COUNT(*) AS total
+            FROM contrato
+            GROUP BY tipo_contrato
+            ORDER BY total DESC
+        `;
 
+        const result = await pool.query(query);
 
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener distribución por tipo:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Contratos por área
+// ========================================
+router.get('/contratos/estadisticas/contratos-por-area', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                a.nombre AS area,
+                COUNT(c.id) AS total_contratos
+            FROM contrato c
+            JOIN area a ON a.id = c.area_id
+            GROUP BY a.nombre
+            ORDER BY total_contratos DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener contratos por área:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Estado del proceso de contratación
+// ========================================
+router.get('/contratos/estadisticas/estado-proceso', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                etapa,
+                COUNT(*) AS total
+            FROM persona
+            WHERE tipo = 'Aspirante'
+            GROUP BY etapa
+            ORDER BY total DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estado del proceso:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Estadísticas generales (activos y vacantes)
+// ========================================
+router.get('/contratos/estadisticas/resumen', async (req, res) => {
+    try {
+        const queryActivos = `
+            SELECT COUNT(*) AS total_activos
+            FROM contrato c
+            JOIN estado_contrato ec ON ec.id = c.estado_id
+            WHERE ec.nombre ILIKE 'ACTIVO'
+        `;
+
+        const queryVacantes = `
+            SELECT COUNT(*) AS solicitud_vacantes
+            FROM persona
+            WHERE tipo = 'Aspirante'
+        `;
+
+        const [resActivos, resVacantes] = await Promise.all([
+            pool.query(queryActivos),
+            pool.query(queryVacantes)
+        ]);
+
+        res.json({
+            ok: true,
+            activos: parseInt(resActivos.rows[0].total_activos) || 0,
+            vacantes: parseInt(resVacantes.rows[0].solicitud_vacantes) || 0
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estadísticas:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
 
 export default router;

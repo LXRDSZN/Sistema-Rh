@@ -85,12 +85,68 @@ export const useContratos = () => {
         }
     };
 
+    /**
+    * Obtiene la distribución de contratos por tipo
+    */
+    const obtenerDistribucionTipo = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/estadisticas/distribucion-tipo`);
+            return response.data.data;
+        } catch (error) {
+            console.error('Error al obtener distribución:', error);
+            return [];
+        }
+    };
+
+    /**
+    * Obtiene contratos por área
+    */
+    const obtenerContratosPorArea = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/estadisticas/contratos-por-area`);
+            return response.data.data;
+        } catch (error) {
+            console.error('Error al obtener contratos por área:', error);
+            return [];
+        }
+    };
+
+    /**
+    * Obtiene el estado del proceso de contratación
+    */
+    const obtenerEstadoProceso = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/estadisticas/estado-proceso`);
+            return response.data.data;
+        } catch (error) {
+            console.error('Error al obtener estado del proceso:', error);
+            return [];
+        }
+    };
+
+    /**
+    * Obtiene estadísticas generales (activos y vacantes)
+    */
+    const obtenerEstadisticasGenerales = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/contratos/estadisticas/resumen`);
+            return response.data;
+        } catch (error) {
+            console.error('Error al obtener estadísticas:', error);
+            return { activos: 0, vacantes: 0 };
+        }
+    };
+
     return {
         obtenerEstadisticas,
         obtenerEmpleadosDestacados,
         obtenerAspirantesDestacados,
         obtenerContratosPorEstado,
         obtenerEncabezadoEmpleado,
-        obtenerContratoActualEmpleado 
+        obtenerContratoActualEmpleado,
+        obtenerDistribucionTipo,
+        obtenerContratosPorArea,
+        obtenerEstadoProceso,
+        obtenerEstadisticasGenerales
     };
 };
