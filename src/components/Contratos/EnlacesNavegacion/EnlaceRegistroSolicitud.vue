@@ -923,14 +923,15 @@ const volver = () => {
 }
 
 .registro-form {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .form-section {
   background: white;
-  padding: 25px;
-  margin-bottom: 20px;
+  padding: 35px 40px;
+  margin-bottom: 25px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -938,16 +939,16 @@ const volver = () => {
 .form-section h2 {
   font-size: 18px;
   color: #333;
-  margin: 0 0 20px 0;
+  margin: 0 0 25px 0;
   font-weight: 600;
   border-bottom: 2px solid #5a5aff;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 .form-group {
@@ -962,17 +963,17 @@ const volver = () => {
 .form-group label {
   font-weight: 500;
   color: #333;
-  margin-bottom: 5px;
-  font-size: 13px;
+  margin-bottom: 8px;
+  font-size: 14px;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 10px;
+  padding: 12px 14px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-family: inherit;
   transition: border-color 0.3s;
 }
@@ -987,7 +988,7 @@ const volver = () => {
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 100px;
 }
 
 .foto-placeholder {
@@ -1064,12 +1065,12 @@ const volver = () => {
   background: #5a5aff;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  font-size: 13px;
-  margin-top: 10px;
+  font-size: 14px;
+  margin-top: 15px;
   transition: background 0.3s;
 }
 
@@ -1138,25 +1139,25 @@ const volver = () => {
 
 .form-actions {
   display: flex;
-  gap: 15px;
+  gap: 20px;
   justify-content: center;
-  margin-top: 30px;
+  margin-top: 40px;
   background: white;
-  padding: 25px;
+  padding: 35px 40px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary,
 .btn-secondary {
-  padding: 12px 40px;
+  padding: 14px 50px;
   border: none;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.3s;
-  min-width: 160px;
+  min-width: 180px;
 }
 
 .btn-primary {
