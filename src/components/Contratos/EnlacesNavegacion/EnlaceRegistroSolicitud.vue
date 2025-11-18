@@ -28,14 +28,17 @@
           <div class="form-group">
             <label>Nombre(s)</label>
             <input v-model="formulario.nombres" name="nombres" type="text" placeholder="Nombre completo" @input="validarSoloLetras" />
+            <span v-if="erroresValidacion.nombres" class="error-message">{{ erroresValidacion.nombres }}</span>
           </div>
           <div class="form-group">
             <label>Apellido Paterno</label>
             <input v-model="formulario.apellidoPaterno" name="apellidoPaterno" type="text" @input="validarSoloLetras" />
+            <span v-if="erroresValidacion.apellidoPaterno" class="error-message">{{ erroresValidacion.apellidoPaterno }}</span>
           </div>
           <div class="form-group">
             <label>Apellido Materno</label>
             <input v-model="formulario.apellidoMaterno" name="apellidoMaterno" type="text" @input="validarSoloLetras" />
+            <span v-if="erroresValidacion.apellidoMaterno" class="error-message">{{ erroresValidacion.apellidoMaterno }}</span>
           </div>
           <div class="form-group foto">
             <label>FOTO</label>
@@ -48,15 +51,18 @@
 
           <div class="form-group">
             <label>CURP</label>
-            <input v-model="formulario.curp" type="text" placeholder="Ej: PEPA900315HDFRNN09 (18 caracteres)" />
+            <input v-model="formulario.curp" type="text" placeholder="Ej: PEPA900315HDFRNN09 (18 caracteres)" @input="handleInputCURP" />
+            <span v-if="erroresValidacion.curp" class="error-message">{{ erroresValidacion.curp }}</span>
           </div>
           <div class="form-group">
             <label>RFC</label>
-            <input v-model="formulario.rfc" type="text" placeholder="Ej: PEPA900315XY1 (13 caracteres)" />
+            <input v-model="formulario.rfc" type="text" placeholder="Ej: PEPA900315XY1 (13 caracteres)" @input="handleInputRFC" />
+            <span v-if="erroresValidacion.rfc" class="error-message">{{ erroresValidacion.rfc }}</span>
           </div>
           <div class="form-group">
             <label>NSS</label>
-            <input v-model="formulario.nss" type="text" placeholder="Ej: 12345678901 (11 dígitos)" />
+            <input v-model="formulario.nss" type="text" placeholder="Ej: 12345678901 (11 dígitos)" @input="handleInputNSS" />
+            <span v-if="erroresValidacion.nss" class="error-message">{{ erroresValidacion.nss }}</span>
           </div>
 
           <div class="form-group">
@@ -97,11 +103,13 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Teléfono Celular</label>
-            <input v-model="formulario.telefonoCelular" type="tel" />
+            <input v-model="formulario.telefonoCelular" type="tel" placeholder="Solo números" @input="handleInputCelular" />
+            <span v-if="erroresValidacion.telefonoCelular" class="error-message">{{ erroresValidacion.telefonoCelular }}</span>
           </div>
           <div class="form-group">
             <label>Correo Electrónico</label>
-            <input v-model="formulario.correoElectronico" type="email" />
+            <input v-model="formulario.correoElectronico" type="email" placeholder="nombre@dominio.com" @input="handleInputCorreo" />
+            <span v-if="erroresValidacion.correoElectronico" class="error-message">{{ erroresValidacion.correoElectronico }}</span>
           </div>
         </div>
       </section>
@@ -205,8 +213,9 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Pretensión Salarial</label>
-            <input v-model="formulario.pretensionSalarial" type="text" />
+            <label>Pretensión Salarial (Moneda)</label>
+            <input v-model="formulario.pretensionSalarial" type="text" placeholder="Ej: 5000.50" @input="handleInputSalario" />
+            <span v-if="erroresValidacion.pretensionSalarial" class="error-message">{{ erroresValidacion.pretensionSalarial }}</span>
           </div>
           <div class="form-group">
             <label>Fecha Disponible</label>
@@ -214,7 +223,13 @@
           </div>
           <div class="form-group">
             <label>Modalidad</label>
-            <input v-model="formulario.modalidad" type="text" />
+            <select v-model="formulario.modalidad" @change="handleInputModalidad">
+              <option value="">Seleccionar</option>
+              <option value="Remoto">Remoto</option>
+              <option value="Híbrido">Híbrido</option>
+              <option value="Presencial">Presencial</option>
+            </select>
+            <span v-if="erroresValidacion.modalidad" class="error-message">{{ erroresValidacion.modalidad }}</span>
           </div>
         </div>
       </section>
@@ -289,15 +304,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { crearSolicitud, subirArchivo, obtenerCatalogos } from '@/services/solicitudesService';
+import { useValidacionesSolicitud } from '@/composables/useValidacionesSolicitud';
 
 const emit = defineEmits(['volver-inicio']);
+
+// Composable de validaciones
+const validaciones = useValidacionesSolicitud();
 
 // Estado del formulario y UI
 const cargando = ref(false);
 const error = ref(null);
 const exito = ref(false);
+
+// Estado de errores de validación por campo
+const erroresValidacion = ref({
+  nombres: '',
+  apellidoPaterno: '',
+  apellidoMaterno: '',
+  curp: '',
+  rfc: '',
+  nss: '',
+  telefonoCelular: '',
+  correoElectronico: '',
+  pretensionSalarial: '',
+  modalidad: ''
+});
 
 // Catálogos
 const catalogos = ref({
@@ -368,7 +401,6 @@ const cargarCatalogos = async () => {
 };
 
 // Filtrar sexos a solo Masculino y Femenino
-import { computed } from 'vue';
 const sexosFiltrados = computed(() => {
   return catalogos.value.sexos.filter(sexo => 
     ['Masculino', 'Femenino'].includes(sexo.nombre)
@@ -398,6 +430,117 @@ const formatearNombrePuesto = (nombre) => {
   return mapa[nombre] || nombre;
 };
 
+// === VALIDACIONES EN TIEMPO REAL ===
+
+const validarCampo = (campo, valor) => {
+  let resultado;
+  
+  switch(campo) {
+    case 'nombres':
+    case 'apellidoPaterno':
+    case 'apellidoMaterno':
+      resultado = validaciones.validarSoloLetras(valor, campo === 'nombres' ? 'Nombre' : (campo === 'apellidoPaterno' ? 'Apellido Paterno' : 'Apellido Materno'));
+      if (!resultado.valido) {
+        erroresValidacion.value[campo] = resultado.error;
+      } else {
+        erroresValidacion.value[campo] = '';
+        // Capitalizar
+        formulario.value[campo] = resultado.valorCapitalizado || valor;
+      }
+      break;
+      
+    case 'curp':
+      resultado = validaciones.validarCURP(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'rfc':
+      resultado = validaciones.validarRFC(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'nss':
+      resultado = validaciones.validarNSS(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'telefonoCelular':
+      resultado = validaciones.validarCelular(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'correoElectronico':
+      resultado = validaciones.validarCorreo(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'pretensionSalarial':
+      resultado = validaciones.validarPretensionSalarial(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+      
+    case 'modalidad':
+      resultado = validaciones.validarModalidad(valor);
+      erroresValidacion.value[campo] = resultado.error || '';
+      break;
+  }
+};
+
+// Listener para validar en tiempo real
+const handleInputCURP = (event) => {
+  const valor = event.target.value.toUpperCase();
+  formulario.value.curp = valor;
+  validarCampo('curp', valor);
+};
+
+const handleInputRFC = (event) => {
+  const valor = event.target.value.toUpperCase();
+  formulario.value.rfc = valor;
+  validarCampo('rfc', valor);
+};
+
+const handleInputNSS = (event) => {
+  const valor = event.target.value;
+  // Solo permitir números
+  const soloNumeros = valor.replace(/[^0-9]/g, '');
+  formulario.value.nss = soloNumeros;
+  validarCampo('nss', soloNumeros);
+};
+
+const handleInputCelular = (event) => {
+  const valor = event.target.value;
+  // Solo permitir números
+  const soloNumeros = valor.replace(/[^0-9]/g, '');
+  formulario.value.telefonoCelular = soloNumeros;
+  validarCampo('telefonoCelular', soloNumeros);
+};
+
+const handleInputCorreo = (event) => {
+  const valor = event.target.value.toLowerCase();
+  formulario.value.correoElectronico = valor;
+  validarCampo('correoElectronico', valor);
+};
+
+const handleInputSalario = (event) => {
+  const valor = event.target.value;
+  // Solo permitir números y punto (máximo 2 decimales)
+  const soloNumeros = valor.replace(/[^0-9.]/g, '');
+  // Limitar a 2 decimales
+  const partes = soloNumeros.split('.');
+  let resultado = partes[0];
+  if (partes[1]) {
+    resultado += '.' + partes[1].substring(0, 2);
+  }
+  formulario.value.pretensionSalarial = resultado;
+  validarCampo('pretensionSalarial', resultado);
+};
+
+const handleInputModalidad = (event) => {
+  const valor = event.target.value;
+  formulario.value.modalidad = valor;
+  validarCampo('modalidad', valor);
+};
+
 // Validar que solo se ingresen letras y espacios (no números)
 const validarSoloLetras = (event) => {
   const input = event.target;
@@ -406,13 +549,20 @@ const validarSoloLetras = (event) => {
   const valorLimpio = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖ\s\-]/g, '');
   input.value = valorLimpio;
   // Actualizar el v-model
-  if (input.name === 'nombres') formulario.value.nombres = valorLimpio;
-  if (input.name === 'apellidoPaterno') formulario.value.apellidoPaterno = valorLimpio;
-  if (input.name === 'apellidoMaterno') formulario.value.apellidoMaterno = valorLimpio;
+  if (input.name === 'nombres') {
+    formulario.value.nombres = valorLimpio;
+    validarCampo('nombres', valorLimpio);
+  }
+  if (input.name === 'apellidoPaterno') {
+    formulario.value.apellidoPaterno = valorLimpio;
+    validarCampo('apellidoPaterno', valorLimpio);
+  }
+  if (input.name === 'apellidoMaterno') {
+    formulario.value.apellidoMaterno = valorLimpio;
+    validarCampo('apellidoMaterno', valorLimpio);
+  }
 };
 
-// Llamar a cargarCatalogos cuando se monta el componente
-import { onMounted } from 'vue';
 onMounted(() => {
   cargarCatalogos();
 });
@@ -496,6 +646,17 @@ const removerExperiencia = (index) => {
 const enviarSolicitud = async () => {
   if (!formulario.value.confirmacionDatos || !formulario.value.aceptoPrivacidad) {
     error.value = 'Debe aceptar las confirmaciones antes de enviar.';
+    return;
+  }
+
+  // Validar todo el formulario
+  const validacion = validaciones.validarFormulario(formulario.value);
+  
+  if (validacion.tieneErrores) {
+    // Actualizar erroresValidacion con todos los errores encontrados
+    Object.assign(erroresValidacion.value, validacion.errores);
+    error.value = 'Por favor corrige los errores en el formulario antes de enviar.';
+    console.log('Errores encontrados:', validacion.errores);
     return;
   }
 
@@ -1027,5 +1188,52 @@ const volver = () => {
 .btn-secondary:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Mensajes de error */
+.error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+  font-weight: 500;
+}
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+  border-color: #e74c3c;
+  background-color: #ffe8e8;
+}
+
+.alert {
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease;
+}
+
+.alert-error {
+  background-color: #ffe8e8;
+  border: 1px solid #e74c3c;
+  color: #c0392b;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border: 1px solid #28a745;
+  color: #155724;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
