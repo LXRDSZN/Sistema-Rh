@@ -8,11 +8,17 @@
             <h1>Contratos/Empleado</h1>
         </div>
 
-        <div class="content-box">
+        <!-- ✅ Mostrar mensaje de carga mientras se traen los datos -->
+        <div v-if="loading" class="loading">
+            <p>Cargando datos del empleado...</p>
+        </div>
+
+        <div v-else-if="empleadoCompleto" class="content-box">
             <h2 class="section-title">EMPLEADO</h2>
 
             <!-- Componente de Header del Empleado -->
-            <EmpleadoHeader :empleado="empleado" @ver-contrato="activeTab = 'contratoActual'" />
+            <EmpleadoHeader :empleado="empleadoCompleto" @ver-contrato="activeTab = 'contratoActual'"
+                @renovar-contrato="renovarContrato" />
 
             <!-- Tabs de navegación -->
             <DetalleEmpleadoTabs :activeTab="activeTab" @cambiar-tab="cambiarTab" />
@@ -34,13 +40,19 @@
                 <DocumentosTab v-else-if="activeTab === 'documentos'" :documentos="documentos"
                     @descargar="descargarDocumento" @ver="verDocumento" @compartir="compartirDocumento"
                     @eliminar="eliminarDocumento" />
+
+                <!-- ✅ Mostrar error si falla la carga -->
+                <div v-else class="error">
+                    <p>Error al cargar los datos del empleado</p>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useContratos } from '@/composables/useContratos';
 import DetalleEmpleadoTabs from './DetalleEmpleadoTabs.vue';
 import EmpleadoHeader from './EmpleadoHeader.vue';
 import ContratoActualTab from './TabsContent/ContratoActualTab.vue';
@@ -57,7 +69,11 @@ const props = defineProps({
 
 const emit = defineEmits(['cerrar', 'renovar-contrato']);
 
+const { obtenerEncabezadoEmpleado, obtenerContratoActualEmpleado } = useContratos();
 const activeTab = ref('contratoActual');
+const loading = ref(false);
+const empleadoCompleto = ref(null);
+
 
 // Datos del contrato actual
 const contratoActual = ref({
@@ -98,6 +114,67 @@ const documentos = ref([
     { id: 5, nombre: 'Cartas', estado: 'Pendiente', estadoClase: 'pendiente', fechaSubida: '12/12/2025' }
 ]);
 
+
+onMounted(async () => {
+    loading.value = true;
+    try {
+        const [encabezado, contrato] = await Promise.all([
+            obtenerEncabezadoEmpleado(props.empleado.persona_id),
+            obtenerContratoActualEmpleado(props.empleado.persona_id)
+        ]);
+
+        const hoy = new Date();
+        const fechaFin = new Date(contrato.fecha_fin);
+        const fechaInicio = new Date(contrato.fecha_inicio);
+
+        let estadoTexto = 'ACTIVO';
+        let estadoClase = 'activo';
+
+        if (fechaFin < hoy) {
+            // Contrato vencido
+            estadoTexto = 'VENCIDO';
+            estadoClase = 'vencido';
+        } else {
+            // Calcular días para vencer
+            const diasParaVencer = Math.floor((fechaFin - hoy) / (1000 * 60 * 60 * 24));
+
+            if (diasParaVencer <= 30 && diasParaVencer > 0) {
+                // Próximo a vencer
+                estadoTexto = 'PRÓXIMO A VENCER';
+                estadoClase = 'proximo-a-vencer';
+            }
+        }
+
+        empleadoCompleto.value = {
+            ...encabezado,
+            ...contrato,
+            // ✅ Agregar avatar si no existe
+            avatar: encabezado.foto_url,
+            // ✅ Formatear nombre completo
+            nombre: `${encabezado.nombre} ${encabezado.apellido_paterno} ${encabezado.apellido_materno || ''}`.trim(),
+            // ✅ Agregar estado y fecha
+            estadoTexto,
+            estadoClase,
+            fechaRegistro: encabezado.fecha_ingreso
+        };
+
+        contratoActual.value = {
+            tipoContrato: contrato.tipo_contrato || 'XXXXX',
+            fechaInicioFin: `${contrato.fecha_inicio} - ${contrato.fecha_fin}`,
+            salarioBase: contrato.salario_mensual || 'XXXXX',
+            jornadaLaboral: contrato.jornada || 'XXXXX',
+            horario: `${contrato.hora_entrada} - ${contrato.hora_salida}` || 'XXXXX',
+            estadoFirma: contrato.estado_firma || 'XXXXX'
+        };
+
+    } catch (error) {
+        console.error('Error al cargar empleado:', error);
+    } finally {
+        loading.value = false;
+    }
+});
+
+
 const cambiarTab = (tab) => {
     activeTab.value = tab;
 };
@@ -107,9 +184,8 @@ const cerrar = () => {
 };
 
 const renovarContrato = () => {
-    emit('renovar-contrato');
+    emit('renovar-contrato', empleadoCompleto.value);
 };
-
 const toggleBeneficio = (beneficio) => {
     beneficio.activo = !beneficio.activo;
 };
@@ -191,5 +267,27 @@ const eliminarDocumento = (doc) => {
 
 .tab-content {
     padding: 2rem 0;
+}
+
+/* Agregar estos estilos */
+.loading,
+.error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 12px;
+    margin: 1.5rem;
+}
+
+.loading p {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.error p {
+    font-size: 1.1rem;
+    color: #dc3545;
 }
 </style>
