@@ -2,7 +2,7 @@
     <div class="enlace-crear-contrato">
         <!-- Header con flecha y título -->
         <div class="top-header">
-            <!-- 🔹 Ahora usa confirmarSalida -->
+            <!-- Usa confirmarSalida para validar si hay cambios -->
             <button class="btn-back" @click="confirmarSalida">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
@@ -10,7 +10,10 @@
         </div>
 
         <div class="content-box">
-            <h2 class="section-title">CONTRATO NUEVO</h2>
+            <h2 class="section-title">
+                <!-- Podrías hacerlo dinámico después (CONTRATO NUEVO / RENOVAR CONTRATO) -->
+                CONTRATO NUEVO
+            </h2>
 
             <!-- Datos Personales -->
             <div class="form-section">
@@ -31,11 +34,12 @@
                     <div class="form-group" style="grid-column: 2 / 4;">
                         <label>Nombre Completo</label>
                         <div class="inline-fields">
-                            <input type="text" v-model="formData.nombre" placeholder="Nombre" class="form-input">
+                            <input type="text" v-model="formData.nombre" placeholder="Nombre" class="form-input"
+                                @input="limpiarYFormatearNombre('nombre', $event)">
                             <input type="text" v-model="formData.apellidoPaterno" placeholder="Apellido Paterno"
-                                class="form-input">
+                                class="form-input" @input="limpiarYFormatearNombre('apellidoPaterno', $event)">
                             <input type="text" v-model="formData.apellidoMaterno" placeholder="Apellido Materno"
-                                class="form-input">
+                                class="form-input" @input="limpiarYFormatearNombre('apellidoMaterno', $event)">
                         </div>
                     </div>
                 </div>
@@ -45,29 +49,34 @@
                         <label>Tipo de Contrato</label>
                         <select v-model="formData.tipoContrato" class="form-select">
                             <option value="">Seleccione tipo</option>
-                            <option value="Indefinido">Indefinido</option>
+                            <option value="Indeterminado">Indeterminado</option>
                             <option value="Temporal">Temporal</option>
-                            <option value="Por Obra">Por Obra</option>
+                            <option value="Por Proyecto">Por Proyecto</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Fecha de inicio</label>
-                        <input type="date" v-model="formData.fechaInicio" class="form-input">
+                        <input type="date" v-model="formData.fechaInicio" class="form-input" :min="minFechaInicio"
+                            :max="maxFechaInicio" @change="validarFechaInicio">
                     </div>
                     <div class="form-group">
                         <label>Fecha de término</label>
-                        <input type="date" v-model="formData.fechaTermino" class="form-input">
+                        <input type="date" v-model="formData.fechaTermino" class="form-input"
+                            :disabled="formData.tipoContrato === 'Indeterminado'"
+                            :min="minFechaTermino || minFechaInicio" @change="validarFechaTermino">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Proyecto (en caso de aplicar) </label>
-                        <input type="text" v-model="formData.proyecto" class="form-input">
+                        <label>Proyecto (en caso de aplicar)</label>
+                        <!-- Este campo NO se guardará en BD, solo sirve para el PDF -->
+                        <input type="text" v-model="formData.proyecto" class="form-input"
+                            placeholder="Nombre del proyecto">
                     </div>
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
-                        <input type="text" v-model="formData.sueldoMensual" class="form-input">
+                        <input type="text" v-model="formData.sueldoMensual" class="form-input" placeholder="0.00">
                     </div>
                     <div class="form-group">
                         <label>Modalidad</label>
@@ -95,6 +104,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Área</label>
+                        <!-- Cuando conectes catálogos, aquí irán las áreas de BD -->
                         <select v-model="formData.area" class="form-select">
                             <option value="">Seleccione área</option>
                             <option value="Contratos">Contratos</option>
@@ -162,9 +172,10 @@
                         <label>Tipo de Documento</label>
                         <select v-model="formData.tipoDocumento" class="form-select">
                             <option value="">Seleccione</option>
-                            <option value="Contrato">Contrato</option>
-                            <option value="Anexo">Anexo</option>
-                            <option value="Identificación">Identificación</option>
+                            <option value="REGlAMENTO">Reglamento</option>
+                            <option value="CONTRATO">Contrato</option>
+                            <option value="ANEXO">Anexo</option>
+                            <option value="IDENTIFICACION">Identificación</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -174,14 +185,14 @@
                 </div>
             </div>
 
-            <!-- Firmas y Acciones -->
+            <!-- Acciones -->
             <div class="form-section">
-                <h3 class="subsection-title">Firmas y Acciones</h3>
+                <h3 class="subsection-title">Acciones</h3>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Fecha de Generación</label>
-                        <input type="date" v-model="formData.fechaGeneracion" class="form-input">
+                        <input type="date" v-model="formData.fechaGeneracion" class="form-input" :max="maxFechaInicio">
                     </div>
                 </div>
             </div>
@@ -203,7 +214,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
+import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 
 const props = defineProps({
     datosAspirante: {
@@ -213,6 +225,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['volver-inicio']);
+
+const { obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
 
 // Variables ref
 const fotoUrl = ref(null);
@@ -241,35 +255,173 @@ const formData = ref({
     fechaGeneracion: ''
 });
 
-// 🔹 copia del estado inicial para saber si hay cambios
+// ======== Helpers de fechas ========
+const obtenerHoy = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+const formatearFechaInput = (fecha) => {
+    const d = new Date(fecha);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 10);
+};
+
+const hoyDate = obtenerHoy();
+const minFechaInicio = ref(formatearFechaInput(hoyDate));
+
+const fechaMax = new Date(hoyDate.getTime());
+fechaMax.setMonth(fechaMax.getMonth() + 3); // +3 meses
+const maxFechaInicio = ref(formatearFechaInput(fechaMax));
+
+const hoyISO = minFechaInicio.value;
+
+const minFechaTermino = computed(() => {
+    if (!formData.value.fechaInicio) return '';
+    const d = new Date(formData.value.fechaInicio);
+    d.setMonth(d.getMonth() + 1); // al menos 1 mes después
+    return formatearFechaInput(d);
+});
+
+// ======== Manejo de estado inicial para detectar cambios ========
 const initialFormData = ref({ ...formData.value });
 
-// Clonar estado actual al inicial
 const actualizarEstadoInicial = () => {
     initialFormData.value = JSON.parse(JSON.stringify(formData.value));
 };
 
-// Saber si el usuario ha modificado algo
 const hayCambiosEnFormulario = () => {
     return JSON.stringify(formData.value) !== JSON.stringify(initialFormData.value);
 };
 
-// Cargar datos del aspirante
-const cargarDatosAspirante = () => {
+// ======== Carga de datos del aspirante + aspiración laboral (LOAD) ========
+const cargarDatosAspirante = async () => {
+    // 1) Datos que vienen del listado (foto, nombre, apellidos)
     if (props.datosAspirante) {
         formData.value.nombre = props.datosAspirante.nombreSolo || props.datosAspirante.nombre || '';
         formData.value.apellidoPaterno = props.datosAspirante.apellidoPaterno || '';
         formData.value.apellidoMaterno = props.datosAspirante.apellidoMaterno || '';
         fotoUrl.value = props.datosAspirante.avatar || null;
-
-        console.log('✅ Datos del aspirante cargados:', props.datosAspirante);
     }
 
-    // Después de cargar (o dejar vacío) tomamos ese estado como "inicial"
+    // 2) Consulta "Aspirante (primer contrato)" para aspiración laboral
+    const personaId = props.datosAspirante?.persona_id;
+    if (personaId) {
+        try {
+            const datos = await obtenerAspiracionLaboralAspirante(personaId);
+            if (datos) {
+                // Si vienen datos de nombre y foto y no estaban, los usamos
+                if (!formData.value.nombre) formData.value.nombre = datos.nombre || '';
+                if (!formData.value.apellidoPaterno) formData.value.apellidoPaterno = datos.apellido_paterno || '';
+                if (!formData.value.apellidoMaterno) formData.value.apellidoMaterno = datos.apellido_materno || '';
+                if (!fotoUrl.value) fotoUrl.value = datos.foto_url || null;
+
+                // Tipo de contrato, modalidad, fecha disponible
+                formData.value.tipoContrato = datos.tipo_contrato || '';
+                formData.value.modalidad = datos.modalidad || '';
+
+                if (datos.fecha_disponible) {
+                    formData.value.fechaInicio = formatearFechaInput(datos.fecha_disponible);
+                }
+
+                // Si luego conectas catálogos de BD, aquí puedes asignar:
+                // formData.value.area = datos.area_id;
+                // formData.value.puesto = datos.puesto_id;
+                // formData.value.jornadaLaboral = datos.jornada_id;
+            }
+        } catch (error) {
+            console.warn('No se pudo cargar aspiración laboral del aspirante:', error);
+        }
+    }
+
+    // 3) Fecha de generación por defecto = hoy
+    if (!formData.value.fechaGeneracion) {
+        formData.value.fechaGeneracion = hoyISO;
+    }
+
     actualizarEstadoInicial();
 };
 
-// 🔹 Confirmar salida según haya cambios o no
+// ======== Validaciones ========
+// Nombre Completo: solo letras y capitalizar
+const limpiarYFormatearNombre = (campo, event) => {
+    let valor = event.target.value || '';
+
+    // Solo letras (incluye tildes y ñ) y espacios
+    valor = valor.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, '');
+    // Quitar espacios dobles
+    valor = valor.replace(/\s+/g, ' ');
+    // Quitar espacios al inicio
+    valor = valor.replace(/^\s+/, '');
+
+    // Capitalizar cada palabra
+    valor = valor.replace(/\b\w+/g, (palabra) => {
+        return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+    });
+
+    formData.value[campo] = valor;
+};
+
+// Fecha de inicio: hoy <= fechaInicio <= hoy+3 meses
+const validarFechaInicio = () => {
+    if (!formData.value.fechaInicio) return;
+
+    const fi = new Date(formData.value.fechaInicio);
+    fi.setHours(0, 0, 0, 0);
+
+    if (fi < hoyDate || fi > fechaMax) {
+        alert('La fecha de inicio debe ser a partir de hoy y no mayor a tres meses.');
+        formData.value.fechaInicio = '';
+        return;
+    }
+
+    // Si ya había fecha de término, la validamos de nuevo
+    if (formData.value.fechaTermino) {
+        validarFechaTermino();
+    }
+};
+
+// Fecha de término: al menos 1 mes después de inicio; vacía si es indeterminado
+const validarFechaTermino = () => {
+    if (formData.value.tipoContrato === 'Indeterminado') {
+        formData.value.fechaTermino = '';
+        return;
+    }
+
+    if (!formData.value.fechaInicio) {
+        alert('Primero selecciona la fecha de inicio.');
+        formData.value.fechaTermino = '';
+        return;
+    }
+
+    if (!formData.value.fechaTermino) return;
+
+    const fi = new Date(formData.value.fechaInicio);
+    const ft = new Date(formData.value.fechaTermino);
+    fi.setHours(0, 0, 0, 0);
+    ft.setHours(0, 0, 0, 0);
+
+    const minFin = new Date(fi.getTime());
+    minFin.setMonth(minFin.getMonth() + 1);
+
+    if (ft < minFin) {
+        alert('La fecha de término debe ser al menos un mes después de la fecha de inicio.');
+        formData.value.fechaTermino = '';
+    }
+};
+
+// Si cambia Tipo de contrato a Indeterminado, limpiamos fecha de término
+watch(
+    () => formData.value.tipoContrato,
+    (nuevo) => {
+        if (nuevo === 'Indeterminado') {
+            formData.value.fechaTermino = '';
+        }
+    }
+);
+
+// ======== Lógica de salida con confirmación ========
 const confirmarSalida = () => {
     const hayCambios = hayCambiosEnFormulario();
 
@@ -282,18 +434,23 @@ const confirmarSalida = () => {
     }
 };
 
-// Guardar contrato
+// Guardar contrato (aquí después conectarás con la API que haga los 4 pasos de tus consultas)
 const guardarContrato = () => {
-    // Validar campos requeridos
+    // Validar campos requeridos mínimos
     if (!formData.value.nombre || !formData.value.apellidoPaterno || !formData.value.area) {
-        alert('Por favor complete los campos requeridos');
+        alert('Por favor complete los campos requeridos (Nombre, Apellido Paterno y Área).');
         return;
     }
 
-    console.log('Guardando contrato:', formData.value);
-    alert('Contrato guardado exitosamente');
+    if (!formData.value.tipoContrato || !formData.value.fechaInicio) {
+        alert('Tipo de contrato y fecha de inicio son obligatorios.');
+        return;
+    }
 
-    // Si quisieras considerar este estado como "guardado" y que ya no pregunte al salir:
+    console.log('Guardando contrato (pendiente conectar con API):', formData.value);
+    alert('Contrato guardado exitosamente (simulado).');
+
+    // Consideramos este estado como "guardado"
     actualizarEstadoInicial();
 
     // Volver al inicio después de guardar
@@ -308,19 +465,26 @@ const enviarLimpiar = () => {
         formData.value[key] = '';
     });
 
-    fotoUrl.value = null;
+    // Foto precargada del aspirante no se borra
+    // Si quisieras borrarla también, descomenta:
+    // fotoUrl.value = null;
 
     console.log('Formulario limpiado');
     alert('Formulario limpiado correctamente');
 
-    // Después de limpiar, el estado limpio pasa a ser el nuevo "inicial"
+    formData.value.fechaGeneracion = hoyISO;
+
     actualizarEstadoInicial();
 };
 
-// Watch para cambios en props
-watch(() => props.datosAspirante, () => {
-    cargarDatosAspirante();
-}, { deep: true });
+// Watch para cambios en props.datosAspirante
+watch(
+    () => props.datosAspirante,
+    () => {
+        cargarDatosAspirante();
+    },
+    { deep: true }
+);
 
 // Cargar datos al montar
 onMounted(() => {

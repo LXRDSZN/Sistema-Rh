@@ -115,4 +115,56 @@ router.get('/aspirantes/:personaId/cv', async (req, res) => {
   }
 });
 
+// ========================================
+// OBTENER ASPIRACIÓN LABORAL (PRIMER CONTRATO)
+// ========================================
+router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+
+    const query = `
+      -- Aspirante (Primer contrato)
+      SELECT
+          p.id AS persona_id,
+          p.nombre,
+          p.apellido_paterno,
+          p.apellido_materno,
+          p.foto_url,
+          al.area_id,
+          al.puesto_id,
+          al.tipo_contrato,
+          al.modalidad,
+          al.fecha_disponible,
+          al.jornada_id
+      FROM persona p
+      LEFT JOIN aspiracion_laboral al ON al.persona_id = p.id
+      WHERE p.id = $1
+      LIMIT 1;
+    `;
+
+    const result = await pool.query(query, [personaId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: 'No se encontró aspiración laboral para este aspirante'
+      });
+    }
+
+    res.json({
+      ok: true,
+      aspiracion: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error al obtener aspiración laboral del aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+
+
 export default router;

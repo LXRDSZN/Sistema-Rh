@@ -1,15 +1,11 @@
-// composables/useAspirantesContratos.js
+// src/composables/useAspirantesContratos.js
 import axios from 'axios';
 
-// Si ya usas una variable de entorno, puedes cambiar esto a import.meta.env.VITE_API_URL
 const API_URL = 'http://localhost:5000/api';
 
 export const useAspirantesContratos = () => {
   /**
-   * Obtiene todos los datos personales del aspirante
-   * para:
-   *  - Encabezado de AspiranteInfo.vue
-   *  - DatosPersonalesTab.vue
+   * Datos personales (los que ya usas para AspiranteInfo y DatosPersonalesTab)
    */
   const obtenerDatosPersonalesAspirante = async (personaId) => {
     try {
@@ -24,17 +20,15 @@ export const useAspirantesContratos = () => {
   };
 
   /**
-   * Obtiene la URL del CV del aspirante
-   * (para el botón de “Ver CV” en AspiranteInfo.vue)
+   * URL del CV
    */
   const obtenerCvAspirante = async (personaId) => {
     try {
       const response = await axios.get(
         `${API_URL}/aspirantes/${personaId}/cv`
       );
-      return response.data.cvUrl; // string con la URL del PDF
+      return response.data.cvUrl;
     } catch (error) {
-      // Si no tiene CV, el backend manda 404; aquí puedes regresar null
       if (error.response && error.response.status === 404) {
         return null;
       }
@@ -43,8 +37,25 @@ export const useAspirantesContratos = () => {
     }
   };
 
+  /**
+   * Aspiración laboral del aspirante (primer contrato)
+   * - area_id, puesto_id, tipo_contrato, modalidad, fecha_disponible, jornada_id
+   */
+  const obtenerAspiracionLaboralAspirante = async (personaId) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/aspirantes/${personaId}/aspiracion-laboral`
+      );
+      return response.data.aspiracion;
+    } catch (error) {
+      console.error('Error al obtener aspiración laboral del aspirante:', error);
+      return null; // solo LOG, no truena la pantalla
+    }
+  };
+
   return {
     obtenerDatosPersonalesAspirante,
-    obtenerCvAspirante
+    obtenerCvAspirante,
+    obtenerAspiracionLaboralAspirante
   };
 };
