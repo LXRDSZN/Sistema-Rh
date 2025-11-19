@@ -11,8 +11,9 @@
     <!-- Otras vistas -->
     <div v-else class="other-view">
       <!-- Detalle del Aspirante -->
-      <DetalleAspirante v-if="activeTab === 'detalleAspirante'" :aspirante="aspiranteSeleccionado"
-        @cerrar="activeTab = 'inicio'" />
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante'"
+        :persona-id="aspiranteSeleccionado.id || aspiranteSeleccionado.persona_id" @cerrar="activeTab = 'inicio'"
+        @crear-contrato="handleCrearContratoAspirante" />
 
       <!-- Detalle del Empleado -->
       <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
@@ -36,7 +37,8 @@
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de Crear Contrato -->
-      <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceCrearContrato v-if="activeTab === 'crear'" :datos-aspirante="aspiranteParaContrato"
+        @volver-inicio="volverInicio" />
 
       <!-- Vista de Registro de Solicitud -->
       <EnlaceRegistroSolicitud v-else-if="activeTab === 'registro'" @volver-inicio="activeTab = 'inicio'" />
@@ -74,7 +76,11 @@ const activeTab = ref('inicio');
 const showIncidencia = ref(false);
 const aspiranteSeleccionado = ref(null);
 const empleadoSeleccionado = ref(null);
+const aspiranteParaContrato = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
+
+// 🔹 para saber desde dónde abrí "crear contrato"
+const origenDesdeAspirante = ref(false);
 
 // Estados reactivos
 const stats = ref({
@@ -111,36 +117,39 @@ const updateTabFromRoute = () => {
     activeTab.value = 'crear';
   } else if (route.path === '/Contratos/registro-huellas') {
     activeTab.value = 'registro-huellas';
-  }
-  else if (route.path === '/Contratos/historial') {
+  } else if (route.path === '/Contratos/historial') {
     activeTab.value = 'historial';
-  }
-  else {
+  } else {
     activeTab.value = 'inicio';
   }
 };
 
-// Función para volver al inicio
-const volverInicio = () => {
-  router.push('/Contratos');
+// 🔹 Función para volver desde "crear contrato"
+const volverInicio = async () => {
+  // 1) Cambiar la pestaña
+  activeTab.value = 'inicio';
+
+  // 2) Navegar al inicio de Contratos solo si hace falta
+  if (route.path !== '/Contratos') {
+    await router.push('/Contratos');
+  }
+
+  // 3) Recargar datos para que ya no aparezca como aspirante
+  await cargarDatos();
 };
 
 // Función para cargar datos de la API
 const cargarDatos = async () => {
   loading.value = true;
   try {
-    // Cargar estadísticas
     stats.value = await obtenerEstadisticas();
 
-    // Cargar empleados y aspirantes destacados
     const [empleados, aspirantes] = await Promise.all([
       obtenerEmpleadosDestacados(),
       obtenerAspirantesDestacados()
     ]);
 
-    // Combinar empleados y aspirantes
     contratos.value = [...empleados, ...aspirantes];
-
   } catch (error) {
     console.error('Error al cargar datos:', error);
     alert('Error al cargar datos del dashboard');
@@ -148,8 +157,6 @@ const cargarDatos = async () => {
     loading.value = false;
   }
 };
-
-
 
 // Métodos para manejar eventos
 const handleCrearContrato = () => {
@@ -178,10 +185,16 @@ const handleRenovarContrato = () => {
   activeTab.value = 'crear';
 };
 
+
+const handleCrearContratoAspirante = (aspirante) => {
+  console.log('Crear contrato para aspirante:', aspirante);
+  aspiranteParaContrato.value = aspirante;
+  activeTab.value = 'crear';
+};
+
 // Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
-  // Los datos ya están cargados y los computed properties se encargan del filtro
 };
 
 // Computed para historial
@@ -198,15 +211,12 @@ const handleDescargarContrato = async (contrato) => {
   console.log('Descargar contrato:', contrato);
 
   try {
-    // Aquí puedes implementar la descarga del PDF
-    // Por ejemplo, usando tu sistema S3
     alert(`Descargando contrato de ${contrato.nombre}`);
   } catch (error) {
     console.error('Error al descargar:', error);
     alert('Error al descargar el contrato');
   }
 };
-
 
 // Watch para cambios en la ruta
 watch(() => route.path, () => {
@@ -219,6 +229,7 @@ onMounted(async () => {
   await cargarDatos();
 });
 </script>
+
 
 <style scoped>
 .contratos-content {

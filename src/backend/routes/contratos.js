@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../models/db.js';
-
+import { verificarToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // ========================================
@@ -671,5 +671,126 @@ router.get('/contratos/areas', async (req, res) => {
     }
 });
 
+// Crear contrato de aspirante (pasos 2,3,4)
+router.post('/contratos/aspirante', verificarToken, async (req, res) => {
+  const client = await pool.connect();
 
+  try {
+    const {
+      personaId,
+      plantillaId,
+      puestoId,
+      areaId,
+      salarioMensual,
+      fechaInicio,
+      fechaFin,
+      tipoContrato,
+      modalidad,
+      observaciones,
+      jornadaId,
+      horaEntrada,
+      horaSalida,
+      tipoDocumentoId,
+      archivoId
+    } = req.body;
+
+    if (!personaId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'personaId es obligatorio'
+      });
+    }
+
+
+    await client.query('BEGIN');
+
+    // 2) INSERT en contrato
+    const contratoSql = `
+      INSERT INTO contrato (
+        id,
+        persona_id,
+        plantilla_id,
+        puesto_id,
+        area_id,
+        salario_mensual,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        archivo_id,
+        tipo_contrato,
+        modalidad,
+        observaciones
+      )
+      VALUES (
+        uuid_generate_v4(),
+        $1, $2, $3, $4, $5, $6, $7,
+        (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO'),
+        $8, $9, $10, $11
+      )
+      RETURNING *;
+    `;
+    const contratoValues = [
+      personaId,
+      plantillaId,
+      puestoId,
+      areaId,
+      salarioMensual,
+      fechaInicio,
+      fechaFin,
+      archivoId,
+      tipoContrato,
+      modalidad,
+      observaciones
+    ];
+
+    const contratoResult = await client.query(contratoSql, contratoValues);
+    const contrato = contratoResult.rows[0];
+
+    // 3) Registrar jornada laboral
+    if (jornadaId && horaEntrada && horaSalida) {
+      const jornadaSql = `
+        INSERT INTO jornada_empleado (
+          id, persona_id, jornada_id, hora_entrada, hora_salida
+        )
+        VALUES (
+          uuid_generate_v4(),
+          $1, $2, $3, $4
+        );
+      `;
+      await client.query(jornadaSql, [
+        personaId,
+        jornadaId,
+        horaEntrada,
+        horaSalida
+      ]);
+    }
+
+    // 4) Cambiar de Aspirante a Empleado
+    const updatePersonaSql = `
+      UPDATE persona
+      SET tipo = 'Empleado',
+          estado_empleado = 'ACTIVO',
+          etapa = 'Contratado'
+      WHERE id = $1;
+    `;
+    await client.query(updatePersonaSql, [personaId]);
+
+    await client.query('COMMIT');
+
+    res.json({
+      ok: true,
+      mensaje: 'Contrato creado y aspirante cambiado a empleado',
+      contrato
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al crear contrato de aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
 export default router;
