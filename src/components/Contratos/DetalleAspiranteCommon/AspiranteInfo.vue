@@ -28,12 +28,12 @@
 
             <!-- Iconos de estado -->
             <div class="iconos-estado">
-                <div class="icono-card">
+                <div class="icono-card" :class="{ 'disabled': !cvUrl }" @click="abrirCV" role="button" tabindex="0">
                     <span class="material-symbols-rounded">badge</span>
                     <span class="icono-label">CV</span>
                 </div>
 
-                <div class="icono-card">
+                <div class="icono-card" @click="verContrato" role="button" tabindex="0">
                     <span class="material-symbols-rounded">description</span>
                     <span class="icono-label">Contrato</span>
                 </div>
@@ -59,6 +59,10 @@ const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    cvUrl: {
+        type: String,
+        default: null
     }
 });
 
@@ -66,6 +70,18 @@ const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2025';
     const date = new Date(fecha);
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const abrirCV = () => {
+    if (props.cvUrl) {
+        window.open(props.cvUrl, '_blank');
+    } else {
+        alert('Este aspirante no tiene CV cargado');
+    }
+};
+
+const verContrato = () => {
+    alert('Funcionalidad de contrato en desarrollo');
 };
 </script>
 
@@ -149,7 +165,20 @@ const formatearFecha = (fecha) => {
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     min-width: 70px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
+
+.icono-card:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.icono-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 .icono-card .material-symbols-rounded {
     font-size: 28px;
