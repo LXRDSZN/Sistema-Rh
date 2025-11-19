@@ -4,34 +4,6 @@
             <!-- Formación académica -->
             <div class="seccion-formacion">
                 <h3 class="seccion-titulo">Formación académica</h3>
-                
-                <div class="formacion-card">
-                    <div class="formacion-icon">
-                        <span class="material-symbols-rounded">school</span>
-                    </div>
-                    <div class="formacion-detalles">
-                        <div class="detalle-row">
-                            <span class="detalle-label">Nivel de estudios:</span>
-                            <span class="detalle-value">Licenciatura</span>
-                        </div>
-                        <div class="detalle-row">
-                            <span class="detalle-label">Institución:</span>
-                            <span class="detalle-value">TECNM</span>
-                        </div>
-                        <div class="detalle-row">
-                            <span class="detalle-label">Título:</span>
-                            <span class="detalle-value">ING. IND</span>
-                        </div>
-                        <div class="detalle-row">
-                            <span class="detalle-label">Fecha Inicio:</span>
-                            <span class="detalle-value">12/11/2018</span>
-                        </div>
-                        <div class="detalle-row">
-                            <span class="detalle-label">Fecha Fin:</span>
-                            <span class="detalle-value">12/11/2018</span>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="formacion-card">
                     <div class="formacion-icon">
@@ -61,13 +33,41 @@
                     </div>
                 </div>
 
-                <button class="btn-añadir">+ Añadir</button>
+                <div class="formacion-card">
+                    <div class="formacion-icon">
+                        <span class="material-symbols-rounded">school</span>
+                    </div>
+                    <div class="formacion-detalles">
+                        <div class="detalle-row">
+                            <span class="detalle-label">Nivel de estudios:</span>
+                            <span class="detalle-value">Licenciatura</span>
+                        </div>
+                        <div class="detalle-row">
+                            <span class="detalle-label">Institución:</span>
+                            <span class="detalle-value">TECNM</span>
+                        </div>
+                        <div class="detalle-row">
+                            <span class="detalle-label">Título:</span>
+                            <span class="detalle-value">ING. IND</span>
+                        </div>
+                        <div class="detalle-row">
+                            <span class="detalle-label">Fecha Inicio:</span>
+                            <span class="detalle-value">12/11/2018</span>
+                        </div>
+                        <div class="detalle-row">
+                            <span class="detalle-label">Fecha Fin:</span>
+                            <span class="detalle-value">12/11/2018</span>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
 
             <!-- Experiencia laboral -->
             <div class="seccion-experiencia">
                 <h3 class="seccion-titulo">Experiencia laboral</h3>
-                
+
                 <div class="experiencia-card">
                     <div class="experiencia-icon">
                         <span class="material-symbols-rounded">work</span>
@@ -99,7 +99,7 @@
                     </div>
                 </div>
 
-                <button class="btn-añadir">+ Añadir</button>
+
             </div>
         </div>
     </div>
@@ -206,24 +206,7 @@ defineProps({
     margin-bottom: 0.25rem;
 }
 
-.btn-añadir {
-    padding: 0.8rem 1.5rem;
-    background-color: transparent;
-    border: 2px dashed #7c4dff;
-    color: #7c4dff;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    align-self: flex-start;
-}
 
-.btn-añadir:hover {
-    background-color: #7c4dff;
-    color: white;
-    border-style: solid;
-}
 
 @media (max-width: 1024px) {
     .formacion-experiencia-grid {

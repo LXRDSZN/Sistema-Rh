@@ -99,21 +99,15 @@ const props = defineProps({
 });
 
 const getNombre = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[0] || 'XXXX';
+    return props.aspirante.nombreSolo || 'XXXX';
 };
 
 const getApellidoPaterno = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[1] || 'XXXX';
+    return props.aspirante.apellidoPaterno || 'XXXX';
 };
 
 const getApellidoMaterno = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[2] || 'XXXX';
+    return props.aspirante.apellidoMaterno || 'XXXX';
 };
 </script>
 

@@ -11,35 +11,34 @@
     <!-- Otras vistas -->
     <div v-else class="other-view">
       <!-- Detalle del Aspirante -->
-      <DetalleAspirante v-if="activeTab === 'detalleAspirante'" :aspirante="aspiranteSeleccionado"
-        @cerrar="activeTab = 'inicio'" />
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante'"
+        :persona-id="aspiranteSeleccionado.id || aspiranteSeleccionado.persona_id" @cerrar="activeTab = 'inicio'"
+        @crear-contrato="handleCrearContratoAspirante" />
 
       <!-- Detalle del Empleado -->
       <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
         @cerrar="activeTab = 'inicio'" @renovar-contrato="handleRenovarContrato" />
 
-      <!-- Vista de Activos -->
-      <EnlaceActivos v-else-if="activeTab === 'activos'" :contratos="contratosActivos"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <!-- ✅ Sin pasar :contratos como prop -->
+      <EnlaceActivos v-else-if="activeTab === 'activos'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Próximos a Vencer -->
-      <EnlaceAVencer v-else-if="activeTab === 'avencer'" :contratos="contratosAVencer"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceAVencer v-else-if="activeTab === 'avencer'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Vencidos -->
-      <EnlaceVencidos v-else-if="activeTab === 'vencidos'" :contratos="contratosVencidos"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceVencidos v-else-if="activeTab === 'vencidos'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de En Proceso -->
-      <EnlaceEnProceso v-else-if="activeTab === 'proceso'" :contratos="contratosEnProceso"
-        @revisar-contrato="handleRevisarContrato" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceEnProceso v-else-if="activeTab === 'proceso'" @revisar-contrato="handleRevisarContrato"
+        @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de estadísticas -->
       <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: 18 }"
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de Crear Contrato -->
-      <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceCrearContrato v-if="activeTab === 'crear'" :datos-aspirante="aspiranteParaContrato"
+        @volver-inicio="volverInicio" />
 
       <!-- Vista de Registro de Solicitud -->
       <EnlaceRegistroSolicitud v-else-if="activeTab === 'registro'" @volver-inicio="activeTab = 'inicio'" />
@@ -77,7 +76,11 @@ const activeTab = ref('inicio');
 const showIncidencia = ref(false);
 const aspiranteSeleccionado = ref(null);
 const empleadoSeleccionado = ref(null);
+const aspiranteParaContrato = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
+
+// 🔹 para saber desde dónde abrí "crear contrato"
+const origenDesdeAspirante = ref(false);
 
 // Estados reactivos
 const stats = ref({
@@ -114,36 +117,39 @@ const updateTabFromRoute = () => {
     activeTab.value = 'crear';
   } else if (route.path === '/Contratos/registro-huellas') {
     activeTab.value = 'registro-huellas';
-  }
-  else if (route.path === '/Contratos/historial') {
+  } else if (route.path === '/Contratos/historial') {
     activeTab.value = 'historial';
-  }
-  else {
+  } else {
     activeTab.value = 'inicio';
   }
 };
 
-// Función para volver al inicio
-const volverInicio = () => {
-  router.push('/Contratos');
+// 🔹 Función para volver desde "crear contrato"
+const volverInicio = async () => {
+  // 1) Cambiar la pestaña
+  activeTab.value = 'inicio';
+
+  // 2) Navegar al inicio de Contratos solo si hace falta
+  if (route.path !== '/Contratos') {
+    await router.push('/Contratos');
+  }
+
+  // 3) Recargar datos para que ya no aparezca como aspirante
+  await cargarDatos();
 };
 
 // Función para cargar datos de la API
 const cargarDatos = async () => {
   loading.value = true;
   try {
-    // Cargar estadísticas
     stats.value = await obtenerEstadisticas();
 
-    // Cargar empleados y aspirantes destacados
     const [empleados, aspirantes] = await Promise.all([
       obtenerEmpleadosDestacados(),
       obtenerAspirantesDestacados()
     ]);
 
-    // Combinar empleados y aspirantes
     contratos.value = [...empleados, ...aspirantes];
-
   } catch (error) {
     console.error('Error al cargar datos:', error);
     alert('Error al cargar datos del dashboard');
@@ -151,50 +157,6 @@ const cargarDatos = async () => {
     loading.value = false;
   }
 };
-
-// ✅ COMPUTED PROPERTIES CORREGIDAS - Ahora funcionan correctamente
-const contratosActivos = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados que sean ACTIVOS
-    if (c.tipo !== 'empleado') return false;
-
-    // Los empleados de la página de inicio son los destacados y están activos por defecto
-    return c.estado_clase === 'activo' || !c.estado_clase;
-  })
-);
-
-const contratosAVencer = computed(() =>
-  contratos.value.filter(c => {
-    // En esta vista mostrar empleados próximos a vencer
-    // El campo estado_clase viene de la BD y puede ser 'próximo-a-vencer' o 'avencer'
-    return c.tipo === 'empleado' &&
-      (c.estado_clase?.toLowerCase().includes('avencer') ||
-        c.estado_clase?.toLowerCase().includes('próximo') ||
-        c.estado_clase?.toLowerCase().includes('vencer'));
-  })
-);
-
-const contratosVencidos = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados con contratos vencidos
-    return c.tipo === 'empleado' &&
-      c.estado_clase?.toLowerCase().includes('vencido');
-  })
-);
-
-const contratosEnProceso = computed(() =>
-  contratos.value.filter(c => {
-    // Filtrar empleados en proceso (borrador, en firma, en proceso, etc)
-    if (c.tipo !== 'empleado') return false;
-
-    const estado = c.estado_clase?.toLowerCase() || '';
-    return estado.includes('proceso') ||
-      estado.includes('firma') ||
-      estado.includes('borrador') ||
-      estado.includes('evaluación') ||
-      estado.includes('revisión');
-  })
-);
 
 // Métodos para manejar eventos
 const handleCrearContrato = () => {
@@ -205,11 +167,14 @@ const handleCrearContrato = () => {
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
 
+  // Normalizar tipo
+  const tipo = (contrato.tipo || '').toLowerCase().trim();
+
   // Verificar el tipo de contrato y redirigir al componente adecuado
-  if (contrato.tipo === 'empleado') {
+  if (tipo === 'empleado') {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
-  } else if (contrato.tipo === 'aspirante') {
+  } else if (tipo === 'aspirante') {
     aspiranteSeleccionado.value = contrato;
     activeTab.value = 'detalleAspirante';
   }
@@ -220,10 +185,16 @@ const handleRenovarContrato = () => {
   activeTab.value = 'crear';
 };
 
+
+const handleCrearContratoAspirante = (aspirante) => {
+  console.log('Crear contrato para aspirante:', aspirante);
+  aspiranteParaContrato.value = aspirante;
+  activeTab.value = 'crear';
+};
+
 // Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
-  // Los datos ya están cargados y los computed properties se encargan del filtro
 };
 
 // Computed para historial
@@ -240,15 +211,12 @@ const handleDescargarContrato = async (contrato) => {
   console.log('Descargar contrato:', contrato);
 
   try {
-    // Aquí puedes implementar la descarga del PDF
-    // Por ejemplo, usando tu sistema S3
     alert(`Descargando contrato de ${contrato.nombre}`);
   } catch (error) {
     console.error('Error al descargar:', error);
     alert('Error al descargar el contrato');
   }
 };
-
 
 // Watch para cambios en la ruta
 watch(() => route.path, () => {
@@ -261,6 +229,7 @@ onMounted(async () => {
   await cargarDatos();
 });
 </script>
+
 
 <style scoped>
 .contratos-content {

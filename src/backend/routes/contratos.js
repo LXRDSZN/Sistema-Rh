@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../models/db.js';
-
+import { verificarToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // ========================================
@@ -14,6 +14,7 @@ router.get('/contratos/stats', async (req, res) => {
             FROM contrato c
             INNER JOIN estado_contrato ec ON ec.id = c.estado_id
             WHERE ec.nombre ILIKE 'ACTIVO'
+            AND (c.fecha_fin IS NULL OR c.fecha_fin > CURRENT_DATE + INTERVAL '30 days')
         `;
         const activos = await pool.query(activosQuery);
 
@@ -41,9 +42,8 @@ router.get('/contratos/stats', async (req, res) => {
         // Contratos en proceso
         const procesoQuery = `
             SELECT COUNT(*) AS total
-            FROM contrato c
-            INNER JOIN estado_contrato ec ON ec.id = c.estado_id
-            WHERE ec.nombre ILIKE ANY (ARRAY['BORRADOR','EN FIRMA','EN PROCESO'])
+            FROM persona p
+            WHERE p.tipo = 'Aspirante'
         `;
         const proceso = await pool.query(procesoQuery);
 
@@ -87,6 +87,7 @@ router.get('/contratos/empleados-destacados', async (req, res) => {
             LEFT JOIN area a ON a.id = c.area_id
             WHERE p.tipo = 'Empleado'
             ORDER BY p.fecha_registro DESC
+            LIMIT 10
         `;
 
         const result = await pool.query(query);
@@ -126,6 +127,7 @@ router.get('/contratos/aspirantes-destacados', async (req, res) => {
             LEFT JOIN area a ON a.id = al.area_id
             WHERE p.tipo = 'Aspirante'
             ORDER BY p.fecha_registro DESC
+            LIMIT 10
         `;
 
         const result = await pool.query(query);
@@ -151,6 +153,7 @@ router.get('/contratos/por-estado', async (req, res) => {
     try {
         const { estado } = req.query;
 
+        let query = '';
         let whereClause = '';
         
         switch (estado) {
@@ -175,34 +178,56 @@ router.get('/contratos/por-estado', async (req, res) => {
                 `;
                 break;
             case 'proceso':
-                whereClause = `
-                    WHERE ec.nombre ILIKE ANY (ARRAY['BORRADOR','EN FIRMA','EN PROCESO'])
+                query = `
+                    SELECT
+                        p.id AS persona_id,
+                        p.foto_url AS avatar,
+                        CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
+                        'aspirante' AS tipo,
+                        COALESCE(p.etapa, 'Registro') AS estado_texto,
+                        LOWER(REPLACE(COALESCE(p.etapa, 'registro'), ' ', '-')) AS estado_clase,
+                        COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+                        COALESCE(a.nombre, 'Sin área') AS area,
+                        NULL AS fechaInicio,
+                        NULL AS fechaFin
+                    FROM persona p
+                    LEFT JOIN aspiracion_laboral al ON al.persona_id = p.id
+                    LEFT JOIN puesto pu ON pu.id = al.puesto_id
+                    LEFT JOIN area a ON a.id = al.area_id
+                    WHERE p.tipo = 'Aspirante'
+                    ORDER BY p.fecha_registro DESC
                 `;
                 break;
             default:
-                whereClause = '';
+                return res.status(400).json({
+                    ok: false,
+                    error: 'Estado no válido'
+                });
         }
 
-        const query = `
-            SELECT
-                p.id AS persona_id,
-                p.foto_url AS avatar,
-                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
-                p.tipo,
-                COALESCE(ec.nombre, 'SIN ESTADO') AS estado_texto,
-                LOWER(REPLACE(COALESCE(ec.nombre, 'sin-estado'), ' ', '-')) AS estado_clase,
-                COALESCE(pu.nombre, 'Sin puesto') AS puesto,
-                COALESCE(a.nombre, 'Sin área') AS area,
-                c.fecha_inicio AS fechaInicio,
-                c.fecha_fin AS fechaFin
-            FROM contrato c
-            INNER JOIN persona p ON p.id = c.persona_id
-            INNER JOIN estado_contrato ec ON ec.id = c.estado_id
-            LEFT JOIN puesto pu ON pu.id = c.puesto_id
-            LEFT JOIN area a ON a.id = c.area_id
-            ${whereClause}
-            ORDER BY c.fecha_inicio DESC
-        `;
+        // ✅ Solo usa la consulta base si NO es 'proceso'
+        if (estado !== 'proceso') {
+            query = `
+                SELECT
+                    p.id AS persona_id,
+                    p.foto_url AS avatar,
+                    CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
+                    p.tipo,
+                    COALESCE(ec.nombre, 'SIN ESTADO') AS estado_texto,
+                    LOWER(REPLACE(COALESCE(ec.nombre, 'sin-estado'), ' ', '-')) AS estado_clase,
+                    COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+                    COALESCE(a.nombre, 'Sin área') AS area,
+                    c.fecha_inicio AS fechaInicio,
+                    c.fecha_fin AS fechaFin
+                FROM contrato c
+                INNER JOIN persona p ON p.id = c.persona_id
+                INNER JOIN estado_contrato ec ON ec.id = c.estado_id
+                LEFT JOIN puesto pu ON pu.id = c.puesto_id
+                LEFT JOIN area a ON a.id = c.area_id
+                ${whereClause}
+                ORDER BY c.fecha_inicio DESC
+            `;
+        }
 
         const result = await pool.query(query);
 
@@ -317,4 +342,455 @@ router.patch('/contratos/:id/huella', async (req, res) => {
     }
 });
 
+// ========================================
+// OBTENER ENCABEZADO DE EMPLEADO
+// ========================================
+router.get('/contratos/empleado/:personaId/encabezado', async (req, res) => {
+    try {
+        const { personaId } = req.params;
+
+        const query = `
+            SELECT
+                p.id AS persona_id,
+                p.nombre,
+                p.apellido_paterno,
+                p.apellido_materno,
+                p.foto_url,
+                p.estado_empleado,
+                p.fecha_registro AS fecha_ingreso,
+                a.nombre AS area,
+                pu.nombre AS puesto
+            FROM persona p
+            LEFT JOIN contrato c ON c.persona_id = p.id
+                AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+            LEFT JOIN area a ON a.id = c.area_id
+            LEFT JOIN puesto pu ON pu.id = c.puesto_id
+            WHERE p.id = $1
+            AND p.tipo = 'Empleado'
+        `;
+
+        const result = await pool.query(query, [personaId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Empleado no encontrado'
+            });
+        }
+
+        res.json({
+            ok: true,
+            encabezado: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error al obtener encabezado del empleado:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// OBTENER CONTRATO ACTUAL DEL EMPLEADO
+// ========================================
+router.get('/contratos/empleado/:personaId/contrato-actual', async (req, res) => {
+    try {
+        const { personaId } = req.params;
+
+        const query = `
+            SELECT
+                c.id AS contrato_id,
+                pc.nombre AS tipo_contrato,
+                c.fecha_inicio,
+                c.fecha_fin,
+                c.salario_mensual,
+                c.modalidad,
+                c.observaciones,
+                ec.nombre AS estado_firma,
+                j.nombre AS jornada,
+                je.hora_entrada,
+                je.hora_salida,
+                c.archivo_id
+            FROM contrato c
+            LEFT JOIN plantilla_contrato pc ON pc.id = c.plantilla_id
+            LEFT JOIN estado_contrato ec ON ec.id = c.estado_id
+            LEFT JOIN jornada_empleado je ON je.persona_id = c.persona_id
+            LEFT JOIN jornada j ON j.id = je.jornada_id
+            WHERE c.persona_id = $1
+            AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+            ORDER BY c.fecha_inicio DESC
+            LIMIT 1
+        `;
+
+        const result = await pool.query(query, [personaId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                error: 'Contrato activo no encontrado'
+            });
+        }
+
+        res.json({
+            ok: true,
+            contrato: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error al obtener contrato actual:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// Todo esto es de la ventana estadisticas 
+// ========================================
+
+// ENDPOINT: Distribución por tipo de contrato
+router.get('/contratos/estadisticas/distribucion-tipo', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                tipo_contrato AS tipo,
+                COUNT(*) AS total
+            FROM contrato
+            GROUP BY tipo_contrato
+            ORDER BY total DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener distribución por tipo:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Contratos por área
+// ========================================
+router.get('/contratos/estadisticas/contratos-por-area', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                a.nombre AS area,
+                COUNT(c.id) AS total_contratos
+            FROM contrato c
+            JOIN area a ON a.id = c.area_id
+            GROUP BY a.nombre
+            ORDER BY total_contratos DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener contratos por área:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Estado del proceso de contratación
+// ========================================
+router.get('/contratos/estadisticas/estado-proceso', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                etapa,
+                COUNT(*) AS total
+            FROM persona
+            WHERE tipo = 'Aspirante'
+            GROUP BY etapa
+            ORDER BY total DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estado del proceso:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Estadísticas generales (activos y vacantes)
+// ========================================
+router.get('/contratos/estadisticas/resumen', async (req, res) => {
+    try {
+        const queryActivos = `
+            SELECT COUNT(*) AS total_activos
+            FROM contrato c
+            JOIN estado_contrato ec ON ec.id = c.estado_id
+            WHERE ec.nombre ILIKE 'ACTIVO'
+        `;
+
+        const queryVacantes = `
+            SELECT COUNT(*) AS solicitud_vacantes
+            FROM persona
+            WHERE tipo = 'Aspirante'
+        `;
+
+        const [resActivos, resVacantes] = await Promise.all([
+            pool.query(queryActivos),
+            pool.query(queryVacantes)
+        ]);
+
+        res.json({
+            ok: true,
+            activos: parseInt(resActivos.rows[0].total_activos) || 0,
+            vacantes: parseInt(resVacantes.rows[0].solicitud_vacantes) || 0
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estadísticas:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// Endpoint para obtener historial de contratos
+router.get('/contratos/historial', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id,
+                p.nombre,
+                p.apellido_paterno,
+                p.apellido_materno,
+                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', p.apellido_materno) AS nombre_empleado,
+                c.tipo_contrato,
+                c.fecha_inicio,
+                a.nombre AS area_nombre,
+                a.id AS area_id
+            FROM contrato c
+            JOIN persona p ON p.id = c.persona_id
+            JOIN area a ON a.id = c.area_id
+            WHERE c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'Activo')
+            ORDER BY c.fecha_inicio DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener historial:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Obtener tipos de contratos (para filtro)
+// ========================================
+router.get('/contratos/tipos', async (req, res) => {
+    try {
+        const query = `
+            SELECT DISTINCT tipo_contrato
+            FROM contrato
+            WHERE tipo_contrato IS NOT NULL
+            ORDER BY tipo_contrato
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener tipos:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// ========================================
+// ENDPOINT: Obtener áreas (para filtros)
+// ========================================
+router.get('/contratos/areas', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, nombre
+            FROM area
+            ORDER BY nombre
+        `;
+
+        const result = await pool.query(query);
+
+        res.json({
+            ok: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener áreas:', error);
+        res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
+});
+
+// Crear contrato de aspirante (pasos 2,3,4)
+router.post('/contratos/aspirante', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const {
+      personaId,
+      plantillaId,
+      puestoId,
+      areaId,
+      salarioMensual,
+      fechaInicio,
+      fechaFin,
+      tipoContrato,
+      modalidad,
+      observaciones,
+      jornadaId,
+      horaEntrada,
+      horaSalida,
+      tipoDocumentoId,
+      archivoId
+    } = req.body;
+
+    if (!personaId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'personaId es obligatorio'
+      });
+    }
+
+
+    await client.query('BEGIN');
+
+    // 2) INSERT en contrato
+    const contratoSql = `
+      INSERT INTO contrato (
+        id,
+        persona_id,
+        plantilla_id,
+        puesto_id,
+        area_id,
+        salario_mensual,
+        fecha_inicio,
+        fecha_fin,
+        estado_id,
+        archivo_id,
+        tipo_contrato,
+        modalidad,
+        observaciones
+      )
+      VALUES (
+        uuid_generate_v4(),
+        $1, $2, $3, $4, $5, $6, $7,
+        (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO'),
+        $8, $9, $10, $11
+      )
+      RETURNING *;
+    `;
+    const contratoValues = [
+      personaId,
+      plantillaId,
+      puestoId,
+      areaId,
+      salarioMensual,
+      fechaInicio,
+      fechaFin,
+      archivoId,
+      tipoContrato,
+      modalidad,
+      observaciones
+    ];
+
+    const contratoResult = await client.query(contratoSql, contratoValues);
+    const contrato = contratoResult.rows[0];
+
+    // 3) Registrar jornada laboral
+    if (jornadaId && horaEntrada && horaSalida) {
+      const jornadaSql = `
+        INSERT INTO jornada_empleado (
+          id, persona_id, jornada_id, hora_entrada, hora_salida
+        )
+        VALUES (
+          uuid_generate_v4(),
+          $1, $2, $3, $4
+        );
+      `;
+      await client.query(jornadaSql, [
+        personaId,
+        jornadaId,
+        horaEntrada,
+        horaSalida
+      ]);
+    }
+
+    // 4) Cambiar de Aspirante a Empleado
+    const updatePersonaSql = `
+      UPDATE persona
+      SET tipo = 'Empleado',
+          estado_empleado = 'ACTIVO',
+          etapa = 'Contratado'
+      WHERE id = $1;
+    `;
+    await client.query(updatePersonaSql, [personaId]);
+
+    await client.query('COMMIT');
+
+    res.json({
+      ok: true,
+      mensaje: 'Contrato creado y aspirante cambiado a empleado',
+      contrato
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al crear contrato de aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
 export default router;

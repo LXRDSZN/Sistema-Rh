@@ -1,91 +1,109 @@
 <template>
-    <div class="historial-view">
-        <!-- Header con botón de regreso -->
+    <div class="enlace-historial">
+        <!-- Header -->
         <div class="top-header">
-            <button class="btn-volver" @click="volverInicio">
+            <button class="btn-back" @click="volverInicio">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
             <h1>Contratos/Historial</h1>
         </div>
 
-        <!-- Barra de búsqueda -->
-        <div class="search-section">
-            <div class="search-box">
-                <input type="text" placeholder="Buscar" v-model="searchQuery">
-                <span class="material-symbols-rounded search-icon">search</span>
-            </div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="filters-container">
-            <div class="filter-group">
-                <select v-model="filtroNombre" class="filter-select">
-                    <option value="">Nombre</option>
-                    <option v-for="nombre in nombresUnicos" :key="nombre" :value="nombre">
-                        {{ nombre }}
-                    </option>
-                </select>
+        <!-- Contenido -->
+        <div class="content-card">
+            <!-- Barra de búsqueda -->
+            <div class="search-section">
+                <div class="search-box">
+                    <span class="material-symbols-rounded">search</span>
+                    <input v-model="searchQuery" type="text" placeholder="Buscar" @input="aplicarFiltros" />
+                </div>
             </div>
 
-            <div class="filter-group">
-                <select v-model="filtroTipo" class="filter-select">
-                    <option value="">Tipo</option>
-                    <option value="INDEFINIDO">INDEFINIDO</option>
-                    <option value="TEMPORAL">TEMPORAL</option>
-                    <option value="POR PROYECTO">POR PROYECTO</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <select v-model="filtroFechaInicio" class="filter-select">
-                    <option value="">Fecha inicio</option>
-                    <option value="reciente">Más reciente</option>
-                    <option value="antigua">Más antigua</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <select v-model="filtroArea" class="filter-select">
-                    <option value="">Área</option>
-                    <option v-for="area in areasUnicas" :key="area" :value="area">
-                        {{ area }}
-                    </option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Lista de contratos históricos -->
-        <div class="contratos-list">
-            <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="contrato-card">
-                <!-- Icono de contrato -->
-                <div class="contrato-icon">
-                    <span class="material-symbols-rounded">description</span>
+            <!-- Filtros -->
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label>Nombre</label>
+                    <select v-model="filtros.nombre" @change="aplicarFiltros">
+                        <option value="">Sin filtro</option>
+                        <option value="asc">A-Z (Ascendente)</option>
+                        <option value="desc">Z-A (Descendente)</option>
+                    </select>
                 </div>
 
-                <!-- Información del contrato -->
-                <div class="contrato-info">
-                    <div class="nombre">{{ contrato.nombre }}</div>
-                    <div class="detalles">
-                        <span class="tipo">{{ contrato.tipo }}</span>
-                        <span class="fecha">{{ contrato.fechaInicio }}</span>
-                        <span class="area">{{ contrato.area }}</span>
+                <div class="filter-group">
+                    <label>Tipo</label>
+                    <select v-model="filtros.tipo" @change="aplicarFiltros">
+                        <option value="">Todos</option>
+                        <option value="Indefinido">Indefinido</option>
+                        <option value="Temporal">Temporal</option>
+                        <option value="Por Proyecto">Por Proyecto</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Fecha Inicio</label>
+                    <select v-model="filtros.fecha" @change="aplicarFiltros">
+                        <option value="">Sin filtro</option>
+                        <option value="reciente">Más reciente</option>
+                        <option value="antiguo">Más antiguo</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Área</label>
+                    <select v-model="filtros.area" @change="aplicarFiltros">
+                        <option value="">Todas las áreas</option>
+                        <option v-for="area in areas" :key="area.id" :value="area.id">
+                            {{ area.nombre }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla de contratos -->
+            <div class="table-section" v-if="contratosFiltrados.length > 0">
+                <div class="contract-card" v-for="contrato in contratosFiltrados" :key="contrato.id">
+                    <div class="card-content">
+                        <!-- Icono -->
+                        <div class="card-icon">
+                            <span class="material-symbols-rounded">description</span>
+                        </div>
+
+                        <!-- Información principal -->
+                        <!-- Información principal -->
+                        <div class="card-info">
+                            <div class="info-left">
+                                <h3>{{ contrato.nombre_empleado }}</h3>
+                            </div>
+                            <div class="info-badge">
+                                <span class="badge">{{ contrato.tipo_contrato }}</span>
+                            </div>
+                            <div class="info-center">
+                                <span class="date">{{ formatDate(contrato.fecha_inicio) }}</span>
+                            </div>
+                            <div class="info-right">
+                                <span class="area">{{ contrato.area_nombre }}</span>
+                            </div>
+                        </div>
+
+
+                        <!-- Botones de acción -->
+                        <div class="card-actions">
+                            <button class="btn-action descargar" @click="descargarPDF(contrato)" title="Descargar PDF">
+                                <span class="material-symbols-rounded">download</span>
+                            </button>
+                            <button class="btn-action visualizar" @click="visualizarContrato(contrato)"
+                                title="Visualizar y editar">
+                                <span class="material-symbols-rounded">visibility</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Acciones -->
-                <div class="contrato-actions">
-                    <button class="btn-action" @click="descargarContrato(contrato)" title="Descargar">
-                        <span class="material-symbols-rounded">download</span>
-                    </button>
-                    <button class="btn-action" @click="verContrato(contrato)" title="Ver">
-                        <span class="material-symbols-rounded">visibility</span>
-                    </button>
-                </div>
             </div>
 
-            <!-- Estado vacío -->
-            <div v-if="contratosFiltrados.length === 0" class="empty-state">
-                <span class="material-symbols-rounded empty-icon">folder_open</span>
+
+            <!-- Mensaje cuando no hay contratos -->
+            <div v-else class="no-contracts">
+                <span class="material-symbols-rounded">folder_open</span>
                 <p>No hay contratos en el historial</p>
             </div>
         </div>
@@ -93,167 +111,216 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useContratos } from '@/composables/useContratos';
 
-const props = defineProps({
-    contratos: {
-        type: Array,
-        default: () => []
-    }
-});
+const router = useRouter();
+const {
+    obtenerHistorialContratos,
+    obtenerTiposContratos,
+    obtenerAreas
+} = useContratos();
 
-const emit = defineEmits(['volver-inicio', 'ver-contrato', 'descargar-contrato']);
-
-// Estados locales
 const searchQuery = ref('');
-const filtroNombre = ref('');
-const filtroTipo = ref('');
-const filtroFechaInicio = ref('');
-const filtroArea = ref('');
+const contratos = ref([]);
+const areas = ref([]);
 
-// Computed para opciones de filtros
-const nombresUnicos = computed(() => {
-    return [...new Set(props.contratos.map(c => c.nombre))];
+const filtros = ref({
+    nombre: '',
+    tipo: '',
+    fecha: '',
+    area: ''
 });
 
-const areasUnicas = computed(() => {
-    return [...new Set(props.contratos.map(c => c.area))];
-});
+const volverInicio = () => {
+    router.push('/Contratos');
+};
 
-// Computed para filtrar contratos
+const formatDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+};
+
+// ✅ Filtrado computado
 const contratosFiltrados = computed(() => {
-    let result = props.contratos;
+    let resultado = contratos.value;
 
     // Filtro por búsqueda
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
-        result = result.filter(c =>
-            c.nombre.toLowerCase().includes(query) ||
-            c.tipo.toLowerCase().includes(query) ||
-            c.area.toLowerCase().includes(query)
+        resultado = resultado.filter(c =>
+            c.nombre_empleado.toLowerCase().includes(query)
         );
-    }
-
-    // Filtro por nombre
-    if (filtroNombre.value) {
-        result = result.filter(c => c.nombre === filtroNombre.value);
     }
 
     // Filtro por tipo
-    if (filtroTipo.value) {
-        result = result.filter(c => c.tipo === filtroTipo.value);
+    if (filtros.value.tipo) {
+        resultado = resultado.filter(c => c.tipo_contrato === filtros.value.tipo);
     }
 
     // Filtro por área
-    if (filtroArea.value) {
-        result = result.filter(c => c.area === filtroArea.value);
+    if (filtros.value.area) {
+        resultado = resultado.filter(c => c.area_id === filtros.value.area);
     }
 
-    // Filtro por fecha
-    if (filtroFechaInicio.value === 'reciente') {
-        result = [...result].sort((a, b) =>
-            new Date(b.fechaInicio) - new Date(a.fechaInicio)
+    // Ordenar por nombre
+    if (filtros.value.nombre === 'asc') {
+        resultado.sort((a, b) =>
+            a.nombre_empleado.localeCompare(b.nombre_empleado)
         );
-    } else if (filtroFechaInicio.value === 'antigua') {
-        result = [...result].sort((a, b) =>
-            new Date(a.fechaInicio) - new Date(b.fechaInicio)
+    } else if (filtros.value.nombre === 'desc') {
+        resultado.sort((a, b) =>
+            b.nombre_empleado.localeCompare(a.nombre_empleado)
         );
     }
 
-    return result;
+    // Ordenar por fecha
+    if (filtros.value.fecha === 'reciente') {
+        resultado.sort((a, b) =>
+            new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
+        );
+    } else if (filtros.value.fecha === 'antiguo') {
+        resultado.sort((a, b) =>
+            new Date(a.fecha_inicio) - new Date(b.fecha_inicio)
+        );
+    }
+
+    return resultado;
 });
 
-// Métodos
-const volverInicio = () => {
-    emit('volver-inicio');
+const aplicarFiltros = () => {
+    // Los filtros se aplican automáticamente por el computed
+    console.log('Filtros aplicados');
 };
 
-const verContrato = (contrato) => {
-    emit('ver-contrato', contrato);
+const descargarPDF = async (contrato) => {
+    try {
+        console.log('Descargando PDF del contrato:', contrato.id);
+        if (!contrato.url_almacenamiento) {
+            alert('No hay archivo disponible');
+            return;
+        }
+        // Aquí irá la lógica para descargar el PDF
+    } catch (error) {
+        console.error('Error al descargar PDF:', error);
+    }
 };
 
-const descargarContrato = (contrato) => {
-    emit('descargar-contrato', contrato);
+const visualizarContrato = (contrato) => {
+    // Navegar a la página de creación/edición con el contrato
+    router.push({
+        name: 'ContratoCreacion',
+        params: { id: contrato.id },
+        query: { modo: 'editar' }
+    });
 };
+
+// Cargar datos iniciales
+onMounted(async () => {
+    try {
+        console.log('Cargando datos del historial...');
+
+        // Cargar contratos del historial
+        const res = await obtenerHistorialContratos();
+        contratos.value = res || [];
+        console.log('✅ Contratos cargados:', contratos.value.length);
+
+        // Cargar tipos de contratos
+        const tiposRes = await obtenerTiposContratos();
+        console.log('Tipos disponibles:', tiposRes);
+
+        // Cargar áreas para el filtro
+        const areasRes = await obtenerAreas();
+        areas.value = areasRes || [];
+        console.log('✅ Áreas cargadas:', areas.value.length);
+
+    } catch (error) {
+        console.error('Error al cargar contratos:', error);
+    }
+});
+
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
-
-.historial-view {
-    background-color: #e0e0e0;
+.enlace-historial {
     min-height: 100vh;
-    padding: 2rem;
+    background-color: #f5f5f5;
 }
 
 .top-header {
+    background-color: transparent;
+    padding: 1rem 2rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 2rem;
 }
 
-.btn-volver {
+.btn-back {
     background: none;
     border: none;
+    color: #333;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: background-color 0.3s ease;
 }
 
-.btn-volver:hover {
-    transform: translateX(-4px);
+.btn-back:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
-.btn-volver .material-symbols-rounded {
-    font-size: 2rem;
-    color: #333;
+.btn-back .material-symbols-rounded {
+    font-size: 26px;
 }
 
 .top-header h1 {
-    font-size: 1.75rem;
+    color: #333;
+    font-size: 1.2rem;
     font-weight: 600;
-    color: #000;
     margin: 0;
 }
 
-.search-section {
+.content-card {
     background-color: white;
-    border-radius: 12px;
-    padding: 1.5rem;
+    padding: 2rem;
+    margin: 1.5rem;
+    border-radius: 8px;
+}
+
+.search-section {
     margin-bottom: 1.5rem;
 }
 
 .search-box {
-    position: relative;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    background-color: #f0f0f0;
+    border-radius: 24px;
+    padding: 0.75rem 1.5rem;
+    gap: 0.75rem;
+}
+
+.search-box .material-symbols-rounded {
+    color: #999;
+    font-size: 20px;
 }
 
 .search-box input {
-    width: 100%;
-    padding: 1rem 3rem 1rem 1.5rem;
+    flex: 1;
     border: none;
-    border-radius: 30px;
-    background-color: #e8e8f0;
-    font-size: 1rem;
+    background: none;
     outline: none;
-    color: #666;
+    font-size: 1rem;
 }
 
-.search-icon {
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.filters-container {
+.filters-section {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
@@ -265,173 +332,241 @@ const descargarContrato = (contrato) => {
     flex-direction: column;
 }
 
-.filter-select {
-    padding: 0.875rem 1.25rem;
-    border: 2px solid #999;
-    border-radius: 8px;
-    background-color: white;
-    font-size: 0.95rem;
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
     color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.filter-group select {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background-color: white;
     cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.filter-group select:hover,
+.filter-group select:focus {
+    border-color: #2196f3;
     outline: none;
-    transition: all 0.3s ease;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23999' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    padding-right: 3rem;
 }
 
-.filter-select:hover {
-    border-color: #666;
-}
-
-.filter-select:focus {
-    border-color: #4F39F6;
-    box-shadow: 0 0 0 3px rgba(79, 57, 246, 0.1);
-}
-
-.contratos-list {
+.table-section {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
-.contrato-card {
-    background-color: white;
-    border: 2px solid #e0e0e0;
+.table-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.contract-card {
+    border: 2px solid #e8f4f8;
     border-radius: 12px;
     padding: 1.5rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.contract-card:hover {
+    border-color: #2196f3;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.1);
+    background: #f8fbfc;
+}
+
+.card-content {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    transition: all 0.3s ease;
 }
 
-.contrato-card:hover {
-    border-color: #4F39F6;
-    box-shadow: 0 4px 12px rgba(79, 57, 246, 0.1);
-    transform: translateY(-2px);
-}
-
-.contrato-icon {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #FFB800 0%, #FF8C00 100%);
-    border-radius: 12px;
+.card-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe8a8 100%);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
-.contrato-icon .material-symbols-rounded {
-    font-size: 32px;
-    color: white;
+.card-icon .material-symbols-rounded {
+    color: #ff9800;
+    font-size: 28px;
 }
 
-.contrato-info {
+.card-info {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 1rem;
 }
 
-.nombre {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #333;
+.info-left {
+    flex: 0.5;
 }
 
-.detalles {
-    display: flex;
-    gap: 2rem;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.tipo {
+.info-left h3 {
+    margin: 0;
+    font-size: 1rem;
     font-weight: 600;
-    text-transform: uppercase;
+    color: #333;
+    white-space: nowrap;
 }
 
-.contrato-actions {
+.info-badge {
+    flex: 0.2;
+}
+
+.info-badge .badge {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.info-center {
+    flex: 0.2;
+}
+
+.info-center .date {
+    color: #666;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.info-right {
+    flex: 0.2;
+}
+
+.info-right .area {
+    color: #888;
+    font-size: 0.9rem;
+    background: #f5f5f5;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.card-actions {
     display: flex;
     gap: 0.75rem;
+    flex-shrink: 0;
 }
 
 .btn-action {
-    width: 48px;
-    height: 48px;
-    border: 2px solid #e0e0e0;
-    background-color: white;
+    width: 44px;
+    height: 44px;
+    border: 1.5px solid #ddd;
+    background: white;
     border-radius: 8px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.btn-action .material-symbols-rounded {
-    font-size: 24px;
-    color: #666;
-}
-
 .btn-action:hover {
-    border-color: #4F39F6;
-    background-color: #4F39F6;
+    background: #e3f2fd;
+    border-color: #2196f3;
 }
 
-.btn-action:hover .material-symbols-rounded {
-    color: white;
+.btn-action .material-symbols-rounded {
+    font-size: 20px;
+    color: #2196f3;
 }
 
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    background-color: white;
-    border-radius: 12px;
-    border: 2px dashed #ccc;
+.btn-action.descargar:hover {
+    background: #c8e6c9;
+    border-color: #4caf50;
 }
 
-.empty-icon {
-    font-size: 64px;
-    color: #ccc;
-    margin-bottom: 1rem;
+.btn-action.descargar:hover .material-symbols-rounded {
+    color: #4caf50;
 }
 
-.empty-state p {
-    font-size: 1.1rem;
+.btn-action.visualizar:hover {
+    background: #bbdefb;
+    border-color: #2196f3;
+}
+
+.no-contracts {
+    text-align: center;
+    padding: 3rem 1rem;
     color: #999;
-    margin: 0;
 }
 
-@media (max-width: 1024px) {
-    .filters-container {
-        grid-template-columns: repeat(2, 1fr);
+.no-contracts .material-symbols-rounded {
+    font-size: 48px;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.no-contracts p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 1200px) {
+    .card-info {
+        gap: 0.75rem;
+    }
+
+    .info-left {
+        flex: 0.6;
+    }
+
+    .info-badge {
+        flex: 0.25;
+    }
+
+    .info-center {
+        flex: 0.15;
+    }
+
+    .info-right {
+        flex: 0.15;
     }
 }
 
 @media (max-width: 768px) {
-    .filters-container {
-        grid-template-columns: 1fr;
-    }
-
-    .contrato-card {
+    .card-content {
         flex-direction: column;
         align-items: flex-start;
+        gap: 1rem;
     }
 
-    .detalles {
-        flex-direction: column;
+    .card-info {
+        flex-direction: row;
         gap: 0.5rem;
+        width: 100%;
+        flex-wrap: wrap;
     }
 
-    .contrato-actions {
+    .info-left,
+    .info-badge,
+    .info-center,
+    .info-right {
+        width: auto;
+        flex: none !important;
+    }
+
+    .card-actions {
         width: 100%;
         justify-content: flex-end;
     }
