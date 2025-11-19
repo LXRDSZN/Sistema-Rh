@@ -114,10 +114,7 @@ const updateTabFromRoute = () => {
   if (route.path === '/Contratos/estadisticas') {
     activeTab.value = 'estadisticas';
   } else if (route.path === '/Contratos/crear') {
-    // Si llegas por ruta directa, lo consideramos como creado desde el inicio
     activeTab.value = 'crear';
-    origenDesdeAspirante.value = false;
-    aspiranteParaContrato.value = null;
   } else if (route.path === '/Contratos/registro-huellas') {
     activeTab.value = 'registro-huellas';
   } else if (route.path === '/Contratos/historial') {
@@ -128,35 +125,31 @@ const updateTabFromRoute = () => {
 };
 
 // 🔹 Función para volver desde "crear contrato"
-const volverInicio = () => {
-  if (origenDesdeAspirante.value) {
-    // Volver a la ventana del aspirante
-    activeTab.value = 'detalleAspirante';
-  } else {
-    // Volver al dashboard de contratos
-    activeTab.value = 'inicio';
+const volverInicio = async () => {
+  // 1) Cambiar la pestaña
+  activeTab.value = 'inicio';
+
+  // 2) Navegar al inicio de Contratos solo si hace falta
+  if (route.path !== '/Contratos') {
+    await router.push('/Contratos');
   }
 
-  // Nos aseguramos de que la ruta esté en /Contratos
-  router.push('/Contratos');
+  // 3) Recargar datos para que ya no aparezca como aspirante
+  await cargarDatos();
 };
 
 // Función para cargar datos de la API
 const cargarDatos = async () => {
   loading.value = true;
   try {
-    // Cargar estadísticas
     stats.value = await obtenerEstadisticas();
 
-    // Cargar empleados y aspirantes destacados
     const [empleados, aspirantes] = await Promise.all([
       obtenerEmpleadosDestacados(),
       obtenerAspirantesDestacados()
     ]);
 
-    // Combinar empleados y aspirantes
     contratos.value = [...empleados, ...aspirantes];
-
   } catch (error) {
     console.error('Error al cargar datos:', error);
     alert('Error al cargar datos del dashboard');
@@ -167,9 +160,6 @@ const cargarDatos = async () => {
 
 // Métodos para manejar eventos
 const handleCrearContrato = () => {
-  // Crear contrato desde el dashboard
-  origenDesdeAspirante.value = false;
-  aspiranteParaContrato.value = null;
   activeTab.value = 'crear';
 };
 
@@ -192,14 +182,12 @@ const handleRevisarContrato = (contrato) => {
 
 // Función para manejar la renovación de contrato
 const handleRenovarContrato = () => {
-  origenDesdeAspirante.value = false;
-  aspiranteParaContrato.value = null;
   activeTab.value = 'crear';
 };
 
+
 const handleCrearContratoAspirante = (aspirante) => {
   console.log('Crear contrato para aspirante:', aspirante);
-  origenDesdeAspirante.value = true;          // 🔹 viene del aspirante
   aspiranteParaContrato.value = aspirante;
   activeTab.value = 'crear';
 };

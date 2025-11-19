@@ -1,4 +1,4 @@
-// routes/AspirantesContratos.js
+// routes/CatalogoContratos.js
 import express from 'express';
 import pool from '../models/db.js';
 
