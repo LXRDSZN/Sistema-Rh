@@ -19,7 +19,7 @@
             <AspiranteHeader @cerrar="cerrar" />
 
             <!-- Información del aspirante -->
-            <AspiranteInfo :aspirante="aspirante" :cv-url="cvUrl" />
+            <AspiranteInfo :aspirante="aspirante" :cv-url="cvUrl" @crear-contrato="emit('crear-contrato', $event)" />
 
             <!-- Navegación de pestañas -->
             <TabNavigation v-model="tabActual" :tabs="tabs" />
@@ -55,7 +55,8 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['cerrar']);
+const emit = defineEmits(['cerrar', 'crear-contrato']);
+
 
 // Composable
 const { obtenerDatosPersonalesAspirante, obtenerCvAspirante } = useAspirantesContratos();

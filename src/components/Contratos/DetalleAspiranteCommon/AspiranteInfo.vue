@@ -66,6 +66,8 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['crear-contrato']);
+
 const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2025';
     const date = new Date(fecha);
@@ -80,8 +82,10 @@ const abrirCV = () => {
     }
 };
 
+
 const verContrato = () => {
-    alert('Funcionalidad de contrato en desarrollo');
+    // Emitir evento con los datos del aspirante
+    emit('crear-contrato', props.aspirante);
 };
 </script>
 

@@ -11,8 +11,9 @@
     <!-- Otras vistas -->
     <div v-else class="other-view">
       <!-- Detalle del Aspirante -->
-      <DetalleAspirante v-if="activeTab === 'detalleAspirante' && aspiranteSeleccionado"
-        :persona-id="aspiranteSeleccionado.id || aspiranteSeleccionado.persona_id" @cerrar="activeTab = 'inicio'" />
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante'"
+        :persona-id="aspiranteSeleccionado.id || aspiranteSeleccionado.persona_id" @cerrar="activeTab = 'inicio'"
+        @crear-contrato="handleCrearContratoAspirante" />
 
       <!-- Detalle del Empleado -->
       <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
@@ -36,7 +37,8 @@
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de Crear Contrato -->
-      <EnlaceCrearContrato v-else-if="activeTab === 'crear'" @volver-inicio="activeTab = 'inicio'" />
+      <EnlaceCrearContrato v-if="activeTab === 'crear'" :datos-aspirante="aspiranteParaContrato"
+        @volver-inicio="volverInicio" />
 
       <!-- Vista de Registro de Solicitud -->
       <EnlaceRegistroSolicitud v-else-if="activeTab === 'registro'" @volver-inicio="activeTab = 'inicio'" />
@@ -74,7 +76,11 @@ const activeTab = ref('inicio');
 const showIncidencia = ref(false);
 const aspiranteSeleccionado = ref(null);
 const empleadoSeleccionado = ref(null);
+const aspiranteParaContrato = ref(null);
 const { contentMarginLeft, contentWidth } = useSidebar();
+
+// 🔹 para saber desde dónde abrí "crear contrato"
+const origenDesdeAspirante = ref(false);
 
 // Estados reactivos
 const stats = ref({
@@ -108,20 +114,30 @@ const updateTabFromRoute = () => {
   if (route.path === '/Contratos/estadisticas') {
     activeTab.value = 'estadisticas';
   } else if (route.path === '/Contratos/crear') {
+    // Si llegas por ruta directa, lo consideramos como creado desde el inicio
     activeTab.value = 'crear';
+    origenDesdeAspirante.value = false;
+    aspiranteParaContrato.value = null;
   } else if (route.path === '/Contratos/registro-huellas') {
     activeTab.value = 'registro-huellas';
-  }
-  else if (route.path === '/Contratos/historial') {
+  } else if (route.path === '/Contratos/historial') {
     activeTab.value = 'historial';
-  }
-  else {
+  } else {
     activeTab.value = 'inicio';
   }
 };
 
-// Función para volver al inicio
+// 🔹 Función para volver desde "crear contrato"
 const volverInicio = () => {
+  if (origenDesdeAspirante.value) {
+    // Volver a la ventana del aspirante
+    activeTab.value = 'detalleAspirante';
+  } else {
+    // Volver al dashboard de contratos
+    activeTab.value = 'inicio';
+  }
+
+  // Nos aseguramos de que la ruta esté en /Contratos
   router.push('/Contratos');
 };
 
@@ -149,10 +165,11 @@ const cargarDatos = async () => {
   }
 };
 
-
-
 // Métodos para manejar eventos
 const handleCrearContrato = () => {
+  // Crear contrato desde el dashboard
+  origenDesdeAspirante.value = false;
+  aspiranteParaContrato.value = null;
   activeTab.value = 'crear';
 };
 
@@ -168,14 +185,6 @@ const handleRevisarContrato = (contrato) => {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
   } else if (tipo === 'aspirante') {
-    // Verificar que el contrato tenga un ID válido
-    if (!contrato.id && !contrato.persona_id) {
-      console.error('El aspirante no tiene ID:', contrato);
-      alert('Error: No se puede cargar el aspirante (falta ID)');
-      return;
-    }
-
-    // Guardar el objeto completo (lo necesitamos para tener el ID)
     aspiranteSeleccionado.value = contrato;
     activeTab.value = 'detalleAspirante';
   }
@@ -183,13 +192,21 @@ const handleRevisarContrato = (contrato) => {
 
 // Función para manejar la renovación de contrato
 const handleRenovarContrato = () => {
+  origenDesdeAspirante.value = false;
+  aspiranteParaContrato.value = null;
+  activeTab.value = 'crear';
+};
+
+const handleCrearContratoAspirante = (aspirante) => {
+  console.log('Crear contrato para aspirante:', aspirante);
+  origenDesdeAspirante.value = true;          // 🔹 viene del aspirante
+  aspiranteParaContrato.value = aspirante;
   activeTab.value = 'crear';
 };
 
 // Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
-  // Los datos ya están cargados y los computed properties se encargan del filtro
 };
 
 // Computed para historial
@@ -206,15 +223,12 @@ const handleDescargarContrato = async (contrato) => {
   console.log('Descargar contrato:', contrato);
 
   try {
-    // Aquí puedes implementar la descarga del PDF
-    // Por ejemplo, usando tu sistema S3
     alert(`Descargando contrato de ${contrato.nombre}`);
   } catch (error) {
     console.error('Error al descargar:', error);
     alert('Error al descargar el contrato');
   }
 };
-
 
 // Watch para cambios en la ruta
 watch(() => route.path, () => {
@@ -227,6 +241,7 @@ onMounted(async () => {
   await cargarDatos();
 });
 </script>
+
 
 <style scoped>
 .contratos-content {

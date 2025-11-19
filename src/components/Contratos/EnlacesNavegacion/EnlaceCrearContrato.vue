@@ -2,7 +2,8 @@
     <div class="enlace-crear-contrato">
         <!-- Header con flecha y título -->
         <div class="top-header">
-            <button class="btn-back" @click="volverInicio">
+            <!-- 🔹 Ahora usa confirmarSalida -->
+            <button class="btn-back" @click="confirmarSalida">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
             <h1>Contrato/Creación</h1>
@@ -19,7 +20,12 @@
                 <div class="form-row">
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
-                            <div class="photo-box"></div>
+                            <div v-if="fotoUrl" class="photo-box-with-image">
+                                <img :src="fotoUrl" alt="Foto aspirante" class="aspirante-foto">
+                            </div>
+                            <div v-else class="photo-box">
+                                <span class="material-symbols-rounded">person</span>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group" style="grid-column: 2 / 4;">
@@ -57,7 +63,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Proyecto (en caso de aplicar) </label>
-                        <input type="text" v-model="formData.sueldoMensual" class="form-input">
+                        <input type="text" v-model="formData.proyecto" class="form-input">
                     </div>
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
@@ -166,7 +172,6 @@
                         <input type="text" v-model="formData.documento" placeholder="Seleccione" class="form-input">
                     </div>
                 </div>
-
             </div>
 
             <!-- Firmas y Acciones -->
@@ -198,14 +203,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+
+const props = defineProps({
+    datosAspirante: {
+        type: Object,
+        default: null
+    }
+});
 
 const emit = defineEmits(['volver-inicio']);
 
-// Función para volver al inicio
-const volverInicio = () => {
-    emit('volver-inicio');
-};
+// Variables ref
+const fotoUrl = ref(null);
 
 // Datos del formulario
 const formData = ref({
@@ -231,6 +241,48 @@ const formData = ref({
     fechaGeneracion: ''
 });
 
+// 🔹 copia del estado inicial para saber si hay cambios
+const initialFormData = ref({ ...formData.value });
+
+// Clonar estado actual al inicial
+const actualizarEstadoInicial = () => {
+    initialFormData.value = JSON.parse(JSON.stringify(formData.value));
+};
+
+// Saber si el usuario ha modificado algo
+const hayCambiosEnFormulario = () => {
+    return JSON.stringify(formData.value) !== JSON.stringify(initialFormData.value);
+};
+
+// Cargar datos del aspirante
+const cargarDatosAspirante = () => {
+    if (props.datosAspirante) {
+        formData.value.nombre = props.datosAspirante.nombreSolo || props.datosAspirante.nombre || '';
+        formData.value.apellidoPaterno = props.datosAspirante.apellidoPaterno || '';
+        formData.value.apellidoMaterno = props.datosAspirante.apellidoMaterno || '';
+        fotoUrl.value = props.datosAspirante.avatar || null;
+
+        console.log('✅ Datos del aspirante cargados:', props.datosAspirante);
+    }
+
+    // Después de cargar (o dejar vacío) tomamos ese estado como "inicial"
+    actualizarEstadoInicial();
+};
+
+// 🔹 Confirmar salida según haya cambios o no
+const confirmarSalida = () => {
+    const hayCambios = hayCambiosEnFormulario();
+
+    const mensaje = hayCambios
+        ? 'Tienes cambios sin guardar. ¿Deseas descartar los cambios y salir?'
+        : 'No has capturado información en el formulario. ¿Deseas salir de la ventana?';
+
+    if (window.confirm(mensaje)) {
+        emit('volver-inicio');
+    }
+};
+
+// Guardar contrato
 const guardarContrato = () => {
     // Validar campos requeridos
     if (!formData.value.nombre || !formData.value.apellidoPaterno || !formData.value.area) {
@@ -240,13 +292,40 @@ const guardarContrato = () => {
 
     console.log('Guardando contrato:', formData.value);
     alert('Contrato guardado exitosamente');
+
+    // Si quisieras considerar este estado como "guardado" y que ya no pregunte al salir:
+    actualizarEstadoInicial();
+
+    // Volver al inicio después de guardar
+    setTimeout(() => {
+        emit('volver-inicio');
+    }, 500);
 };
 
+// Limpiar formulario
 const enviarLimpiar = () => {
-    console.log('Enviando a firma:', formData.value);
-    alert('Limpiado Correctamente');
+    Object.keys(formData.value).forEach(key => {
+        formData.value[key] = '';
+    });
+
+    fotoUrl.value = null;
+
+    console.log('Formulario limpiado');
+    alert('Formulario limpiado correctamente');
+
+    // Después de limpiar, el estado limpio pasa a ser el nuevo "inicial"
+    actualizarEstadoInicial();
 };
 
+// Watch para cambios en props
+watch(() => props.datosAspirante, () => {
+    cargarDatosAspirante();
+}, { deep: true });
+
+// Cargar datos al montar
+onMounted(() => {
+    cargarDatosAspirante();
+});
 </script>
 
 <style scoped>
@@ -389,11 +468,33 @@ const enviarLimpiar = () => {
     align-items: flex-start;
 }
 
+.photo-box-with-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #d0d0d0;
+}
+
+.aspirante-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .photo-box {
     width: 100px;
     height: 100px;
     background-color: #d3d3d3;
     border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+}
+
+.photo-box .material-symbols-rounded {
+    font-size: 48px;
 }
 
 /* Inline fields para nombre completo */
@@ -406,30 +507,6 @@ const enviarLimpiar = () => {
 /* Time input */
 .time-input {
     cursor: pointer;
-}
-
-/* Checkbox group */
-.checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.95rem;
-    color: #333;
-    cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #9370db;
 }
 
 /* Botones de acción */
@@ -473,7 +550,6 @@ const enviarLimpiar = () => {
 .btn-limpiar:hover {
     background-color: #e0a800;
 }
-
 
 .material-symbols-rounded {
     font-size: 20px;
