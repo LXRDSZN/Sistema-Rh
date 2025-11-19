@@ -11,8 +11,8 @@
     <!-- Otras vistas -->
     <div v-else class="other-view">
       <!-- Detalle del Aspirante -->
-      <DetalleAspirante v-if="activeTab === 'detalleAspirante'" :aspirante="aspiranteSeleccionado"
-        @cerrar="activeTab = 'inicio'" />
+      <DetalleAspirante v-if="activeTab === 'detalleAspirante' && aspiranteSeleccionado"
+        :persona-id="aspiranteSeleccionado.id || aspiranteSeleccionado.persona_id" @cerrar="activeTab = 'inicio'" />
 
       <!-- Detalle del Empleado -->
       <DetalleEmpleado v-else-if="activeTab === 'detalleEmpleado'" :empleado="empleadoSeleccionado"
@@ -168,6 +168,14 @@ const handleRevisarContrato = (contrato) => {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
   } else if (tipo === 'aspirante') {
+    // Verificar que el contrato tenga un ID válido
+    if (!contrato.id && !contrato.persona_id) {
+      console.error('El aspirante no tiene ID:', contrato);
+      alert('Error: No se puede cargar el aspirante (falta ID)');
+      return;
+    }
+
+    // Guardar el objeto completo (lo necesitamos para tener el ID)
     aspiranteSeleccionado.value = contrato;
     activeTab.value = 'detalleAspirante';
   }
