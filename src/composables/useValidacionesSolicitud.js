@@ -181,7 +181,7 @@ export function useValidacionesSolicitud() {
     
     const texto = valor.trim();
     
-    if (!/^[a-záéíóúàèìòùâêîôûäëïöüA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖ\s\-]+$/.test(texto)) {
+    if (!/^[a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s\-]+$/.test(texto)) {
       return { 
         valido: false, 
         error: `${nombreCampo} solo debe contener letras y espacios` 
