@@ -10,7 +10,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Área o departamento deseado:</span>
-                        <span class="puesto-value">{{ aspirante.area || 'XXXXXXXXX' }}</span>
+                        <span class="puesto-value">{{ aspirante.area || '----' }}</span>
                     </div>
                 </div>
 
@@ -32,7 +32,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Tipo de contrato:</span>
-                        <span class="puesto-value">XXXXXXXXX</span>
+                        <span class="puesto-value">----</span>
                     </div>
                 </div>
 
@@ -43,7 +43,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Jornada:</span>
-                        <span class="puesto-value">XXXXXXXXX</span>
+                        <span class="puesto-value">----</span>
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Cargo:</span>
-                        <span class="puesto-value">XXXXXXXXXXXXXXXXX</span>
+                        <span class="puesto-value">----</span>
                     </div>
                 </div>
 
@@ -68,7 +68,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Periodo:</span>
-                        <span class="puesto-value">XXXXXXXXXXXXXXXXX</span>
+                        <span class="puesto-value">----</span>
                     </div>
                 </div>
 
@@ -79,7 +79,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Motivo de salida:</span>
-                        <span class="puesto-value">XXXXXXXXXXXXXXXXX</span>
+                        <span class="puesto-value">----</span>
                     </div>
                 </div>
 
@@ -90,7 +90,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Domicilio:</span>
-                        <span class="puesto-value">{{ aspirante.domicilio || 'XXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="puesto-value">{{ aspirante.domicilio || '----XXXXXXXX' }}</span>
                     </div>
                 </div>
             </div>
@@ -129,7 +129,7 @@ const formatearNombrePuesto = (nombre) => {
  * Computed property para formatear el puesto deseado
  */
 const puestoFormateado = computed(() => {
-  return formatearNombrePuesto(props.aspirante.puesto) || 'XXXXXXXXX';
+  return formatearNombrePuesto(props.aspirante.puesto) || '----';
 });
 </script>
 

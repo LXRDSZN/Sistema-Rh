@@ -24,7 +24,7 @@
                 <span class="value">{{ contrato.estadoFirma }}</span>
             </div>
             <div class="info-item">
-                <span class="label">Estado de firma:</span>
+                <span class="label">Estado de Contrato:</span>
                 <span class="value">{{ contrato.estadoFirma }}</span>
             </div>
         </div>

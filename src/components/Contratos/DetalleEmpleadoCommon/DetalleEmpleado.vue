@@ -77,32 +77,32 @@ const empleadoCompleto = ref(null);
 
 // Datos del contrato actual
 const contratoActual = ref({
-    tipoContrato: 'XXXXX',
-    fechaInicioFin: 'XXXXX',
-    salarioBase: 'XXXXX',
-    jornadaLaboral: 'XXXXX',
-    horario: 'XXXXXX',
-    estadoFirma: 'XXXXX'
+    tipoContrato: '----',
+    fechaInicioFin: '----',
+    salarioBase: '----',
+    jornadaLaboral: '----',
+    horario: '----X',
+    estadoFirma: '----'
 });
 
 // Datos de nómina y pagos
 const nominaPagos = ref({
-    periodosPago: 'XXXXX',
-    salarioBruto: 'XXXXX',
-    deducciones: 'XXXXX',
-    neto: 'XXXXX',
-    bonosRecibidos: 'XXXXX',
-    deduccionesAplicadas: 'XXXXX',
-    historialAguinaldos: 'XXXXX'
+    periodosPago: '----',
+    salarioBruto: '----',
+    deducciones: '----',
+    neto: '----',
+    bonosRecibidos: '----',
+    deduccionesAplicadas: '----',
+    historialAguinaldos: '----'
 });
 
 // Datos de beneficios y seguridad
 const beneficiosSeguridad = ref([
-    { id: 1, nombre: 'Beneficios activos', valor: 'XXXXX', activo: true },
-    { id: 2, nombre: 'NSS', valor: 'XXXXX', activo: false },
-    { id: 3, nombre: 'Tipo de afiliación', valor: 'XXXXX', activo: true },
-    { id: 4, nombre: 'Clínica', valor: 'XXXXX', activo: false },
-    { id: 5, nombre: 'Riesgo laboral', valor: 'XXXXX', activo: false }
+    { id: 1, nombre: 'Beneficios activos', valor: '----', activo: true },
+    { id: 2, nombre: 'NSS', valor: '----', activo: false },
+    { id: 3, nombre: 'Tipo de afiliación', valor: '----', activo: true },
+    { id: 4, nombre: 'Clínica', valor: '----', activo: false },
+    { id: 5, nombre: 'Riesgo laboral', valor: '----', activo: false }
 ]);
 
 // Datos de documentos
@@ -133,7 +133,7 @@ onMounted(async () => {
 
         if (!fechaFin) {
             // Contrato indefinido / indeterminado
-            estadoTexto = 'INDEFINIDO';
+            estadoTexto = 'ACTIVO'; // Mantener como ACTIVO en contratos indefinidos
             estadoClase = 'indefinido';
         } else if (fechaFin < hoy) {
             // Contrato vencido
@@ -163,12 +163,12 @@ onMounted(async () => {
         };
 
         contratoActual.value = {
-            tipoContrato: contrato.tipo_contrato || 'XXXXX',
-            fechaInicioFin: `${contrato.fecha_inicio} - ${contrato.fecha_fin}`,
-            salarioBase: contrato.salario_mensual || 'XXXXX',
-            jornadaLaboral: contrato.jornada || 'XXXXX',
-            horario: `${contrato.hora_entrada} - ${contrato.hora_salida}` || 'XXXXX',
-            estadoFirma: contrato.estado_firma || 'XXXXX'
+            tipoContrato: contrato.tipo_contrato || '----',
+            fechaInicioFin: `${formatearFecha(contrato.fecha_inicio)} - ${formatearFecha(contrato.fecha_fin)}`, // Manejar indefinido
+            salarioBase: formatearMoneda(contrato.salario_mensual),
+            jornadaLaboral: contrato.jornada || '----',
+            horario: `${contrato.hora_entrada} - ${contrato.hora_salida}` || '----',
+            estadoFirma: contrato.estado_firma || '----'
         };
 
     } catch (error) {
@@ -177,6 +177,27 @@ onMounted(async () => {
         loading.value = false;
     }
 });
+
+// Función para formatear fechas
+const formatearFecha = (fecha) => {
+    if (!fecha) return 'INDEFINIDO';
+    const d = new Date(fecha);
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const anio = d.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+};
+
+const formatearMoneda = (cantidad) => {
+    if (cantidad == null) return '----';
+
+    return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(cantidad);
+};
 
 
 const cambiarTab = (tab) => {

@@ -206,6 +206,9 @@ const formatearFecha = (fecha) => {
 .status-value.vencido {
     color: #ef4444;
 }
+.status-value.indefinido {
+    color: #7c3aed;
+}
 
 /* Responsive */
 @media (max-width: 1024px) {
