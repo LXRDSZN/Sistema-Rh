@@ -20,7 +20,7 @@
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
                             <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl" alt="Foto aspirante" class="aspirante-foto" />
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto" @error="onImgError"/>
                             </div>
                             <div v-else class="photo-box">
                                 <span class="material-symbols-rounded">person</span>
@@ -230,6 +230,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['volver-inicio']);
+
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 const { obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
 const {

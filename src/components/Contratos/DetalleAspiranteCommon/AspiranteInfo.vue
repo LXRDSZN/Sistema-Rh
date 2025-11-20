@@ -8,7 +8,7 @@
         <!-- Información Principal -->
         <div class="info-principal">
             <div class="info-left">
-                <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar-grande">
+                <img :src="aspirante.avatar || defaultAvatar" :alt="aspirante.nombre" class="avatar-grande" @error="onImgError">
                 <div class="datos-principales">
                     <h3>{{ aspirante.nombre }}</h3>
                     <div class="info-item">
@@ -67,6 +67,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['crear-contrato']);
+
+// Avatar por defecto (colocar `default-avatar.png` en `public/`)
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2025';

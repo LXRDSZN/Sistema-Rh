@@ -2,7 +2,7 @@
     <div class="employee-info">
         <!-- Avatar del empleado -->
         <div class="employee-avatar">
-            <img :src="empleado.avatar || '/default-avatar.png'" :alt="empleado.nombre" />
+            <img :src="empleado.avatar || defaultAvatar" :alt="empleado.nombre" @error="onImgError" />
         </div>
 
         <!-- Información del empleado -->
@@ -51,6 +51,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
+
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 // Función para formatear fecha
 const formatearFecha = (fecha) => {

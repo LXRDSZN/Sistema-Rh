@@ -68,7 +68,7 @@
             <div class="table-body">
                 <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="table-row" :style="rowStyle">
                     <div class="col-datos">
-                        <img :src="contrato.avatar" :alt="contrato.nombre" class="avatar">
+                        <img :src="contrato.avatar || defaultAvatar" :alt="contrato.nombre" class="avatar" @error="onImgError">
                         <div class="datos-info">
                             <div class="nombre">{{ contrato.nombre }}</div>
                             <div class="estado">{{ contrato.estadoTexto || contrato.fase }}</div>
@@ -118,6 +118,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['revisar-contrato', 'volver-inicio']);
+
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 const searchQuery = ref('');
 const filtroNombre = ref('');

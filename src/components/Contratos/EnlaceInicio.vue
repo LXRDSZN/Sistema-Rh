@@ -81,8 +81,7 @@
                     <div class="table-body">
                         <div v-for="empleado in empleadosFiltrados" :key="empleado.id" class="table-row empleado-row">
                             <div class="col-datos">
-                                <img v-if="empleado.avatar" :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
-                                <div v-else class="avatar avatar-placeholder">👤</div>
+                                <img :src="empleado.avatar || defaultAvatar" :alt="empleado.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ empleado.nombre }}</div>
                                     <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
@@ -117,8 +116,7 @@
                         <div v-for="aspirante in aspirantesFiltrados" :key="aspirante.id"
                             class="table-row aspirante-row">
                             <div class="col-datos">
-                                <img v-if="aspirante.avatar" :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
-                                <div v-else class="avatar avatar-placeholder">👤</div>
+                                <img :src="aspirante.avatar || defaultAvatar" :alt="aspirante.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ aspirante.nombre }}</div>
                                     <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
@@ -157,6 +155,13 @@ const props = defineProps({
 
 // Emits - envía eventos al componente raíz
 const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
+
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 // Estado local
 const searchQuery = ref('');
