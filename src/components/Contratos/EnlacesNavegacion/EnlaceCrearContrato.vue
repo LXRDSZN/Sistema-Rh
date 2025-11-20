@@ -49,7 +49,7 @@
                         <label>Tipo de Contrato</label>
                         <select v-model="formData.tipoContrato" class="form-select">
                             <option value="">Seleccione tipo</option>
-                            <option value="Indeterminado">Indeterminado</option>
+                            <option value="Indefinido">Indefinido</option>
                             <option value="Temporal">Temporal</option>
                             <option value="Por Proyecto">Por Proyecto</option>
                         </select>
@@ -80,7 +80,7 @@
                         <label>Modalidad</label>
                         <select v-model="formData.modalidad" class="form-select">
                             <option value="">Seleccione modalidad</option>
-                            <option value="Híbrido">Híbrido</option>
+                            <option value="Híbrida">Híbrida</option>
                             <option value="Remoto">Remoto</option>
                             <option value="Presencial">Presencial</option>
                         </select>
@@ -413,7 +413,7 @@ const validarFechaInicio = () => {
 };
 
 const validarFechaTermino = () => {
-    if (formData.value.tipoContrato === 'Indeterminado') {
+    if (formData.value.tipoContrato === 'Indefinido') {
         formData.value.fechaTermino = '';
         return;
     }
@@ -445,7 +445,7 @@ const validarFechaTermino = () => {
 watch(
     () => formData.value.tipoContrato,
     (nuevo) => {
-        if (nuevo === 'Indeterminado') {
+        if (nuevo === 'Indefinido') {
             formData.value.fechaTermino = '';
         }
     }

@@ -124,13 +124,18 @@ onMounted(async () => {
         ]);
 
         const hoy = new Date();
-        const fechaFin = new Date(contrato.fecha_fin);
+        //const fechaFin = new Date(contrato.fecha_fin);
+        const fechaFin = contrato.fecha_fin ? new Date(contrato.fecha_fin) : null;
         const fechaInicio = new Date(contrato.fecha_inicio);
 
         let estadoTexto = 'ACTIVO';
         let estadoClase = 'activo';
 
-        if (fechaFin < hoy) {
+        if (!fechaFin) {
+            // Contrato indefinido / indeterminado
+            estadoTexto = 'INDEFINIDO';
+            estadoClase = 'indefinido';
+        } else if (fechaFin < hoy) {
             // Contrato vencido
             estadoTexto = 'VENCIDO';
             estadoClase = 'vencido';
@@ -139,7 +144,6 @@ onMounted(async () => {
             const diasParaVencer = Math.floor((fechaFin - hoy) / (1000 * 60 * 60 * 24));
 
             if (diasParaVencer <= 30 && diasParaVencer > 0) {
-                // Próximo a vencer
                 estadoTexto = 'PRÓXIMO A VENCER';
                 estadoClase = 'proximo-a-vencer';
             }

@@ -35,7 +35,8 @@ router.get('/contratos/stats', async (req, res) => {
             FROM contrato c
             INNER JOIN estado_contrato ec ON ec.id = c.estado_id
             WHERE ec.nombre ILIKE 'ACTIVO'
-              AND c.fecha_fin < CURRENT_DATE
+                AND c.fecha_fin IS NOT NULL
+                AND c.fecha_fin < CURRENT_DATE
         `;
         const vencidos = await pool.query(vencidosQuery);
 
