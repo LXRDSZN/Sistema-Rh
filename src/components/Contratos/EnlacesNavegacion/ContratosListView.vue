@@ -27,12 +27,11 @@
         <!-- Filtros -->
         <div class="filters-container">
             <div class="filter-group">
-                <label>Nombre</label>
+                <label>Ordenar</label>
                 <select v-model="filtroNombre" class="filter-select" :style="filterStyle">
-                    <option value="">Ingresa nombre</option>
-                    <option v-for="nombre in nombresUnicos" :key="nombre" :value="nombre">
-                        {{ nombre }}
-                    </option>
+                    <option value="">Sin filtro</option>
+                    <option value="asc">A - Z (Ascendente)</option>
+                    <option value="desc">Z - A (Descendente)</option>
                 </select>
             </div>
 
@@ -54,6 +53,7 @@
                     <option value="antigua">Más antigua</option>
                 </select>
             </div>
+
         </div>
 
         <!-- Tabla de contratos -->
@@ -147,10 +147,6 @@ const buttonStyle = computed(() => ({
     borderColor: props.primaryColor
 }));
 
-const nombresUnicos = computed(() => {
-    return [...new Set(props.contratos.map(c => c.nombre))];
-});
-
 const areasUnicas = computed(() => {
     return [...new Set(props.contratos.map(c => c.area))];
 });
@@ -167,12 +163,19 @@ const contratosFiltrados = computed(() => {
         );
     }
 
-    if (filtroNombre.value) {
-        result = result.filter(c => c.nombre === filtroNombre.value);
-    }
-
     if (filtroArea.value) {
         result = result.filter(c => c.area === filtroArea.value);
+    }
+
+    // Ordenar por nombre si se seleccionó (igual que EnlaceHistorial)
+    if (filtroNombre.value === 'asc') {
+        result = [...result].sort((a, b) =>
+            (a.nombre || '').toString().localeCompare((b.nombre || '').toString(), 'es', { sensitivity: 'base' })
+        );
+    } else if (filtroNombre.value === 'desc') {
+        result = [...result].sort((a, b) =>
+            (b.nombre || '').toString().localeCompare((a.nombre || '').toString(), 'es', { sensitivity: 'base' })
+        );
     }
 
     if (filtroFecha.value === 'reciente') {
@@ -313,7 +316,7 @@ const volverInicio = () => {
     padding: 2rem;
     margin-bottom: 1.5rem;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* Poner columnas */
     gap: 2rem;
 }
 
