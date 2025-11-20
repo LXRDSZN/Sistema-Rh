@@ -180,11 +180,11 @@ const contratosFiltrados = computed(() => {
 
     if (filtroFecha.value === 'reciente') {
         result = [...result].sort((a, b) =>
-            new Date(b.fechaInicio) - new Date(a.fechaInicio)
+            new Date(b.fechainicio) - new Date(a.fechainicio)
         );
     } else if (filtroFecha.value === 'antigua') {
         result = [...result].sort((a, b) =>
-            new Date(a.fechaInicio) - new Date(b.fechaInicio)
+            new Date(a.fechainicio) - new Date(b.fechainicio)
         );
     }
 
@@ -316,7 +316,8 @@ const volverInicio = () => {
     padding: 2rem;
     margin-bottom: 1.5rem;
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Poner columnas */
+    grid-template-columns: repeat(3, 1fr);
+    /* Poner columnas */
     gap: 2rem;
 }
 
