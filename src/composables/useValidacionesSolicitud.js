@@ -178,24 +178,31 @@ export function useValidacionesSolicitud() {
    */
   const validarSoloLetras = (valor, nombreCampo = 'Campo') => {
     if (!valor) return { valido: true, error: '' };
-    
-    const texto = valor.trim();
-    
-    if (!/^[a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s\-]+$/.test(texto)) {
-      return { 
-        valido: false, 
-        error: `${nombreCampo} solo debe contener letras y espacios` 
+
+    // Solo letras con acentos, ñ y espacios (1 a 3 nombres)
+    const regex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ]+(\s[A-Za-zÁÉÍÓÚáéíóúÑñ]+){0,2}$/;
+
+    if (!regex.test(valor.trim())) {
+      return {
+        valido: false,
+        error: `${nombreCampo} solo puede tener 1 a 3 nombres, usando letras y espacios`
       };
     }
-    
-    // Capitalizar primera letra
-    const capitalizado = texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
-    
+
+    // 1. Convertir todo a minúsculas
+    let texto = valor.toLowerCase();
+
+    // 2. Capitalizar usando una regex más robusta (Inicio de línea o espacio)
+    const capitalizado = texto.replace(
+      /(^|\s)([a-záéíóúñ])/g,
+      (match, separador, letra) => separador + letra.toUpperCase()
+    );
+
     return { valido: true, error: '', valorCapitalizado: capitalizado };
   };
 
   /**
-   * Capitaliza la primera letra de un texto
+   * Capitaliza la primera letra de un texto (Auxiliar)
    */
   const capitalizarPrimeraLetra = (texto) => {
     if (!texto) return '';
@@ -203,32 +210,45 @@ export function useValidacionesSolicitud() {
   };
 
   /**
-   * Valida todo el formulario
+   * CORREGIDO: Valida todo el formulario Y ACTUALIZA LOS VALORES
    */
   const validarFormulario = (formulario) => {
     errores.value = {};
     let tieneErrores = false;
 
-    // Validar nombres
+    // --- NOMBRES ---
     const valNombres = validarSoloLetras(formulario.nombres, 'Nombre');
     if (!valNombres.valido) {
       errores.value.nombres = valNombres.error;
       tieneErrores = true;
+    } else {
+      // ¡AQUÍ ESTÁ LA MAGIA! Sobrescribimos con el valor bonito
+      if (valNombres.valorCapitalizado) {
+        formulario.nombres = valNombres.valorCapitalizado;
+      }
     }
 
-    // Validar apellido paterno
+    // --- APELLIDO PATERNO ---
     const valApePat = validarSoloLetras(formulario.apellidoPaterno, 'Apellido Paterno');
     if (!valApePat.valido) {
       errores.value.apellidoPaterno = valApePat.error;
       tieneErrores = true;
+    } else {
+      if (valApePat.valorCapitalizado) {
+        formulario.apellidoPaterno = valApePat.valorCapitalizado;
+      }
     }
 
-    // Validar apellido materno (opcional)
+    // --- APELLIDO MATERNO ---
     if (formulario.apellidoMaterno) {
       const valApeMat = validarSoloLetras(formulario.apellidoMaterno, 'Apellido Materno');
       if (!valApeMat.valido) {
         errores.value.apellidoMaterno = valApeMat.error;
         tieneErrores = true;
+      } else {
+        if (valApeMat.valorCapitalizado) {
+          formulario.apellidoMaterno = valApeMat.valorCapitalizado;
+        }
       }
     }
 
