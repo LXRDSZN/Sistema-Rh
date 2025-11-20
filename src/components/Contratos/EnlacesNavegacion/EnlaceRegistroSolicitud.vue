@@ -546,7 +546,7 @@ const validarSoloLetras = (event) => {
   const input = event.target;
   const valor = input.value;
   // Permitir solo letras (incluyendo acentos), espacios y guiones
-  const valorLimpio = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖ\s\-]/g, '');
+  const valorLimpio = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s\-]/g, '');
   input.value = valorLimpio;
   // Actualizar el v-model
   if (input.name === 'nombres') {
