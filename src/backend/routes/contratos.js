@@ -189,7 +189,7 @@ router.get('/contratos/por-estado', async (req, res) => {
                         LOWER(REPLACE(COALESCE(p.etapa, 'registro'), ' ', '-')) AS estado_clase,
                         COALESCE(pu.nombre, 'Sin puesto') AS puesto,
                         COALESCE(a.nombre, 'Sin área') AS area,
-                        NULL AS fechaInicio,
+                        p.fecha_registro AS fechaInicio,
                         NULL AS fechaFin
                     FROM persona p
                     LEFT JOIN aspiracion_laboral al ON al.persona_id = p.id
