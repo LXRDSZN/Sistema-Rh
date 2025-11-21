@@ -24,8 +24,6 @@
         iconClass="empleados"
         label="Empleados"
         :value="stats.totalEmpleados.total"
-        :percentage="stats.totalEmpleados.porcentaje"
-        :trend="stats.totalEmpleados.tendencia"
         :formatNumber="true"
       />
       <StatCard
