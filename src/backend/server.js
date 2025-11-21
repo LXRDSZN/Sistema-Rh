@@ -17,6 +17,7 @@ import asistenciasRoutes from './routes/asistencias.js';
 import solicitudesRoutes from './routes/solicitudes.js';
 import aspirantesContratosRoutes from './routes/AspirantesContratos.js'
 import catalogoContratosRoutes from './routes/CatalogoContratos.js'
+import empleadoContratosRoutes from './routes/EmpleadoContratos.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -90,7 +91,10 @@ app.use('/api', contratosRoutes);
 app.use('/api', aspirantesContratosRoutes);
 
 // Rutas Catalogo contratos
-app.use('/api', catalogoContratosRoutes)
+app.use('/api', catalogoContratosRoutes);
+
+// Rutas Empleado contratos
+app.use('/api', empleadoContratosRoutes);
 
 // Rutas de vacaciones 
 app.use('/api/vacaciones', vacacionesRoutes);

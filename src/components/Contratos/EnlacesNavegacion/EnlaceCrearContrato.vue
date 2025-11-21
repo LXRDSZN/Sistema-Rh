@@ -9,7 +9,7 @@
         </div>
 
         <div class="content-box">
-            <h2 class="section-title">CONTRATO NUEVO</h2>
+            <h2 class="section-title">{{ tituloContrato }}</h2>
 
             <!-- Datos Personales -->
             <div class="form-section">
@@ -20,7 +20,8 @@
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
                             <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto" @error="onImgError"/>
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
+                                    @error="onImgError" />
                             </div>
                             <div v-else class="photo-box">
                                 <span class="material-symbols-rounded">person</span>
@@ -219,6 +220,8 @@ import axios from 'axios';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useCatalogosContratos } from '@/composables/useCatalogoContratos';
 import { useS3Files } from '@/composables/useS3Files';
+import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos'; // 👈 nuevo
+
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -226,6 +229,16 @@ const props = defineProps({
     datosAspirante: {
         type: Object,
         default: null
+    },
+    // Cuando vienes desde EMPLEADO (renovación)
+    datosEmpleado: {
+        type: Object,
+        default: null
+    },
+    // Para saber si es contrato nuevo o renovación
+    modo: {
+        type: String,
+        default: 'aspirante-nuevo' // 'aspirante-nuevo' | 'empleado-renovar'
     }
 });
 
@@ -249,7 +262,12 @@ const {
     obtenerTiposDocumento
 } = useCatalogosContratos();
 const { subirArchivo } = useS3Files();
+const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
+const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
 
+const tituloContrato = computed(() =>
+    esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
+);
 // ========================
 //  ESTADOS
 // ========================
@@ -367,6 +385,47 @@ const cargarDatosAspirante = async () => {
     }
 
     actualizarEstadoInicial();
+};
+// ===== CARGA DATOS DEL EMPLEADO =====
+
+const cargarDatosEmpleadoRenovacion = async () => {
+    const personaId = props.datosEmpleado?.persona_id;
+    if (!personaId) return;
+
+    try {
+        const datos = await obtenerDatosRenovacionEmpleado(personaId);
+
+        // Foto y nombre
+        fotoUrl.value = datos.foto_url || fotoUrl.value;
+        formData.value.nombre = datos.nombre || '';
+        formData.value.apellidoPaterno = datos.apellido_paterno || '';
+        formData.value.apellidoMaterno = datos.apellido_materno || '';
+
+        // Asignación laboral
+        formData.value.area = datos.area_id || '';
+        formData.value.puesto = datos.puesto_id || '';
+
+        // Contrato
+        formData.value.tipoContrato = datos.tipo_contrato || '';
+        formData.value.modalidad = datos.modalidad || '';
+        formData.value.sueldoMensual = datos.salario_mensual || '';
+
+        if (datos.fecha_inicio) {
+            formData.value.fechaInicio = formatearFechaInput(datos.fecha_inicio);
+        }
+        if (datos.fecha_fin) {
+            formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
+        }
+
+        // Fecha de generación = hoy (ya lo hacías)
+        if (!formData.value.fechaGeneracion) {
+            formData.value.fechaGeneracion = hoyISO;
+        }
+
+        actualizarEstadoInicial();
+    } catch (error) {
+        console.error('Error al cargar datos de renovación del empleado:', error);
+    }
 };
 
 // ===== CARGA CATÁLOGOS =====
@@ -581,17 +640,34 @@ const enviarLimpiar = () => {
 };
 
 // ===== WATCH & MOUNT =====
+// 🔹 Cuando cambie el aspirante (por ejemplo al seleccionar otro)
 watch(
     () => props.datosAspirante,
-    () => {
-        cargarDatosAspirante();
-    },
-    { deep: true }
+    (nuevo) => {
+        if (props.modo === 'aspirante-nuevo' && nuevo) {
+            cargarDatosAspirante();
+        }
+    }
 );
 
-onMounted(() => {
-    cargarDatosAspirante();
-    cargarCatalogos();
+// 🔹 Cuando cambie el empleado (por ejemplo al seleccionar otro)
+watch(
+    () => props.datosEmpleado,
+    (nuevo) => {
+        if (props.modo === 'empleado-renovar' && nuevo) {
+            cargarDatosEmpleadoRenovacion();
+        }
+    }
+);
+
+onMounted(async () => {
+    await cargarCatalogos();
+
+    if (props.modo === 'aspirante-nuevo' && props.datosAspirante) {
+        await cargarDatosAspirante();
+    } else if (props.modo === 'empleado-renovar' && props.datosEmpleado) {
+        await cargarDatosEmpleadoRenovacion();
+    }
 });
 </script>
 

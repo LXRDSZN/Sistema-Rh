@@ -36,8 +36,10 @@
       <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: 18 }"
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
-      <!-- Vista de Crear Contrato -->
-      <EnlaceCrearContrato v-if="activeTab === 'crear'" :datos-aspirante="aspiranteParaContrato"
+      <!-- Vista de Crear / Renovar Contrato -->
+      <EnlaceCrearContrato v-if="activeTab === 'crear'"
+        :datos-aspirante="modoContrato === 'aspirante-nuevo' ? aspiranteParaContrato : null"
+        :datos-empleado="modoContrato === 'empleado-renovar' ? empleadoParaRenovar : null" :modo="modoContrato"
         @volver-inicio="volverInicio" />
 
       <!-- Vista de Registro de Solicitud -->
@@ -72,17 +74,21 @@ import EnlaceHistorial from './EnlacesNavegacion/EnlaceHistorial.vue';
 
 const route = useRoute();
 const router = useRouter();
+
 const activeTab = ref('inicio');
 const showIncidencia = ref(false);
+
 const aspiranteSeleccionado = ref(null);
 const empleadoSeleccionado = ref(null);
+
 const aspiranteParaContrato = ref(null);
+const empleadoParaRenovar = ref(null);
+
+// ⭐ aquí decides si el formulario es para un aspirante nuevo o renovar empleado
+const modoContrato = ref('aspirante-nuevo'); // 'aspirante-nuevo' | 'empleado-renovar'
+
 const { contentMarginLeft, contentWidth } = useSidebar();
 
-// 🔹 para saber desde dónde abrí "crear contrato"
-const origenDesdeAspirante = ref(false);
-
-// Estados reactivos
 const stats = ref({
   activos: 0,
   proximosVencer: 0,
@@ -93,14 +99,12 @@ const stats = ref({
 const contratos = ref([]);
 const loading = ref(false);
 
-// Composable para API
 const {
   obtenerEstadisticas,
   obtenerEmpleadosDestacados,
   obtenerAspirantesDestacados
 } = useContratos();
 
-// Función para manejar incidencia creada
 const onIncidenciaCreada = () => {
   showSuccess.value = true;
   showIncidencia.value = false;
@@ -109,7 +113,6 @@ const onIncidenciaCreada = () => {
   }, 3000);
 };
 
-// Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
   if (route.path === '/Contratos/estadisticas') {
     activeTab.value = 'estadisticas';
@@ -124,21 +127,24 @@ const updateTabFromRoute = () => {
   }
 };
 
-// 🔹 Función para volver desde "crear contrato"
+// 🔹 Volver al inicio desde crear/renovar contrato
 const volverInicio = async () => {
-  // 1) Cambiar la pestaña
   activeTab.value = 'inicio';
 
-  // 2) Navegar al inicio de Contratos solo si hace falta
+  // ⭐ limpiar estados de contrato
+  aspiranteParaContrato.value = null;
+  empleadoParaRenovar.value = null;
+  modoContrato.value = 'aspirante-nuevo';
+  aspiranteSeleccionado.value = null;
+  empleadoSeleccionado.value = null;
+
   if (route.path !== '/Contratos') {
     await router.push('/Contratos');
   }
 
-  // 3) Recargar datos para que ya no aparezca como aspirante
   await cargarDatos();
 };
 
-// Función para cargar datos de la API
 const cargarDatos = async () => {
   loading.value = true;
   try {
@@ -158,19 +164,16 @@ const cargarDatos = async () => {
   }
 };
 
-// Métodos para manejar eventos
 const handleCrearContrato = () => {
   activeTab.value = 'crear';
 };
 
-// Método para manejar revisión de contrato
+// 🔹 Revisar tarjeta de la lista
 const handleRevisarContrato = (contrato) => {
   console.log('Revisar contrato:', contrato);
 
-  // Normalizar tipo
   const tipo = (contrato.tipo || '').toLowerCase().trim();
 
-  // Verificar el tipo de contrato y redirigir al componente adecuado
   if (tipo === 'empleado') {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
@@ -180,24 +183,33 @@ const handleRevisarContrato = (contrato) => {
   }
 };
 
-// Función para manejar la renovación de contrato
-const handleRenovarContrato = () => {
+// 🔹 Renovar contrato DESDE DetalleEmpleado
+//    (asegúrate de llamar handleRenovarContrato(empleado) desde DetalleEmpleado)
+const handleRenovarContrato = (empleado) => {
+  console.log('Renovar contrato de empleado:', empleado);
+
+  empleadoParaRenovar.value = empleado;
+  aspiranteParaContrato.value = null;
+
+  modoContrato.value = 'empleado-renovar';      // ⭐ modo renovación
   activeTab.value = 'crear';
 };
 
-
+// 🔹 Crear contrato DESDE DetalleAspirante
 const handleCrearContratoAspirante = (aspirante) => {
   console.log('Crear contrato para aspirante:', aspirante);
+
   aspiranteParaContrato.value = aspirante;
+  empleadoParaRenovar.value = null;
+
+  modoContrato.value = 'aspirante-nuevo';       // ⭐ modo aspirante nuevo
   activeTab.value = 'crear';
 };
 
-// Método para cambiar de vista desde las tarjetas de estadísticas
 const cambiarVista = (vista) => {
   activeTab.value = vista;
 };
 
-// Computed para historial
 const contratosHistorico = computed(() =>
   contratos.value.filter(c =>
     c.estado_clase === 'terminado' ||
@@ -206,7 +218,6 @@ const contratosHistorico = computed(() =>
   )
 );
 
-// Método para manejar descarga de contrato
 const handleDescargarContrato = async (contrato) => {
   console.log('Descargar contrato:', contrato);
 
@@ -218,17 +229,20 @@ const handleDescargarContrato = async (contrato) => {
   }
 };
 
-// Watch para cambios en la ruta
-watch(() => route.path, () => {
-  updateTabFromRoute();
-}, { immediate: true });
+watch(
+  () => route.path,
+  () => {
+    updateTabFromRoute();
+  },
+  { immediate: true }
+);
 
-// Al montar el componente
 onMounted(async () => {
   updateTabFromRoute();
   await cargarDatos();
 });
 </script>
+
 
 
 <style scoped>
