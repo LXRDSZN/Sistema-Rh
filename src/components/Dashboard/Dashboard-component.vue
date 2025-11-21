@@ -5,7 +5,7 @@
       :userName="userName"
       :userRole="userRole"
       :totalPermissions="totalPermissions"
-      @openRegisterModal="showRegisterModal = true"
+      @openRegisterModal="openRegisterModal"
       @logout="handleLogout"
     />
 
@@ -43,6 +43,8 @@
       :modelValue="newUser"
       :userRole="userRole"
       :isRegistering="isRegistering"
+      :empleadosSinCorreo="empleadosSinCorreo"
+      :isLoadingEmpleados="isLoadingEmpleados"
       @submit="handleRegisterUser"
     />
 
@@ -82,7 +84,7 @@ import DemographicsChart from './DashboardCharts/DemographicsChart.vue';
 const router = useRouter();
 const { userName, userEmail, userRole, totalPermissions, logout, verifySession } = useAuth();
 const { stats, empleadosPorArea, estadisticasEdadGenero, areaColors, loadDashboardStats } = useDashboardData();
-const { newUser, isRegistering, showRegisterModal, handleRegisterUser } = useUserRegistration();
+const { newUser, isRegistering, showRegisterModal, empleadosSinCorreo, isLoadingEmpleados, handleRegisterUser, loadEmpleadosSinCorreo } = useUserRegistration();
 
 // Verificar sesión al cargar el dashboard
 onMounted(async () => {
@@ -94,6 +96,12 @@ onMounted(async () => {
   
   await loadDashboardStats();
 });
+
+// Cargar empleados cuando se abre el modal
+const openRegisterModal = async () => {
+  showRegisterModal.value = true;
+  await loadEmpleadosSinCorreo();
+};
 
 // Logout
 const handleLogout = () => {

@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   getDashboardStats,
   getEmpleadosPorArea,
-  getDemografia
+  getDemografia,
+  getEmpleadosSinCorreo
 } from '../controllers/dashboard.controllers.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
@@ -21,5 +22,8 @@ router.get('/dashboard/empleados-por-area', verificarToken, getEmpleadosPorArea)
 
 // GET - Obtener demografía (edad y género)
 router.get('/dashboard/demografia', verificarToken, getDemografia);
+
+// GET - Obtener empleados con contratos activos sin correo
+router.get('/dashboard/empleados-sin-correo', verificarToken, getEmpleadosSinCorreo);
 
 export default router;
