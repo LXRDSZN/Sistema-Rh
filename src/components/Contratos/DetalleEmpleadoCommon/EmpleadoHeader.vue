@@ -7,8 +7,9 @@
 
         <!-- Información del empleado -->
         <div class="employee-details">
+
             <h3>{{ empleado.nombre }}</h3>
-            <p><strong>PUESTO:</strong> {{ empleado.puesto || 'XXXXXXXXXXXXXXXX' }}</p>
+            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || 'XXXXXXXXXXXXXXXX' }}</p>
             <p><strong>ÁREA:</strong> {{ empleado.area || 'XXXXXXXXXXXXXXXXXX' }}</p>
 
             <!-- Botones de acción -->
@@ -41,6 +42,20 @@
 </template>
 
 <script setup>
+// Formatea el nombre del rol del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Administrador',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 import { computed } from 'vue';
 
 const props = defineProps({
