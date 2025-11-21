@@ -222,7 +222,15 @@ const formattedRole = computed(() => {
 // Verificar si el usuario puede acceder a solicitudes de vacaciones
 const canAccessSolicitudes = computed(() => {
   const { hasRole } = useAuth();
-  return hasRole('ADMIN') || hasRole('JEFE_RH') || hasRole('JEFE_AREA');
+  return (
+    hasRole('ADMIN') ||
+    hasRole('JEFE_RH') ||
+    hasRole('JEFE_AREA') ||
+    hasRole('JEFE_ASISTENCIAS') ||
+    hasRole('JEFE_CONTRATOS') ||
+    hasRole('JEFE_VACACIONES') ||
+    hasRole('JEFE_INCIDENCIAS')
+  );
 });
 
 function toggleSidebar() {

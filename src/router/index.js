@@ -93,7 +93,15 @@ const router = createRouter({
       path: '/Vacaciones/Solicitudes-de-vacaciones',
       name: 'VacacionesSolicitudes',
       component: () => import('../views/Vacaciones/Solicitudes/SolicitudesView.vue'),
-      meta: { requiredRoles: ['ADMIN', 'JEFE_RH', 'JEFE_AREA'] }
+      meta: { requiredRoles: [
+        'ADMIN',
+        'JEFE_RH',
+        'JEFE_AREA',
+        'JEFE_ASISTENCIAS',
+        'JEFE_CONTRATOS',
+        'JEFE_VACACIONES',
+        'JEFE_INCIDENCIAS'
+      ] }
     },
     {
       path: '/Incidencias',
