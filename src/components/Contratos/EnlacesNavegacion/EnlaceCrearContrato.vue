@@ -5,7 +5,7 @@
             <button class="btn-back" @click="confirmarSalida">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <h1>Contrato/Creación</h1>
+            <h1>{{ esRenovacionEmpleado ? 'Contrato/Renovación' : 'Contrato/Creación' }}</h1>
         </div>
 
         <div class="content-box">
@@ -177,7 +177,6 @@
 
                     <div class="form-group">
                         <label>Subir documento (PDF)</label>
-                        <!-- 👇 AQUÍ es donde realmente se captura el File -->
                         <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
                         <p v-if="formData.documento" class="file-name">
                             Archivo seleccionado: {{ formData.documento }}
@@ -213,6 +212,7 @@
     </div>
 </template>
 
+
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue';
 import axios from 'axios';
@@ -220,8 +220,7 @@ import axios from 'axios';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useCatalogosContratos } from '@/composables/useCatalogoContratos';
 import { useS3Files } from '@/composables/useS3Files';
-import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos'; // 👈 nuevo
-
+import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -263,11 +262,13 @@ const {
 } = useCatalogosContratos();
 const { subirArchivo } = useS3Files();
 const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
+
 const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
 
 const tituloContrato = computed(() =>
     esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
 );
+
 // ========================
 //  ESTADOS
 // ========================
@@ -386,10 +387,10 @@ const cargarDatosAspirante = async () => {
 
     actualizarEstadoInicial();
 };
-// ===== CARGA DATOS DEL EMPLEADO =====
 
+// ===== CARGA DATOS DEL EMPLEADO =====
 const cargarDatosEmpleadoRenovacion = async () => {
-    const personaId = props.datosEmpleado?.persona_id;
+    const personaId = props.datosEmpleado?.persona_id || props.datosEmpleado?.id;
     if (!personaId) return;
 
     try {
@@ -417,7 +418,6 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
-        // Fecha de generación = hoy (ya lo hacías)
         if (!formData.value.fechaGeneracion) {
             formData.value.fechaGeneracion = hoyISO;
         }
@@ -565,12 +565,26 @@ const guardarContrato = async () => {
         return;
     }
 
-    const personaId =
-        props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
+    // 🔹 Obtener personaId según el modo
+    let personaId = null;
+    if (props.modo === 'aspirante-nuevo') {
+        personaId =
+            props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
+    } else if (props.modo === 'empleado-renovar') {
+        personaId =
+            props.datosEmpleado?.persona_id || props.datosEmpleado?.id || null;
+    }
 
     if (!personaId) {
         alert('No se encontró el identificador de la persona.');
-        console.error('datosAspirante sin persona_id ni id:', props.datosAspirante);
+        console.error(
+            'Sin persona_id. modo:',
+            props.modo,
+            'datosAspirante:',
+            props.datosAspirante,
+            'datosEmpleado:',
+            props.datosEmpleado
+        );
         return;
     }
 
@@ -584,33 +598,61 @@ const guardarContrato = async () => {
         }
         const archivoId = respS3.archivo.id;
 
-        // 2) Payload para el endpoint /contratos/aspirante
-        const payloadContrato = {
-            personaId,
-            plantillaId: formData.value.plantillaContrato || null,
-            puestoId: formData.value.puesto || null,
-            areaId: formData.value.area,
-            salarioMensual: formData.value.sueldoMensual || null,
-            fechaInicio: formData.value.fechaInicio,
-            fechaFin: formData.value.fechaTermino || null,
-            tipoContrato: formData.value.tipoContrato,
-            modalidad: formData.value.modalidad || null,
-            observaciones: formData.value.observaciones || null,
-            jornadaId: formData.value.jornadaLaboral || null,
-            horaEntrada: formData.value.entrada || null,
-            horaSalida: formData.value.salida || null,
-            tipoDocumentoId: formData.value.tipoDocumento,
-            archivoId,
-            fechaGeneracion: formData.value.fechaGeneracion || hoyISO
-        };
+        if (props.modo === 'aspirante-nuevo') {
+            // 2A) Payload para crear PRIMER contrato desde aspirante
+            const payloadContrato = {
+                personaId,
+                plantillaId: formData.value.plantillaContrato || null,
+                puestoId: formData.value.puesto || null,
+                areaId: formData.value.area,
+                salarioMensual: formData.value.sueldoMensual || null,
+                fechaInicio: formData.value.fechaInicio,
+                fechaFin: formData.value.fechaTermino || null,
+                tipoContrato: formData.value.tipoContrato,
+                modalidad: formData.value.modalidad || null,
+                observaciones: formData.value.observaciones || null,
+                jornadaId: formData.value.jornadaLaboral || null,
+                horaEntrada: formData.value.entrada || null,
+                horaSalida: formData.value.salida || null,
+                tipoDocumentoId: formData.value.tipoDocumento,
+                archivoId,
+                fechaGeneracion: formData.value.fechaGeneracion || hoyISO
+            };
 
-        console.log('Payload contrato:', payloadContrato);
+            console.log('Payload contrato (aspirante):', payloadContrato);
 
-        await axios.post(`${API_URL}/contratos/aspirante`, payloadContrato, {
-            withCredentials: true
-        });
+            await axios.post(`${API_URL}/contratos/aspirante`, payloadContrato, {
+                withCredentials: true
+            });
 
-        alert('Contrato guardado correctamente. El aspirante ahora es empleado.');
+            alert('Contrato guardado correctamente. El aspirante ahora es empleado.');
+        } else if (props.modo === 'empleado-renovar') {
+            // 2B) Payload para RENOVAR contrato de empleado
+            const payloadRenovacion = {
+                personaId,
+                plantillaId: formData.value.plantillaContrato || null,
+                puestoId: formData.value.puesto || null,
+                areaId: formData.value.area || null,
+                salarioMensual: formData.value.sueldoMensual || null,
+                fechaInicio: formData.value.fechaInicio,
+                fechaFin: formData.value.fechaTermino || null,
+                tipoContrato: formData.value.tipoContrato || null,
+                modalidad: formData.value.modalidad || null,
+                observaciones: formData.value.observaciones || null,
+                archivoId
+            };
+
+            console.log('Payload renovación empleado:', payloadRenovacion);
+
+            await axios.post(
+                `${API_URL}/contratos/empleado/renovar`,
+                payloadRenovacion,
+                { withCredentials: true }
+            );
+
+            alert('Contrato renovado correctamente.');
+        }
+
         actualizarEstadoInicial();
         emit('volver-inicio');
     } catch (error) {
@@ -628,7 +670,7 @@ const enviarLimpiar = () => {
         formData.value[key] = '';
     });
 
-    // La foto del aspirante la dejamos
+    // La foto del aspirante / empleado la dejamos
     formData.value.fechaGeneracion = hoyISO;
     formData.value.documento = '';
     archivoPdf.value = null;
@@ -640,7 +682,7 @@ const enviarLimpiar = () => {
 };
 
 // ===== WATCH & MOUNT =====
-// 🔹 Cuando cambie el aspirante (por ejemplo al seleccionar otro)
+// Cuando cambie el aspirante
 watch(
     () => props.datosAspirante,
     (nuevo) => {
@@ -650,7 +692,7 @@ watch(
     }
 );
 
-// 🔹 Cuando cambie el empleado (por ejemplo al seleccionar otro)
+// Cuando cambie el empleado
 watch(
     () => props.datosEmpleado,
     (nuevo) => {
@@ -670,6 +712,7 @@ onMounted(async () => {
     }
 });
 </script>
+
 
 
 <style scoped>
