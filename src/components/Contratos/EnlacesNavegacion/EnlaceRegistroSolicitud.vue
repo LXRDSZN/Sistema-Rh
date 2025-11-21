@@ -418,7 +418,7 @@ const puestosFiltrados = computed(() => {
 // Función para formatear nombres de puestos
 const formatearNombrePuesto = (nombre) => {
   const mapa = {
-    'ADMIN': 'Administrador',
+    'ADMIN': 'Admin',
     'EMPLEADO': 'Empleado',
     'JEFE_RH': 'Jefe de Recursos Humanos',
     'JEFE_AREA': 'Jefe de Área',

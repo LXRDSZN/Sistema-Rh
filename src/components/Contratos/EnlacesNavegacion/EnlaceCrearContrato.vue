@@ -121,7 +121,7 @@
                         <select v-model="formData.puesto" class="form-select">
                             <option value="">Seleccione puesto</option>
                             <option v-for="p in puestos" :key="p.id" :value="p.id">
-                                {{ p.nombre }}
+                                {{ formatRoleName(p.nombre) }}
                             </option>
                         </select>
                     </div>
@@ -286,6 +286,21 @@ const jornadas = ref([]);
 const plantillas = ref([]);
 const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
+
+// Formatea el nombre del rol/puesto del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Admin',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 
 const fotoUrl = ref(null);
 const archivoPdf = ref(null); // aquí guardamos el File

@@ -45,7 +45,7 @@
 // Formatea el nombre del rol del sistema
 const formatRoleName = (role) => {
     const map = {
-        'ADMIN': 'Administrador',
+        'ADMIN': 'Admin',
         'EMPLEADO': 'Empleado',
         'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
         'JEFE_VACACIONES': 'Jefe de Vacaciones',
