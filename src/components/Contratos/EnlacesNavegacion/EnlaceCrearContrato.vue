@@ -88,7 +88,7 @@
                         <select v-model="formData.modalidad" class="form-select">
                             <option value="">Seleccione modalidad</option>
                             <option value="Híbrida">Híbrida</option>
-                            <option value="Remoto">Remoto</option>
+                            <option value="Remota">Remota</option>
                             <option value="Presencial">Presencial</option>
                         </select>
                     </div>
