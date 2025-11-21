@@ -15,12 +15,12 @@
             <div class="form-section">
                 <h3 class="subsection-title">Datos Personales</h3>
 
-                <!-- Foto placeholder y Nombre completo -->
+                <!-- Foto + nombre -->
                 <div class="form-row">
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
                             <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto" class="aspirante-foto"
                                     @error="onImgError" />
                             </div>
                             <div v-else class="photo-box">
@@ -32,13 +32,13 @@
                     <div class="form-group" style="grid-column: 2 / 4;">
                         <label>Nombre Completo</label>
                         <div class="inline-fields">
-                            <input type="text" :value="formData.nombre"
+                            <input type="text" :value="formData.nombre" :disabled="esRenovacionEmpleado"
                                 @input="limpiarYFormatearNombre('nombre', $event)" placeholder="Nombre"
                                 class="form-input" />
-                            <input type="text" :value="formData.apellidoPaterno"
+                            <input type="text" :value="formData.apellidoPaterno" :disabled="esRenovacionEmpleado"
                                 @input="limpiarYFormatearNombre('apellidoPaterno', $event)"
                                 placeholder="Apellido Paterno" class="form-input" />
-                            <input type="text" :value="formData.apellidoMaterno"
+                            <input type="text" :value="formData.apellidoMaterno" :disabled="esRenovacionEmpleado"
                                 @input="limpiarYFormatearNombre('apellidoMaterno', $event)"
                                 placeholder="Apellido Materno" class="form-input" />
                         </div>
@@ -55,11 +55,15 @@
                             <option value="Por Proyecto">Por Proyecto</option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Fecha de inicio</label>
-                        <input type="date" v-model="formData.fechaInicio" class="form-input" :min="minFechaInicio"
-                            :max="maxFechaInicio" @change="validarFechaInicio" />
+                        <input type="date" v-model="formData.fechaInicio" class="form-input"
+                            :min="esAspiranteNuevo ? minFechaInicio : null"
+                            :max="esAspiranteNuevo ? maxFechaInicio : null"
+                            @change="esAspiranteNuevo ? validarFechaInicio() : null" />
                     </div>
+
                     <div class="form-group">
                         <label>Fecha de término</label>
                         <input type="date" v-model="formData.fechaTermino" class="form-input"
@@ -73,10 +77,13 @@
                         <input type="text" v-model="formData.proyecto" placeholder="Nombre del proyecto"
                             class="form-input" />
                     </div>
+
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
-                        <input type="number" step="0.01" min="0" v-model="formData.sueldoMensual" class="form-input" />
+                        <input type="number" step="0.01" min="0" v-model="formData.sueldoMensual" class="form-input"
+                            @input="limpiarSueldo" />
                     </div>
+
                     <div class="form-group">
                         <label>Modalidad</label>
                         <select v-model="formData.modalidad" class="form-select">
@@ -91,7 +98,8 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Observaciones</label>
-                        <textarea v-model="formData.observaciones" class="form-textarea" rows="4"></textarea>
+                        <textarea v-model="formData.observaciones" class="form-textarea" rows="4"
+                            maxlength="500"></textarea>
                     </div>
                 </div>
             </div>
@@ -110,6 +118,7 @@
                             </option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Puesto</label>
                         <select v-model="formData.puesto" class="form-select">
@@ -119,6 +128,7 @@
                             </option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Jornada Laboral</label>
                         <select v-model="formData.jornadaLaboral" class="form-select">
@@ -140,6 +150,7 @@
                             </option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Estado del contrato</label>
                         <select v-model="formData.estadoContrato" class="form-select">
@@ -149,10 +160,12 @@
                             </option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Entrada</label>
                         <input type="time" v-model="formData.entrada" class="form-input time-input" />
                     </div>
+
                     <div class="form-group">
                         <label>Salida</label>
                         <input type="time" v-model="formData.salida" class="form-input time-input" />
@@ -177,7 +190,6 @@
 
                     <div class="form-group">
                         <label>Subir documento (PDF)</label>
-                        <!-- 👇 AQUÍ es donde realmente se captura el File -->
                         <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
                         <p v-if="formData.documento" class="file-name">
                             Archivo seleccionado: {{ formData.documento }}
@@ -198,7 +210,7 @@
                 </div>
             </div>
 
-            <!-- Botones de acción -->
+            <!-- Botones -->
             <div class="form-actions">
                 <button class="btn-guardar" @click="guardarContrato">
                     <span class="material-symbols-rounded">save</span>
@@ -213,6 +225,7 @@
     </div>
 </template>
 
+
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue';
 import axios from 'axios';
@@ -220,8 +233,7 @@ import axios from 'axios';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useCatalogosContratos } from '@/composables/useCatalogoContratos';
 import { useS3Files } from '@/composables/useS3Files';
-import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos'; // 👈 nuevo
-
+import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -230,12 +242,10 @@ const props = defineProps({
         type: Object,
         default: null
     },
-    // Cuando vienes desde EMPLEADO (renovación)
     datosEmpleado: {
         type: Object,
         default: null
     },
-    // Para saber si es contrato nuevo o renovación
     modo: {
         type: String,
         default: 'aspirante-nuevo' // 'aspirante-nuevo' | 'empleado-renovar'
@@ -246,12 +256,12 @@ const emit = defineEmits(['volver-inicio']);
 
 // Avatar por defecto
 const defaultAvatar = '/src/assets/default-user.png';
-
 const onImgError = (event) => {
     event.target.onerror = null;
     event.target.src = defaultAvatar;
 };
 
+// Composables
 const { obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
 const {
     obtenerAreas,
@@ -263,14 +273,16 @@ const {
 } = useCatalogosContratos();
 const { subirArchivo } = useS3Files();
 const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
+
+// Modo
 const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
+const esAspiranteNuevo = computed(() => props.modo === 'aspirante-nuevo');
 
 const tituloContrato = computed(() =>
     esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
 );
-// ========================
-//  ESTADOS
-// ========================
+
+// Estados
 const areas = ref([]);
 const puestos = ref([]);
 const jornadas = ref([]);
@@ -279,7 +291,7 @@ const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
 
 const fotoUrl = ref(null);
-const archivoPdf = ref(null); // aquí guardamos el File
+const archivoPdf = ref(null);
 
 const formData = ref({
     nombre: '',
@@ -300,7 +312,7 @@ const formData = ref({
     entrada: '',
     salida: '',
     tipoDocumento: '',
-    documento: '', // nombre del archivo seleccionado
+    documento: '',
     fechaGeneracion: ''
 });
 
@@ -386,26 +398,23 @@ const cargarDatosAspirante = async () => {
 
     actualizarEstadoInicial();
 };
-// ===== CARGA DATOS DEL EMPLEADO =====
 
+// ===== CARGA EMPLEADO (RENOVACIÓN) =====
 const cargarDatosEmpleadoRenovacion = async () => {
-    const personaId = props.datosEmpleado?.persona_id;
+    const personaId = props.datosEmpleado?.persona_id || props.datosEmpleado?.id;
     if (!personaId) return;
 
     try {
         const datos = await obtenerDatosRenovacionEmpleado(personaId);
 
-        // Foto y nombre
         fotoUrl.value = datos.foto_url || fotoUrl.value;
         formData.value.nombre = datos.nombre || '';
         formData.value.apellidoPaterno = datos.apellido_paterno || '';
         formData.value.apellidoMaterno = datos.apellido_materno || '';
 
-        // Asignación laboral
         formData.value.area = datos.area_id || '';
         formData.value.puesto = datos.puesto_id || '';
 
-        // Contrato
         formData.value.tipoContrato = datos.tipo_contrato || '';
         formData.value.modalidad = datos.modalidad || '';
         formData.value.sueldoMensual = datos.salario_mensual || '';
@@ -417,7 +426,6 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
-        // Fecha de generación = hoy (ya lo hacías)
         if (!formData.value.fechaGeneracion) {
             formData.value.fechaGeneracion = hoyISO;
         }
@@ -461,6 +469,22 @@ const limpiarYFormatearNombre = (campo, event) => {
         return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
     });
     formData.value[campo] = valor;
+};
+
+const limpiarSueldo = (event) => {
+    let valor = event.target.value || '';
+    valor = valor.replace(/[^\d.]/g, '');
+    const partes = valor.split('.');
+    if (partes.length > 2) {
+        valor = partes[0] + '.' + partes.slice(1).join('');
+    }
+
+    if (valor && !isNaN(valor)) {
+        const num = parseFloat(valor);
+        formData.value.sueldoMensual = num >= 0 ? num : 0;
+    } else {
+        formData.value.sueldoMensual = '';
+    }
 };
 
 const validarFechaInicio = () => {
@@ -540,6 +564,7 @@ const confirmarSalida = () => {
 
 // ===== GUARDAR CONTRATO =====
 const guardarContrato = async () => {
+    // Validaciones base
     if (!formData.value.nombre || !formData.value.apellidoPaterno) {
         alert('Nombre y Apellido Paterno son obligatorios.');
         return;
@@ -565,12 +590,17 @@ const guardarContrato = async () => {
         return;
     }
 
+    // Id de persona según de dónde venga
     const personaId =
-        props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
+        props.datosAspirante?.persona_id ||
+        props.datosAspirante?.id ||
+        props.datosEmpleado?.persona_id ||
+        props.datosEmpleado?.id ||
+        null;
 
     if (!personaId) {
         alert('No se encontró el identificador de la persona.');
-        console.error('datosAspirante sin persona_id ni id:', props.datosAspirante);
+        console.error('Sin persona_id ni id en props:', props.datosAspirante, props.datosEmpleado);
         return;
     }
 
@@ -578,13 +608,57 @@ const guardarContrato = async () => {
         // 1) Subir archivo a S3
         const respS3 = await subirArchivo(archivoPdf.value);
         if (!respS3?.ok || !respS3.archivo) {
-            throw new Error(
-                respS3?.error || 'No se recibió información del archivo subido'
-            );
+            throw new Error(respS3?.error || 'No se recibió información del archivo subido');
         }
         const archivoId = respS3.archivo.id;
 
-        // 2) Payload para el endpoint /contratos/aspirante
+        // 2) Modo RENOVACIÓN EMPLEADO
+        if (esRenovacionEmpleado.value) {
+            const payloadRenovacion = {
+                personaId,
+                plantillaId: formData.value.plantillaContrato || null,
+                puestoId: formData.value.puesto || null,
+                areaId: formData.value.area,
+                salarioMensual: formData.value.sueldoMensual || null,
+                fechaInicio: formData.value.fechaInicio,
+                fechaFin: formData.value.fechaTermino || null,
+                tipoContrato: formData.value.tipoContrato,
+                modalidad: formData.value.modalidad || null,
+                observaciones: formData.value.observaciones || null,
+                archivoId
+            };
+
+            console.log('Payload renovación empleado:', payloadRenovacion);
+
+            await axios.post(`${API_URL}/contratos/empleado/renovar`, payloadRenovacion, {
+                withCredentials: true
+            });
+
+            alert('Contrato renovado correctamente.');
+            actualizarEstadoInicial();
+            emit('volver-inicio');
+            return;
+        }
+
+        // 3) Modo ASPIRANTE (CONTRATO NUEVO)
+        //    Primero, si cambió el nombre/apellidos, actualizamos persona
+        const nombreCambiado =
+            formData.value.nombre !== initialFormData.value.nombre ||
+            formData.value.apellidoPaterno !== initialFormData.value.apellidoPaterno ||
+            formData.value.apellidoMaterno !== initialFormData.value.apellidoMaterno;
+
+        if (nombreCambiado) {
+            const payloadNombre = {
+                nombre: formData.value.nombre,
+                apellidoPaterno: formData.value.apellidoPaterno,
+                apellidoMaterno: formData.value.apellidoMaterno || null
+            };
+
+            await axios.put(`${API_URL}/aspirantes/${personaId}/nombre`, payloadNombre, {
+                withCredentials: true
+            });
+        }
+
         const payloadContrato = {
             personaId,
             plantillaId: formData.value.plantillaContrato || null,
@@ -604,7 +678,7 @@ const guardarContrato = async () => {
             fechaGeneracion: formData.value.fechaGeneracion || hoyISO
         };
 
-        console.log('Payload contrato:', payloadContrato);
+        console.log('Payload contrato aspirante:', payloadContrato);
 
         await axios.post(`${API_URL}/contratos/aspirante`, payloadContrato, {
             withCredentials: true
@@ -625,10 +699,16 @@ const guardarContrato = async () => {
 // ===== LIMPIAR =====
 const enviarLimpiar = () => {
     Object.keys(formData.value).forEach((key) => {
+        // En renovación NO limpiamos nombre ni apellidos
+        if (
+            esRenovacionEmpleado.value &&
+            ['nombre', 'apellidoPaterno', 'apellidoMaterno'].includes(key)
+        ) {
+            return;
+        }
         formData.value[key] = '';
     });
 
-    // La foto del aspirante la dejamos
     formData.value.fechaGeneracion = hoyISO;
     formData.value.documento = '';
     archivoPdf.value = null;
@@ -640,21 +720,19 @@ const enviarLimpiar = () => {
 };
 
 // ===== WATCH & MOUNT =====
-// 🔹 Cuando cambie el aspirante (por ejemplo al seleccionar otro)
 watch(
     () => props.datosAspirante,
     (nuevo) => {
-        if (props.modo === 'aspirante-nuevo' && nuevo) {
+        if (esAspiranteNuevo.value && nuevo) {
             cargarDatosAspirante();
         }
     }
 );
 
-// 🔹 Cuando cambie el empleado (por ejemplo al seleccionar otro)
 watch(
     () => props.datosEmpleado,
     (nuevo) => {
-        if (props.modo === 'empleado-renovar' && nuevo) {
+        if (esRenovacionEmpleado.value && nuevo) {
             cargarDatosEmpleadoRenovacion();
         }
     }
@@ -663,13 +741,14 @@ watch(
 onMounted(async () => {
     await cargarCatalogos();
 
-    if (props.modo === 'aspirante-nuevo' && props.datosAspirante) {
+    if (esAspiranteNuevo.value && props.datosAspirante) {
         await cargarDatosAspirante();
-    } else if (props.modo === 'empleado-renovar' && props.datosEmpleado) {
+    } else if (esRenovacionEmpleado.value && props.datosEmpleado) {
         await cargarDatosEmpleadoRenovacion();
     }
 });
 </script>
+
 
 
 <style scoped>
