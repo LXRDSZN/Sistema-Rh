@@ -9,8 +9,8 @@
         <div class="employee-details">
 
             <h3>{{ empleado.nombre }}</h3>
-            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || 'XXXXXXXXXXXXXXXX' }}</p>
-            <p><strong>ÁREA:</strong> {{ empleado.area || 'XXXXXXXXXXXXXXXXXX' }}</p>
+            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || '----' }}</p>
+            <p><strong>ÁREA:</strong> {{ empleado.area || '----' }}</p>
 
             <!-- Botones de acción -->
             <div class="action-buttons">
