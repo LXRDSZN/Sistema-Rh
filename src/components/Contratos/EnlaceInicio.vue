@@ -14,7 +14,13 @@
             <button class="btn-incidencia" @click="registrarIncidencia">
                 + Registrar Incidencia
             </button>
-            <button class="btn-registro" @click="irARegistro">
+            <button
+                class="btn-registro"
+                @click="!isEmpleado && irARegistro()"
+                :disabled="isEmpleado"
+                :title="isEmpleado ? 'No tienes permiso para usar esto' : ''"
+                :style="isEmpleado ? 'background: #ccc; color: #888; cursor: not-allowed;' : ''"
+            >
                 📄 Registro de Solicitud
             </button>
         </div>
@@ -140,6 +146,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 
 // Props - recibe datos del componente raíz
 const props = defineProps({
@@ -219,6 +226,9 @@ const registrarIncidencia = () => {
 const irARegistro = () => {
     emit('cambiar-vista', 'registro');
 };
+
+const { userRole } = useAuth();
+const isEmpleado = computed(() => userRole.value === 'EMPLEADO');
 </script>
 
 <style scoped>

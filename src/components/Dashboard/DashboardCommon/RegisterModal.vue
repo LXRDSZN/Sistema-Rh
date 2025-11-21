@@ -15,7 +15,7 @@
             <input
               type="text"
               id="nombre"
-              v-model="modelValue.nombre"
+              v-model="props.modelValue.nombre"
               placeholder="Nombre(s)"
               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
               title="Solo se permiten letras y espacios"
@@ -30,7 +30,7 @@
             <input
               type="text"
               id="apellido_paterno"
-              v-model="modelValue.apellido_paterno"
+              v-model="props.modelValue.apellido_paterno"
               placeholder="Apellido paterno"
               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
               title="Solo se permiten letras y espacios"
@@ -47,7 +47,7 @@
             <input
               type="text"
               id="apellido_materno"
-              v-model="modelValue.apellido_materno"
+              v-model="props.modelValue.apellido_materno"
               placeholder="Apellido materno (opcional)"
               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*"
               title="Solo se permiten letras y espacios"
@@ -61,7 +61,7 @@
             <input
               type="date"
               id="fecha_nacimiento"
-              v-model="modelValue.fecha_nacimiento"
+              v-model="props.modelValue.fecha_nacimiento"
               required
             />
           </div>
@@ -70,7 +70,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="sexo">Sexo*</label>
-            <select id="sexo" v-model="modelValue.sexo" required>
+            <select id="sexo" v-model="props.modelValue.sexo" required>
               <option value="">Seleccionar...</option>
               <option value="Hombre">Hombre</option>
               <option value="Mujer">Mujer</option>
@@ -82,10 +82,12 @@
             <input
               type="email"
               id="email"
-              v-model="modelValue.email"
+              v-model="props.modelValue.email"
               placeholder="correo@ejemplo.com"
               required
+              @input="$forceUpdate()"
             />
+            <small v-if="emailError" class="field-error">{{ emailError }}</small>
           </div>
         </div>
 
@@ -95,7 +97,7 @@
             <input
               type="password"
               id="password"
-              v-model="modelValue.password"
+              v-model="props.modelValue.password"
               placeholder="Contraseña temporal"
               required
             />
@@ -103,7 +105,7 @@
           
           <div class="form-group">
             <label for="rol">Rol*</label>
-            <select id="rol" v-model="modelValue.rol" required>
+            <select id="rol" v-model="props.modelValue.rol" required>
               <option value="">Seleccionar rol...</option>
               <option v-if="userRole === 'ADMIN'" value="JEFE_RH">Jefe de Recursos Humanos</option>
               <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_AREA">Jefe de Área</option>
@@ -112,6 +114,13 @@
               <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
               <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
               <option value="EMPLEADO">Empleado</option>
+            </select>
+          </div>
+          <div class="form-group" v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'">
+            <label for="area">Área*</label>
+            <select id="area" v-model="props.modelValue.area" required>
+              <option value="">Seleccionar área...</option>
+              <option v-for="area in DEPARTAMENTOS" :key="area" :value="area">{{ area }}</option>
             </select>
           </div>
         </div>
@@ -126,11 +135,13 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import { useTextValidation } from '@/composables/useTextValidation';
+import { DEPARTAMENTOS } from '@/constants/areas/index.js';
 
 const { onlyLetters } = useTextValidation();
 
-defineProps({
+const props = defineProps({
   show: Boolean,
   modelValue: Object,
   userRole: String,
@@ -142,6 +153,18 @@ const emit = defineEmits(['update:show', 'submit']);
 const closeModal = () => {
   emit('update:show', false);
 };
+
+const emailError = ref('');
+
+watch(() => props.modelValue.email, (val) => {
+  if (!val) {
+    emailError.value = '';
+  } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val)) {
+    emailError.value = 'Ingresa un correo electrónico válido (ejemplo@dominio.com)';
+  } else {
+    emailError.value = '';
+  }
+});
 </script>
 
 <style scoped>
@@ -272,6 +295,12 @@ const closeModal = () => {
   background: #9CA3AF;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.field-error {
+  color: #e53e3e;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 768px) {
