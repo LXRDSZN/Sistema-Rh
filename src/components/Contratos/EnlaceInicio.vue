@@ -15,7 +15,7 @@
                 + Registrar Incidencia
             </button>
             <button class="btn-registro" @click="irARegistro">
-                📝 Registro de Solicitud
+                📄 Registro de Solicitud
             </button>
         </div>
 

@@ -255,7 +255,7 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -306,7 +306,7 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .section-title h2 {
@@ -322,7 +322,7 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     /* Poner columnas */
