@@ -21,6 +21,8 @@
     <!-- Tabla de empleados con filtros -->
     <AreasTable 
       :empleados="empleadosFiltrados"
+      :user-role="userRole"
+      :user-data="user"
       @editar="abrirModal"
       @exportar="() => exportarDatos(empleadosFiltrados)"
     >
@@ -59,15 +61,49 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { CATEGORIAS, GENEROS } from '@/constants/areas';
 import { useAreasData } from '@/composables/areas/useAreasData';
 import { useAreasFilters } from '@/composables/areas/useAreasFilters';
 import { useAreasExport } from '@/composables/areas/useAreasExport';
+import { useAuth } from '@/composables/useAuth';
 import AreasHeader from './AreasHeader.vue';
 import AreasTable from './AreasTable.vue';
 import AreasFilterPanel from './AreasFilterPanel.vue';
 import EmployeeEditModal from './EmployeeEditModal.vue';
+
+// ============================================
+// ROUTER
+// ============================================
+const router = useRouter();
+
+// ============================================
+// AUTH - Obtener rol y área del usuario actual
+// ============================================
+const { userRole, user, isAuthenticated } = useAuth();
+
+// Redirigir al login si no está autenticado
+
+// Redirigir al login si no está autenticado o tras logout
+// Redirigir a la página principal si no está autenticado o tras logout
+watch(isAuthenticated, (newValue) => {
+  if (!newValue) {
+    router.replace('/');
+    setTimeout(() => {
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }, 300);
+  }
+}, { immediate: true });
+
+// Debug: Verificar datos del usuario (solo si está autenticado)
+if (user.value) {
+  console.log('👤 Usuario actual:', user.value);
+  console.log('💼 Rol:', userRole.value);
+  console.log('🏛️ Área:', user.value?.area);
+}
 
 // ============================================
 // COMPOSABLES - Data Management
