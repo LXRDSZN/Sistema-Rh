@@ -71,41 +71,41 @@ router.get('/contratos/stats', async (req, res) => {
 // 2. OBTENER EMPLEADOS DESTACADOS (SIN LÍMITE)
 // ========================================
 router.get('/contratos/empleados-destacados', async (req, res) => {
-    try {
-        const query = `
-            SELECT
-                p.id AS persona_id,
-                p.foto_url AS avatar,
-                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
-                COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
-                LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
-                COALESCE(pu.nombre, 'Sin puesto') AS puesto,
-                COALESCE(a.nombre, 'Sin área') AS area,
-                'empleado' AS tipo
-            FROM persona p
-            INNER JOIN contrato c ON c.persona_id = p.id
-            LEFT JOIN puesto pu ON pu.id = c.puesto_id
-            LEFT JOIN area a ON a.id = c.area_id
-            WHERE p.tipo = 'Empleado'
-            ORDER BY p.fecha_registro DESC
-            LIMIT 10
-        `;
+  try {
+    const query = `
+      SELECT DISTINCT ON (p.id)
+          p.id AS persona_id,
+          p.foto_url AS avatar,
+          CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
+          COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
+          LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
+          COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+          COALESCE(a.nombre, 'Sin área') AS area,
+          'empleado' AS tipo
+      FROM persona p
+      INNER JOIN contrato c ON c.persona_id = p.id
+      LEFT JOIN puesto pu ON pu.id = c.puesto_id
+      LEFT JOIN area a ON a.id = c.area_id
+      WHERE p.tipo = 'Empleado'
+      ORDER BY p.id, c.fecha_inicio DESC
+      LIMIT 10;
+    `;
 
-        const result = await pool.query(query);
+    const result = await pool.query(query);
 
-        res.json({
-            ok: true,
-            empleados: result.rows
-        });
-
-    } catch (error) {
-        console.error('Error al obtener empleados destacados:', error);
-        res.status(500).json({
-            ok: false,
-            error: error.message
-        });
-    }
+    res.json({
+      ok: true,
+      empleados: result.rows
+    });
+  } catch (error) {
+    console.error('Error al obtener empleados destacados:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
+
 
 // ========================================
 // 3. OBTENER ASPIRANTES DESTACADOS (SIN LÍMITE)
