@@ -2,9 +2,14 @@
 import * as incidenciasService from '@/services/incidenciasService';
 import { watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth';
 import axios from 'axios';
 
 export default {
+  setup() {
+    const { userRole } = useAuth();
+    return { userRole };
+  },
   data() {
     return {
       // Listas dinámicas desde la API
@@ -60,6 +65,10 @@ export default {
   },
 
   computed: {
+    // Verificar si el usuario puede aprobar/rechazar incidencias (todos menos EMPLEADO)
+    puedeAprobarRechazar() {
+      return this.userRole !== 'EMPLEADO';
+    },
     // Filtra las incidencias según los selectores
     incidenciasFiltradas() {
       const texto = this.buscar.toLowerCase();
@@ -995,7 +1004,7 @@ export default {
     </v-card-text>
 
     <v-card-actions
-      v-if="incidenciaSeleccionada && incidenciaSeleccionada.estado === 'Pendiente'"
+      v-if="incidenciaSeleccionada && incidenciaSeleccionada.estado === 'Pendiente' && puedeAprobarRechazar"
       class="justify-center mt-4"
     >
       <v-btn color="success" rounded="xl" @click="aprobarIncidencia">

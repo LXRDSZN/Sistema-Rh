@@ -249,7 +249,7 @@ const irARegistro = () => {
     background-color: white;
     border-radius: 12px;
     padding: 2rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -343,8 +343,8 @@ const irARegistro = () => {
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    gap: 1rem;
+    margin: 0 2rem 1rem 2rem;
     padding: 0;
 }
 
@@ -433,7 +433,7 @@ const irARegistro = () => {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     text-align: center;
 }
 
@@ -479,11 +479,11 @@ const irARegistro = () => {
 .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 120px;
-    padding: 1rem;
+    padding: 1rem 1rem 1rem 2.5rem;
     background-color: #f0f0f0;
     font-weight: 700;
-    color: #555;
-    font-size: 0.85rem;
+    color: #000000;
+    font-size: 0.9rem;
     text-transform: uppercase;
 }
 
