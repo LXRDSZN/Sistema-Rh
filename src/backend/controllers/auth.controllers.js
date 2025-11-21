@@ -78,6 +78,27 @@ export const login = async (req, res) => {
 
     const permisos = permisosResult.rows.map(p => p.codigo);
 
+    // Obtener el área del usuario desde asignacion_puesto
+    const areaResult = await db.query(
+      `SELECT a.nombre as area_nombre
+      FROM asignacion_puesto ap
+      JOIN area a ON ap.area_id = a.id
+      WHERE ap.persona_id = $1 AND ap.fecha_fin IS NULL
+      ORDER BY ap.fecha_inicio DESC
+      LIMIT 1`,
+      [user.persona_id]
+    );
+
+    const area = areaResult.rows.length > 0 ? areaResult.rows[0].area_nombre : null;
+
+    // Debug: Verificar área obtenida
+    console.log('🏛️ Área obtenida para usuario:', {
+      personaId: user.persona_id,
+      email: user.email,
+      area: area,
+      areaRows: areaResult.rows
+    });
+
     // Crear token JWT con información del usuario y permisos
     const token = jwt.sign(
       {
@@ -87,6 +108,7 @@ export const login = async (req, res) => {
         nombre: `${user.nombre} ${user.apellido_paterno}`,
         rol: user.rol_nombre,
         rolId: user.rol_id,
+        area: area,
         permisos: permisos
       },
       config.jwt.secret,
@@ -407,6 +429,7 @@ export const verifyToken = async (req, res) => {
         email: decoded.email,
         nombre: decoded.nombre,
         rol: decoded.rol,
+        area: decoded.area,
         permisos: decoded.permisos
       }
     });
