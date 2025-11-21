@@ -312,7 +312,7 @@
                 <td class="text-center">{{ item.motivo }}</td>
                 <td class="text-center">
                   <div class="archivo-tabla" v-if="item.archivo_justificante">
-                    <span class="archivo-texto-tabla">{{ item.archivo_justificante }}</span>
+                    <span class="archivo-texto-tabla">{{ obtenerNombreArchivoTabla(item) }}</span>
                     <v-btn
                       icon
                       size="small"
@@ -373,7 +373,7 @@
             <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
               <strong>Archivo:</strong> 
               <div class="archivo-detalle">
-                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_justificante }}</span>
+                <span class="archivo-texto-detalle">{{ obtenerNombreArchivoTabla(justificacionSeleccionada) }}</span>
                 <v-btn
                   icon
                   size="small"

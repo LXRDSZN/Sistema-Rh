@@ -94,7 +94,7 @@
                                         empleado.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ empleado.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(empleado.puesto) }}</div>
                             <div class="col-area">{{ empleado.area }}</div>
                             <div class="col-action">
                                 <button class="btn-revisar empleado" @click="revisarContrato(empleado)">
@@ -129,7 +129,7 @@
                                         aspirante.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ aspirante.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(aspirante.puesto) }}</div>
                             <div class="col-area">{{ aspirante.area }}</div>
                             <div class="col-action">
                                 <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">
@@ -229,6 +229,21 @@ const irARegistro = () => {
 
 const { userRole } = useAuth();
 const isEmpleado = computed(() => userRole.value === 'EMPLEADO');
+
+// Formatea el nombre del rol del sistema
+function formatRoleName(role) {
+    const map = {
+        'ADMIN': 'Administrador',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+}
 </script>
 
 <style scoped>
