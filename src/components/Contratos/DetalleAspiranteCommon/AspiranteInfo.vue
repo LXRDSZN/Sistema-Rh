@@ -13,15 +13,15 @@
                     <h3>{{ aspirante.nombre }}</h3>
                     <div class="info-item">
                         <span class="label">CURP:</span>
-                        <span class="value">{{ aspirante.curp || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.curp || '----' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="label">RFC:</span>
-                        <span class="value">{{ aspirante.rfc || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.rfc || '----' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="label">NSS:</span>
-                        <span class="value">{{ aspirante.nss || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.nss || '----' }}</span>
                     </div>
                 </div>
             </div>
