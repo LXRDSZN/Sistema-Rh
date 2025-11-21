@@ -6,18 +6,14 @@
         <h2>¡Bienvenido!</h2>
 
         <form @submit.prevent="login">
-          <label for="username">Username:</label>
-          <input type="text" id="username" v-model="username" autocomplete="username" />
+          <label for="email">Correo:</label>
+          <input type="email" id="email" v-model="username" autocomplete="email" />
 
-          <label for="password">Password:</label>
+          <label for="password">Contraseña:</label>
           <input type="password" id="password" v-model="password" autocomplete="current-password" />
 
           <button type="submit">Login</button>
         </form>
-
-        <p class="register-text">
-          Don't have an account? <a href="#">Register</a>
-        </p>
       </div>
     </div>
 
