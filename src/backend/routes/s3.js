@@ -147,7 +147,7 @@ router.get('/get-file/:fileName', verificarToken, async (req, res) => {
 
         // Generar URL firmada que expira en 1 hora
         const signedUrl = await getSignedUrl(s3, new GetObjectCommand(getParams), {
-            expiresIn: 3600 // 1 hora
+            expiresIn: 604800  // 7 días (máximo permitido por AWS)
         });
 
         res.json({
