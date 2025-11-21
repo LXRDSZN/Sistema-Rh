@@ -93,9 +93,7 @@
           <RouterLink to="/Contratos" class="dropdown-item" @click.stop="closeContratosMenu">
             <span>Inicio</span>
           </RouterLink>
-          <RouterLink to="/Contratos/crear" class="dropdown-item" @click.stop="closeContratosMenu">
-            <span>Crear contrato</span>
-          </RouterLink>
+
           <RouterLink to="/Contratos/estadisticas" class="dropdown-item" @click.stop="closeContratosMenu">
             <span>Estadísticas</span>
           </RouterLink>
@@ -130,9 +128,7 @@
           <RouterLink to="/Vacaciones/Historial-de-vacaciones" class="dropdown-item" @click.stop="closeVacacionesMenu">
             <span>Historial</span>
           </RouterLink>
-          <div 
-            class="dropdown-item" 
-            :class="{ disabled: !canAccessSolicitudes }"
+          <div class="dropdown-item" :class="{ disabled: !canAccessSolicitudes }"
             :title="!canAccessSolicitudes ? 'No tienes permisos para ver esto' : ''"
             @click.stop="canAccessSolicitudes && router.push('/Vacaciones/Solicitudes-de-vacaciones')">
             <span>Solicitudes</span>
