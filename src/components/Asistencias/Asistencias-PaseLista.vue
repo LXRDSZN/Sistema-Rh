@@ -6,8 +6,8 @@
       <p class="subtitle">Sistema de registro de asistencias con sensor AS608</p>
     </div>
 
-    <!-- Configuración ESP32 -->
-    <div class="config-section">
+    <!-- Configuración ESP32 solo para roles distintos a EMPLEADO -->
+    <div v-if="userRole !== 'EMPLEADO'" class="config-section">
       <div class="config-card">
         <h3>Configuración del Sensor</h3>
         <div class="config-row">
@@ -206,6 +206,8 @@
 </template>
 
 <script setup>
+import { useAuth } from '@/composables/useAuth';
+const { userRole } = useAuth();
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { getESP32Status } from '@/services/huellasService.js';
 import { registrarAsistenciaPorHuella, getChecadasHoy } from '@/services/asistenciasService.js';

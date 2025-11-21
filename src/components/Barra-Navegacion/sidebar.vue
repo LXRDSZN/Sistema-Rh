@@ -53,21 +53,24 @@
       <!-- Menú desplegable de Asistencias -->
       <transition name="dropdown">
         <div v-if="isAsistenciasMenuOpen && isSidebarOpen" class="submenu-dropdown">
-          <RouterLink to="/Asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Inicio</span>
-          </RouterLink>
-          <RouterLink to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Justificantes</span>
-          </RouterLink>
-          <RouterLink to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Reporte de Asistencias</span>
-          </RouterLink>
-          <RouterLink to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Reporte de Visitas</span>
-          </RouterLink>
-          <RouterLink to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Reporte Analítico</span>
-          </RouterLink>
+          <template v-if="userRole !== 'EMPLEADO'">
+            <RouterLink to="/Asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Inicio</span>
+            </RouterLink>
+            <RouterLink to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Justificantes</span>
+            </RouterLink>
+            <RouterLink to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Reporte de Asistencias</span>
+            </RouterLink>
+            <RouterLink to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Reporte de Visitas</span>
+            </RouterLink>
+            <!-- Reporte Analítico solo para roles permitidos -->
+            <RouterLink v-if="canSeeAnalitico" to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Reporte Analítico</span>
+            </RouterLink>
+          </template>
           <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
             <span>Pase de lista / Huella</span>
           </RouterLink>
@@ -178,6 +181,14 @@
 </template>
 
 <script setup>
+// Roles que pueden ver el reporte analítico
+const analiticoRoles = [
+  'ADMIN',
+  'JEFE_RH',
+  'JEFE_ASISTENCIAS',
+  'JEFE_CONTRATOS'
+];
+const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
