@@ -312,7 +312,7 @@
                 <td class="text-center">{{ item.motivo }}</td>
                 <td class="text-center">
                   <div class="archivo-tabla" v-if="item.archivo_justificante">
-                    <span class="archivo-texto-tabla">{{ item.archivo_justificante }}</span>
+                    <span class="archivo-texto-tabla">{{ obtenerNombreArchivoTabla(item) }}</span>
                     <v-btn
                       icon
                       size="small"
@@ -373,7 +373,7 @@
             <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
               <strong>Archivo:</strong> 
               <div class="archivo-detalle">
-                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_justificante }}</span>
+                <span class="archivo-texto-detalle">{{ obtenerNombreArchivoTabla(justificacionSeleccionada) }}</span>
                 <v-btn
                   icon
                   size="small"
@@ -411,7 +411,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue' //  watch agregado
 import { useAsistencias } from '@/composables/useAsistencias'
 import axios from 'axios'
 
@@ -437,6 +437,9 @@ const ESTADOS_JUSTIFICACION = {
 // Datos de empleados y áreas desde la BD
 const empleados = ref([])
 const areas = ref([])
+
+//  Mapa idArchivo -> nombreArchivo
+const archivoNombres = ref({})
 
 // Snackbar
 const snackbar = ref({
@@ -481,6 +484,7 @@ onMounted(async () => {
     await cargarTiposIncidencia()
     console.log('Tipos de incidencia cargados:', tiposIncidencia.value)
     await cargarJustificantes()
+    await cargarNombresArchivos() //  cargar nombres de archivos después de traer justificantes
   } catch (error) {
     console.error('Error al cargar datos iniciales:', error)
   }
@@ -599,6 +603,33 @@ const justificacionesFiltradas = computed(() => {
 const registroJustificaciones = computed(() => {
   return justificantes.value || []
 })
+
+//  Cargar nombres de archivos a partir de los IDs en las justificaciones
+const cargarNombresArchivos = async () => {
+  try {
+    const items = justificantes.value || []
+    const ids = [...new Set(items.map(i => i.archivo_justificante).filter(Boolean))]
+
+    for (const id of ids) {
+      if (!archivoNombres.value[id]) {
+        const resp = await axios.get(`${API_URL}/archivo/${id}`, {
+          withCredentials: true
+        })
+        const info = resp.data.archivo || resp.data.data || resp.data
+        archivoNombres.value[id] = info.nombre || info.filename || id
+      }
+    }
+  } catch (error) {
+    console.error('Error al cargar nombres de archivos:', error)
+  }
+}
+
+//  Función para que la tabla muestre el nombre del archivo
+const obtenerNombreArchivoTabla = (item) => {
+  const id = item.archivo_justificante || item.archivo_id
+  if (!id) return ''
+  return archivoNombres.value[id] || id
+}
 
 // Funciones de utilidad
 const obtenerNombreEmpleado = (empleadoId) => {
@@ -742,7 +773,6 @@ const guardarJustificacion = async () => {
       return
     }
 
-    // Validar que la fecha fin no sea menor que la fecha inicio
     if (formulario.value.fecha_fin && formulario.value.fecha_fin < formulario.value.fecha_inicio) {
       mostrarMensaje('La fecha de fin no puede ser anterior a la fecha de inicio', 'error')
       return
@@ -750,24 +780,44 @@ const guardarJustificacion = async () => {
 
     guardando.value = true
 
-    // Preparar datos para enviar al backend
+    //  1) Subir archivo si existe y obtener el ID de la tabla "archivo"
+    let archivoId = null
+
+    if (archivoPrevisualizacion.value) {
+      const formData = new FormData()
+      formData.append('archivo', archivoPrevisualizacion.value)
+
+      const respUpload = await axios.post(`${API_URL}/upload`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      console.log('Respuesta de /upload:', respUpload.data)
+
+      //  aquí sacamos el objeto archivo de la respuesta
+      const archivoResp = respUpload.data.archivo || respUpload.data.data || respUpload.data
+
+      //  y aquí tomamos el ID (uuid) que está en la tabla "archivo"
+      archivoId = archivoResp.id
+    }
+
+    //  2) Crear la justificación guardando el ID del archivo
     const datosJustificante = {
       empleado_id: formulario.value.empleado_id,
       tipo_incidencia_id: formulario.value.tipo_incidencia_id,
       fecha_inicio: formulario.value.fecha_inicio,
       fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
       motivo: formulario.value.motivo,
-      archivo_justificante: archivoPrevisualizacion.value ? archivoPrevisualizacion.value.name : null
+      // este campo en tu BD debe ser FK a public.archivo.id
+      archivo_justificante: archivoId
     }
 
-    // Llamar al composable para crear el justificante
     await crearJustificante(datosJustificante)
-    
+
     mostrarMensaje('Justificación guardada correctamente')
     limpiarFormulario()
-    
-    // Recargar justificantes para mostrar el nuevo
     await cargarJustificantes()
+    await cargarNombresArchivos() //  después de guardar, refrescar nombres
     
   } catch (error) {
     console.error('Error al guardar justificante:', error)
@@ -801,14 +851,51 @@ const verArchivo = () => {
   }
 }
 
-const verArchivoRegistro = (item) => {
-  // Simular vista de archivo desde BD
-  const nombreArchivo = item.archivo_justificante || item.archivo_nombre
-  if (nombreArchivo) {
-    mostrarMensaje(`Visualizando archivo: ${nombreArchivo}`, 'info')
+const verArchivoRegistro = async (item) => {
+  const archivoId = item.archivo_justificante || item.archivo_id
+
+  if (!archivoId) {
+    mostrarMensaje('Este registro no tiene archivo para visualizar', 'warning')
+    return
+  }
+
+  try {
+    // 1) Pedimos la info del archivo (incluye storage_url)
+    const resp = await axios.get(`${API_URL}/archivo/${archivoId}`, {
+      withCredentials: true
+    })
+
+    console.log('Info archivo:', resp.data)
+
+    const info = resp.data.archivo || resp.data.data || resp.data
+
+    // 2) Sacamos la URL donde está almacenado
+    let url = info.storage_url || info.url || info.location
+
+    if (!url) {
+      mostrarMensaje('No se encontró la URL del archivo', 'error')
+      return
+    }
+
+    // Si es ruta relativa tipo "/uploads/JS-info.pdf", la completamos
+    if (!url.startsWith('http')) {
+      url = `${API_URL.replace('/api', '')}${url}`
+    }
+
+    // 3) Abrimos el PDF en nueva pestaña
+    window.open(url, '_blank')
+  } catch (error) {
+    console.error('Error al obtener archivo:', error)
+    mostrarMensaje('No se pudo abrir el archivo', 'error')
   }
 }
+
+//  Cuando cambien los justificantes, volver a buscar nombres de archivos nuevos
+watch(justificantes, () => {
+  cargarNombresArchivos()
+})
 </script>
+
 
 <style scoped>
 .estado-pendiente {

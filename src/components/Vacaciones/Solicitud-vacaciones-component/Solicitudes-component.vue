@@ -214,9 +214,15 @@ export default {
           // Admin y Jefe RH: obtienen TODAS las solicitudes
           console.log('👤 Jefe RH/Admin - Cargando TODAS las solicitudes');
           solicitudesResp = await vacacionesService.getAllSolicitudesVacaciones();
-        } else if (hasRole('JEFE_AREA')) {
-          // Jefe de Área: obtiene solicitudes de su área
-          console.log('👥 Jefe de Área - Cargando solicitudes de su área');
+        } else if (
+          hasRole('JEFE_AREA') ||
+          hasRole('JEFE_ASISTENCIAS') ||
+          hasRole('JEFE_CONTRATOS') ||
+          hasRole('JEFE_VACACIONES') ||
+          hasRole('JEFE_INCIDENCIAS')
+        ) {
+          // Jefes de área y especializados: obtienen solicitudes de su área
+          console.log('👥 Jefe de Área/Especializado - Cargando solicitudes de su área');
           solicitudesResp = await vacacionesService.getSolicitudesVacacionesByArea(areaActual);
         } else {
           // Empleado: obtiene solo sus solicitudes

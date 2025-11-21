@@ -2,13 +2,14 @@
     <div class="employee-info">
         <!-- Avatar del empleado -->
         <div class="employee-avatar">
-            <img :src="empleado.avatar || '/default-avatar.png'" :alt="empleado.nombre" />
+            <img :src="empleado.avatar || defaultAvatar" :alt="empleado.nombre" @error="onImgError" />
         </div>
 
         <!-- Información del empleado -->
         <div class="employee-details">
+
             <h3>{{ empleado.nombre }}</h3>
-            <p><strong>PUESTO:</strong> {{ empleado.puesto || 'XXXXXXXXXXXXXXXX' }}</p>
+            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || 'XXXXXXXXXXXXXXXX' }}</p>
             <p><strong>ÁREA:</strong> {{ empleado.area || 'XXXXXXXXXXXXXXXXXX' }}</p>
 
             <!-- Botones de acción -->
@@ -41,6 +42,20 @@
 </template>
 
 <script setup>
+// Formatea el nombre del rol del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Administrador',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -51,6 +66,14 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
+
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 // Función para formatear fecha
 const formatearFecha = (fecha) => {
@@ -205,6 +228,9 @@ const formatearFecha = (fecha) => {
 
 .status-value.vencido {
     color: #ef4444;
+}
+.status-value.indefinido {
+    color: #7c3aed;
 }
 
 /* Responsive */

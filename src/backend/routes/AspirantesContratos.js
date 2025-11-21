@@ -1,4 +1,4 @@
-// routes/CatalogoContratos.js
+// routes/AspiranteContratos.js
 import express from 'express';
 import pool from '../models/db.js';
 
@@ -164,6 +164,64 @@ router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
     });
   }
 });
+
+// ========================================
+// ACTUALIZAR NOMBRE / APELLIDOS DEL ASPIRANTE
+// ========================================
+router.put('/aspirantes/:personaId/nombre', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+    const { nombre, apellidoPaterno, apellidoMaterno } = req.body;
+
+    if (!nombre || !apellidoPaterno) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Nombre y apellido paterno son obligatorios'
+      });
+    }
+
+    const updateSql = `
+      UPDATE persona
+      SET nombre = $1,
+          apellido_paterno = $2,
+          apellido_materno = $3
+      WHERE id = $4
+        AND tipo = 'Aspirante'
+      RETURNING id, nombre, apellido_paterno, apellido_materno;
+    `;
+
+    const values = [
+      nombre.trim(),
+      apellidoPaterno.trim(),
+      apellidoMaterno ? apellidoMaterno.trim() : null,
+      personaId
+    ];
+
+    const { rows } = await pool.query(updateSql, values);
+
+    if (!rows.length) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Aspirante no encontrado o ya no es aspirante'
+      });
+    }
+
+    res.json({
+      ok: true,
+      mensaje: 'Datos personales actualizados correctamente',
+      persona: rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error al actualizar nombre del aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+
 
 
 

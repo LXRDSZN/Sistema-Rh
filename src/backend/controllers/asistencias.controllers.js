@@ -344,19 +344,21 @@ export const getDetalleAsistencias = async (req, res) => {
   try {
     const { area_id, mes, anio } = req.query;
 
-    if (!area_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Se requiere el ID del área'
-      });
+
+
+
+    // Blindar: forzar siempre el formato 'YYYY-MM-01' para la consulta
+    let fecha = new Date().toISOString().substring(0, 10);
+    if (mes && anio) {
+      let mesStr = String(mes).padStart(2, '0');
+      fecha = `${anio}-${mesStr}`;
+      // Si no termina en -01, agregarlo
+      if (!fecha.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        fecha = `${fecha}-01`;
+      }
     }
 
-    const fecha = mes && anio ? `${anio}-${mes.padStart(2, '0')}` : 
-                  new Date().toISOString().substring(0, 7);
-
-    // Obtener empleados del área con su asistencia diaria
-    const detalle = await db.query(
-      `SELECT 
+    let query = `SELECT 
         p.id,
         p.nombre || ' ' || p.apellido_paterno as empleado,
         pu.nombre as puesto,
@@ -386,11 +388,16 @@ export const getDetalleAsistencias = async (req, res) => {
       LEFT JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
       LEFT JOIN justificantes j ON p.id = j.persona_id 
         AND dias.fecha BETWEEN j.fecha_inicio AND j.fecha_fin
-      WHERE ap.area_id = $2
-      GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre
-      ORDER BY empleado`,
-      [fecha, area_id]
-    );
+      WHERE 1=1`;
+    const params = [fecha];
+    if (area_id) {
+      query += ` AND ap.area_id = $2`;
+      params.push(area_id);
+    }
+    query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre
+      ORDER BY empleado`;
+
+    const detalle = await db.query(query, params);
 
     return res.json({
       success: true,

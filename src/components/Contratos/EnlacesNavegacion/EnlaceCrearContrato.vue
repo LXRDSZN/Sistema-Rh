@@ -9,7 +9,7 @@
         </div>
 
         <div class="content-box">
-            <h2 class="section-title">CONTRATO NUEVO</h2>
+            <h2 class="section-title">{{ tituloContrato }}</h2>
 
             <!-- Datos Personales -->
             <div class="form-section">
@@ -20,7 +20,8 @@
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
                             <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl" alt="Foto aspirante" class="aspirante-foto" />
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
+                                    @error="onImgError" />
                             </div>
                             <div v-else class="photo-box">
                                 <span class="material-symbols-rounded">person</span>
@@ -29,17 +30,22 @@
                     </div>
 
                     <div class="form-group" style="grid-column: 2 / 4;">
-                        <label>Nombre Completo</label>
+                        <label>
+                            Nombre Completo
+                            <small v-if="esRenovacionEmpleado" class="helper-text">
+                                (solo lectura en renovación)
+                            </small>
+                        </label>
                         <div class="inline-fields">
                             <input type="text" :value="formData.nombre"
                                 @input="limpiarYFormatearNombre('nombre', $event)" placeholder="Nombre"
-                                class="form-input" />
+                                class="form-input" :disabled="esRenovacionEmpleado" />
                             <input type="text" :value="formData.apellidoPaterno"
                                 @input="limpiarYFormatearNombre('apellidoPaterno', $event)"
-                                placeholder="Apellido Paterno" class="form-input" />
+                                placeholder="Apellido Paterno" class="form-input" :disabled="esRenovacionEmpleado" />
                             <input type="text" :value="formData.apellidoMaterno"
                                 @input="limpiarYFormatearNombre('apellidoMaterno', $event)"
-                                placeholder="Apellido Materno" class="form-input" />
+                                placeholder="Apellido Materno" class="form-input" :disabled="esRenovacionEmpleado" />
                         </div>
                     </div>
                 </div>
@@ -49,7 +55,7 @@
                         <label>Tipo de Contrato</label>
                         <select v-model="formData.tipoContrato" class="form-select">
                             <option value="">Seleccione tipo</option>
-                            <option value="Indeterminado">Indeterminado</option>
+                            <option value="Indefinido">Indefinido</option>
                             <option value="Temporal">Temporal</option>
                             <option value="Por Proyecto">Por Proyecto</option>
                         </select>
@@ -74,13 +80,14 @@
                     </div>
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
-                        <input type="number" step="0.01" min="0" v-model="formData.sueldoMensual" class="form-input" />
+                        <input type="text" v-model="formData.sueldoMensual" class="form-input" placeholder="0.00"
+                            @input="limpiarNumero('sueldoMensual')" />
                     </div>
                     <div class="form-group">
                         <label>Modalidad</label>
                         <select v-model="formData.modalidad" class="form-select">
                             <option value="">Seleccione modalidad</option>
-                            <option value="Hibrido">Híbrido</option>
+                            <option value="Híbrida">Híbrida</option>
                             <option value="Remoto">Remoto</option>
                             <option value="Presencial">Presencial</option>
                         </select>
@@ -176,7 +183,6 @@
 
                     <div class="form-group">
                         <label>Subir documento (PDF)</label>
-                        <!-- 👇 AQUÍ es donde realmente se captura el File -->
                         <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
                         <p v-if="formData.documento" class="file-name">
                             Archivo seleccionado: {{ formData.documento }}
@@ -212,6 +218,7 @@
     </div>
 </template>
 
+
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue';
 import axios from 'axios';
@@ -219,6 +226,7 @@ import axios from 'axios';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useCatalogosContratos } from '@/composables/useCatalogoContratos';
 import { useS3Files } from '@/composables/useS3Files';
+import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -226,11 +234,30 @@ const props = defineProps({
     datosAspirante: {
         type: Object,
         default: null
+    },
+    // Cuando vienes desde EMPLEADO (renovación)
+    datosEmpleado: {
+        type: Object,
+        default: null
+    },
+    // Para saber si es contrato nuevo o renovación
+    modo: {
+        type: String,
+        default: 'aspirante-nuevo' // 'aspirante-nuevo' | 'empleado-renovar'
     }
 });
 
 const emit = defineEmits(['volver-inicio']);
 
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
+
+// Composables
 const { obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
 const {
     obtenerAreas,
@@ -241,6 +268,14 @@ const {
     obtenerTiposDocumento
 } = useCatalogosContratos();
 const { subirArchivo } = useS3Files();
+const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
+
+// Modo renovación
+const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
+
+const tituloContrato = computed(() =>
+    esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
+);
 
 // ========================
 //  ESTADOS
@@ -361,6 +396,47 @@ const cargarDatosAspirante = async () => {
     actualizarEstadoInicial();
 };
 
+// ===== CARGA DATOS DEL EMPLEADO =====
+const cargarDatosEmpleadoRenovacion = async () => {
+    const personaId = props.datosEmpleado?.persona_id;
+    if (!personaId) return;
+
+    try {
+        const datos = await obtenerDatosRenovacionEmpleado(personaId);
+
+        // Foto y nombre
+        fotoUrl.value = datos.foto_url || fotoUrl.value;
+        formData.value.nombre = datos.nombre || '';
+        formData.value.apellidoPaterno = datos.apellido_paterno || '';
+        formData.value.apellidoMaterno = datos.apellido_materno || '';
+
+        // Asignación laboral
+        formData.value.area = datos.area_id || '';
+        formData.value.puesto = datos.puesto_id || '';
+
+        // Contrato
+        formData.value.tipoContrato = datos.tipo_contrato || '';
+        formData.value.modalidad = datos.modalidad || '';
+        formData.value.sueldoMensual = datos.salario_mensual || '';
+
+        if (datos.fecha_inicio) {
+            formData.value.fechaInicio = formatearFechaInput(datos.fecha_inicio);
+        }
+        if (datos.fecha_fin) {
+            formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
+        }
+
+        // Fecha de generación = hoy
+        if (!formData.value.fechaGeneracion) {
+            formData.value.fechaGeneracion = hoyISO;
+        }
+
+        actualizarEstadoInicial();
+    } catch (error) {
+        console.error('Error al cargar datos de renovación del empleado:', error);
+    }
+};
+
 // ===== CARGA CATÁLOGOS =====
 const cargarCatalogos = async () => {
     try {
@@ -386,13 +462,29 @@ const cargarCatalogos = async () => {
 
 // ===== VALIDACIONES =====
 const limpiarYFormatearNombre = (campo, event) => {
+    // Si es renovación, no debe poder editar
+    if (esRenovacionEmpleado.value) return;
+
     let valor = event.target.value || '';
+    // Solo letras y espacios
     valor = valor.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, '');
     valor = valor.replace(/\s+/g, ' ');
     valor = valor.replace(/^\s+/, '');
     valor = valor.replace(/\b\w+/g, (palabra) => {
         return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
     });
+    formData.value[campo] = valor;
+};
+
+const limpiarNumero = (campo) => {
+    let valor = String(formData.value[campo] ?? '');
+    // Solo dígitos y punto
+    valor = valor.replace(/[^0-9.]/g, '');
+    // Un solo punto decimal
+    const partes = valor.split('.');
+    if (partes.length > 2) {
+        valor = partes[0] + '.' + partes.slice(1).join('');
+    }
     formData.value[campo] = valor;
 };
 
@@ -413,7 +505,7 @@ const validarFechaInicio = () => {
 };
 
 const validarFechaTermino = () => {
-    if (formData.value.tipoContrato === 'Indeterminado') {
+    if (formData.value.tipoContrato === 'Indefinido') {
         formData.value.fechaTermino = '';
         return;
     }
@@ -445,11 +537,94 @@ const validarFechaTermino = () => {
 watch(
     () => formData.value.tipoContrato,
     (nuevo) => {
-        if (nuevo === 'Indeterminado') {
+        if (nuevo === 'Indefinido') {
             formData.value.fechaTermino = '';
         }
     }
 );
+
+// Validación general antes de guardar
+const obtenerErroresValidacion = () => {
+    const errores = [];
+
+    // Datos personales (solo para aspirante nuevo)
+    if (!esRenovacionEmpleado.value) {
+        if (!formData.value.nombre.trim()) {
+            errores.push('El nombre es obligatorio.');
+        }
+        if (!formData.value.apellidoPaterno.trim()) {
+            errores.push('El apellido paterno es obligatorio.');
+        }
+    }
+
+    // Asignación laboral
+    if (!formData.value.area) {
+        errores.push('Debes seleccionar un área de trabajo.');
+    }
+    if (!formData.value.puesto) {
+        errores.push('Debes seleccionar un puesto.');
+    }
+
+    // Contrato
+    if (!formData.value.tipoContrato) {
+        errores.push('Debes seleccionar el tipo de contrato.');
+    }
+    if (!formData.value.fechaInicio) {
+        errores.push('Debes indicar la fecha de inicio del contrato.');
+    }
+    if (
+        formData.value.tipoContrato !== 'Indefinido' &&
+        !formData.value.fechaTermino
+    ) {
+        errores.push(
+            'Debes indicar la fecha de término para contratos que no son indefinidos.'
+        );
+    }
+
+    if (!formData.value.modalidad) {
+        errores.push('Debes seleccionar la modalidad de trabajo.');
+    }
+
+    // Sueldo
+    const sueldo = Number(formData.value.sueldoMensual);
+    if (!formData.value.sueldoMensual || isNaN(sueldo) || sueldo <= 0) {
+        errores.push('Debes capturar un sueldo mensual mayor a cero.');
+    }
+
+    // Jornada / horario
+    if (!formData.value.jornadaLaboral) {
+        errores.push('Debes seleccionar una jornada laboral.');
+    }
+    if (!formData.value.entrada) {
+        errores.push('Debes capturar la hora de entrada.');
+    }
+    if (!formData.value.salida) {
+        errores.push('Debes capturar la hora de salida.');
+    }
+
+    // Plantilla y estado
+    if (!formData.value.plantillaContrato) {
+        errores.push('Debes seleccionar la plantilla de contrato.');
+    }
+    if (!formData.value.estadoContrato) {
+        errores.push('Debes seleccionar el estado del contrato.');
+    }
+
+    // Documentos
+    if (!formData.value.tipoDocumento) {
+        errores.push('Debes seleccionar el tipo de documento asociado.');
+    }
+    if (!archivoPdf.value) {
+        errores.push('Debes seleccionar el archivo PDF a subir.');
+    }
+
+    // Fecha de generación
+    if (!formData.value.fechaGeneracion) {
+        errores.push('Debes indicar la fecha de generación del documento.');
+    }
+
+    return errores;
+};
 
 // ===== FILE INPUT =====
 const onFileChange = (event) => {
@@ -473,37 +648,28 @@ const confirmarSalida = () => {
 
 // ===== GUARDAR CONTRATO =====
 const guardarContrato = async () => {
-    if (!formData.value.nombre || !formData.value.apellidoPaterno) {
-        alert('Nombre y Apellido Paterno son obligatorios.');
+    // Validaciones de formulario
+    const errores = obtenerErroresValidacion();
+
+    if (errores.length > 0) {
+        alert(
+            'No se puede guardar el contrato por los siguientes motivos:\n\n- ' +
+            errores.join('\n- ')
+        );
         return;
     }
 
-    if (!formData.value.area) {
-        alert('Selecciona un área.');
-        return;
-    }
-
-    if (!formData.value.tipoContrato || !formData.value.fechaInicio) {
-        alert('Tipo de contrato y fecha de inicio son obligatorios.');
-        return;
-    }
-
-    if (!formData.value.tipoDocumento) {
-        alert('Selecciona el tipo de documento asociado.');
-        return;
-    }
-
-    if (!archivoPdf.value) {
-        alert('Selecciona el PDF a subir antes de guardar.');
-        return;
-    }
-
+    // Id de persona según de dónde venga
     const personaId =
-        props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
+        props.datosAspirante?.persona_id ||
+        props.datosAspirante?.id ||
+        props.datosEmpleado?.persona_id ||
+        props.datosEmpleado?.id ||
+        null;
 
     if (!personaId) {
         alert('No se encontró el identificador de la persona.');
-        console.error('datosAspirante sin persona_id ni id:', props.datosAspirante);
+        console.error('Sin persona_id ni id en props:', props.datosAspirante, props.datosEmpleado);
         return;
     }
 
@@ -511,13 +677,57 @@ const guardarContrato = async () => {
         // 1) Subir archivo a S3
         const respS3 = await subirArchivo(archivoPdf.value);
         if (!respS3?.ok || !respS3.archivo) {
-            throw new Error(
-                respS3?.error || 'No se recibió información del archivo subido'
-            );
+            throw new Error(respS3?.error || 'No se recibió información del archivo subido');
         }
         const archivoId = respS3.archivo.id;
 
-        // 2) Payload para el endpoint /contratos/aspirante
+        // 2) Modo RENOVACIÓN EMPLEADO
+        if (esRenovacionEmpleado.value) {
+            const payloadRenovacion = {
+                personaId,
+                plantillaId: formData.value.plantillaContrato || null,
+                puestoId: formData.value.puesto || null,
+                areaId: formData.value.area,
+                salarioMensual: formData.value.sueldoMensual || null,
+                fechaInicio: formData.value.fechaInicio,
+                fechaFin: formData.value.fechaTermino || null,
+                tipoContrato: formData.value.tipoContrato,
+                modalidad: formData.value.modalidad || null,
+                observaciones: formData.value.observaciones || null,
+                archivoId
+            };
+
+            console.log('Payload renovación empleado:', payloadRenovacion);
+
+            await axios.post(`${API_URL}/contratos/empleado/renovar`, payloadRenovacion, {
+                withCredentials: true
+            });
+
+            alert('Contrato renovado correctamente.');
+            actualizarEstadoInicial();
+            emit('volver-inicio');
+            return;
+        }
+
+        // 3) Modo ASPIRANTE (CONTRATO NUEVO)
+        //    Primero, si cambió el nombre/apellidos, actualizamos persona
+        const nombreCambiado =
+            formData.value.nombre !== initialFormData.value.nombre ||
+            formData.value.apellidoPaterno !== initialFormData.value.apellidoPaterno ||
+            formData.value.apellidoMaterno !== initialFormData.value.apellidoMaterno;
+
+        if (nombreCambiado) {
+            const payloadNombre = {
+                nombre: formData.value.nombre,
+                apellidoPaterno: formData.value.apellidoPaterno,
+                apellidoMaterno: formData.value.apellidoMaterno || null
+            };
+
+            await axios.put(`${API_URL}/aspirantes/${personaId}/nombre`, payloadNombre, {
+                withCredentials: true
+            });
+        }
+
         const payloadContrato = {
             personaId,
             plantillaId: formData.value.plantillaContrato || null,
@@ -537,7 +747,7 @@ const guardarContrato = async () => {
             fechaGeneracion: formData.value.fechaGeneracion || hoyISO
         };
 
-        console.log('Payload contrato:', payloadContrato);
+        console.log('Payload contrato aspirante:', payloadContrato);
 
         await axios.post(`${API_URL}/contratos/aspirante`, payloadContrato, {
             withCredentials: true
@@ -558,10 +768,17 @@ const guardarContrato = async () => {
 // ===== LIMPIAR =====
 const enviarLimpiar = () => {
     Object.keys(formData.value).forEach((key) => {
+        // En renovación NO limpiamos nombre ni apellidos
+        if (
+            esRenovacionEmpleado.value &&
+            ['nombre', 'apellidoPaterno', 'apellidoMaterno'].includes(key)
+        ) {
+            return;
+        }
+
         formData.value[key] = '';
     });
 
-    // La foto del aspirante la dejamos
     formData.value.fechaGeneracion = hoyISO;
     formData.value.documento = '';
     archivoPdf.value = null;
@@ -575,17 +792,34 @@ const enviarLimpiar = () => {
 // ===== WATCH & MOUNT =====
 watch(
     () => props.datosAspirante,
-    () => {
-        cargarDatosAspirante();
-    },
-    { deep: true }
+    (nuevo) => {
+        if (props.modo === 'aspirante-nuevo' && nuevo) {
+            cargarDatosAspirante();
+        }
+    }
 );
 
-onMounted(() => {
-    cargarDatosAspirante();
-    cargarCatalogos();
+watch(
+    () => props.datosEmpleado,
+    (nuevo) => {
+        if (props.modo === 'empleado-renovar' && nuevo) {
+            cargarDatosEmpleadoRenovacion();
+        }
+    }
+);
+
+onMounted(async () => {
+    await cargarCatalogos();
+
+    if (props.modo === 'aspirante-nuevo' && props.datosAspirante) {
+        await cargarDatosAspirante();
+    } else if (props.modo === 'empleado-renovar' && props.datosEmpleado) {
+        await cargarDatosEmpleadoRenovacion();
+    }
 });
 </script>
+
+
 
 
 <style scoped>

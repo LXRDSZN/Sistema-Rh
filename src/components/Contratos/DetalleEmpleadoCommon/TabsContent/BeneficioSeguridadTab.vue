@@ -138,7 +138,7 @@ defineEmits(['toggle-beneficio']);
 }
 
 .btn-toggle.activo {
-    background-color: #10b981;
+    background-color: #ef4444;
     color: white;
 }
 
@@ -147,7 +147,7 @@ defineEmits(['toggle-beneficio']);
 }
 
 .btn-toggle.suspendido {
-    background-color: #ef4444;
+    background-color: #10b981;
     color: white;
 }
 

@@ -35,7 +35,8 @@ router.get('/contratos/stats', async (req, res) => {
             FROM contrato c
             INNER JOIN estado_contrato ec ON ec.id = c.estado_id
             WHERE ec.nombre ILIKE 'ACTIVO'
-              AND c.fecha_fin < CURRENT_DATE
+                AND c.fecha_fin IS NOT NULL
+                AND c.fecha_fin < CURRENT_DATE
         `;
         const vencidos = await pool.query(vencidosQuery);
 
@@ -70,41 +71,41 @@ router.get('/contratos/stats', async (req, res) => {
 // 2. OBTENER EMPLEADOS DESTACADOS (SIN LÍMITE)
 // ========================================
 router.get('/contratos/empleados-destacados', async (req, res) => {
-    try {
-        const query = `
-            SELECT
-                p.id AS persona_id,
-                p.foto_url AS avatar,
-                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
-                COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
-                LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
-                COALESCE(pu.nombre, 'Sin puesto') AS puesto,
-                COALESCE(a.nombre, 'Sin área') AS area,
-                'empleado' AS tipo
-            FROM persona p
-            INNER JOIN contrato c ON c.persona_id = p.id
-            LEFT JOIN puesto pu ON pu.id = c.puesto_id
-            LEFT JOIN area a ON a.id = c.area_id
-            WHERE p.tipo = 'Empleado'
-            ORDER BY p.fecha_registro DESC
-            LIMIT 10
-        `;
+  try {
+    const query = `
+      SELECT DISTINCT ON (p.id)
+          p.id AS persona_id,
+          p.foto_url AS avatar,
+          CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
+          COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
+          LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
+          COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+          COALESCE(a.nombre, 'Sin área') AS area,
+          'empleado' AS tipo
+      FROM persona p
+      INNER JOIN contrato c ON c.persona_id = p.id
+      LEFT JOIN puesto pu ON pu.id = c.puesto_id
+      LEFT JOIN area a ON a.id = c.area_id
+      WHERE p.tipo = 'Empleado'
+      ORDER BY p.id, c.fecha_inicio DESC
+      LIMIT 10;
+    `;
 
-        const result = await pool.query(query);
+    const result = await pool.query(query);
 
-        res.json({
-            ok: true,
-            empleados: result.rows
-        });
-
-    } catch (error) {
-        console.error('Error al obtener empleados destacados:', error);
-        res.status(500).json({
-            ok: false,
-            error: error.message
-        });
-    }
+    res.json({
+      ok: true,
+      empleados: result.rows
+    });
+  } catch (error) {
+    console.error('Error al obtener empleados destacados:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
+
 
 // ========================================
 // 3. OBTENER ASPIRANTES DESTACADOS (SIN LÍMITE)
@@ -188,7 +189,7 @@ router.get('/contratos/por-estado', async (req, res) => {
                         LOWER(REPLACE(COALESCE(p.etapa, 'registro'), ' ', '-')) AS estado_clase,
                         COALESCE(pu.nombre, 'Sin puesto') AS puesto,
                         COALESCE(a.nombre, 'Sin área') AS area,
-                        NULL AS fechaInicio,
+                        p.fecha_registro AS fechaInicio,
                         NULL AS fechaFin
                     FROM persona p
                     LEFT JOIN aspiracion_laboral al ON al.persona_id = p.id

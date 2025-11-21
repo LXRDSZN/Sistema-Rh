@@ -546,7 +546,7 @@ const validarSoloLetras = (event) => {
   const input = event.target;
   const valor = input.value;
   // Permitir solo letras (incluyendo acentos), espacios y guiones
-  const valorLimpio = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖ\s\-]/g, '');
+  const valorLimpio = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s\-]/g, '');
   input.value = valorLimpio;
   // Actualizar el v-model
   if (input.name === 'nombres') {
@@ -665,11 +665,37 @@ const enviarSolicitud = async () => {
 
   try {
     // Función auxiliar para obtener el ID de tipo de documento por nombre
+    // Más robusta: intenta sinónimos comunes (cv, curriculum, etc.), acepta id numérico
     const obtenerDocumentoTipoId = (nombreTipo) => {
-      const tipo = catalogos.value.tiposDocumento.find(
-        t => t.nombre.toLowerCase().includes(nombreTipo.toLowerCase())
-      );
-      return tipo ? tipo.id : null;
+      if (!catalogos.value || !Array.isArray(catalogos.value.tiposDocumento)) return null;
+
+      const nameLower = String(nombreTipo || '').toLowerCase();
+
+      const synonyms = {
+        cv: ['cv', 'curriculum', 'currículum', 'curriculum vitae', 'currículum vitae', 'curr'],
+        curp: ['curp'],
+        ine: ['ine', 'identificacion', 'identificación', 'credencial', 'identificación oficial'],
+        domicilio: ['domicilio', 'comprobante domicilio', 'comprobante de domicilio']
+      };
+
+      const patterns = synonyms[nameLower] || [nameLower];
+
+      // Try to find by matching any synonym in the catalog name
+      for (const p of patterns) {
+        const tipo = catalogos.value.tiposDocumento.find(t => t.nombre && t.nombre.toLowerCase().includes(p));
+        if (tipo) return tipo.id;
+      }
+
+      // If nombreTipo looks like an id, try to find by id
+      const maybeId = parseInt(nombreTipo, 10);
+      if (!isNaN(maybeId)) {
+        const tipoById = catalogos.value.tiposDocumento.find(t => String(t.id) === String(maybeId));
+        if (tipoById) return tipoById.id;
+      }
+
+      // Not found — log to help debugging
+      console.warn(`No se encontró tipo de documento para '${nombreTipo}'. Catálogo disponible:`, catalogos.value.tiposDocumento);
+      return null;
     };
 
     // Subir documentos a AWS S3 si existen
@@ -789,6 +815,11 @@ const enviarSolicitud = async () => {
       fechaDisponible: formulario.value.fechaDisponible || null,
       documentos: documentosCargados
     };
+
+    // Log documentos para depuración: asegura que documentoTipoId está presente
+    console.log('documentosCargados', documentosCargados);
+    const documentosSinTipo = documentosCargados.filter(d => !d.documentoTipoId);
+    if (documentosSinTipo.length) console.warn('Documentos sin tipo detectados (esto causará documento_tipo_id=NULL):', documentosSinTipo);
 
     const response = await crearSolicitud(datosParaEnviar);
     

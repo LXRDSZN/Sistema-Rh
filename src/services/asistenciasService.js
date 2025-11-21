@@ -95,9 +95,10 @@ export const getReporteAsistencias = async (filtros = {}) => {
 export const getDetalleAsistencias = async (filtros) => {
   try {
     const params = new URLSearchParams();
+    // Forzar mes y año a número
     if (filtros.area_id) params.append('area_id', filtros.area_id);
-    if (filtros.mes) params.append('mes', filtros.mes);
-    if (filtros.anio) params.append('anio', filtros.anio);
+    if (filtros.mes) params.append('mes', Number(filtros.mes));
+    if (filtros.anio) params.append('anio', Number(filtros.anio));
 
     const response = await axios.get(`${API_URL}/asistencias/reporte/detalle?${params}`);
     return response.data;

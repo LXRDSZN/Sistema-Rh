@@ -287,12 +287,33 @@ const summaryData = computed(() => {
 
 const employeesData = computed(() => {
   if (!detalleAsistencias.value || detalleAsistencias.value.length === 0) return []
-  return detalleAsistencias.value.map(emp => ({
-    empleado: emp.empleado,
-    puesto: emp.puesto || 'Sin puesto',
-    area: selectedArea.value !== 'todas' ? selectedArea.value : emp.area,
-    attendance: emp.attendance || []
-  }))
+
+  return detalleAsistencias.value.map(emp => {
+    // intenta varias posibles llaves de área que pueda mandar tu API
+    const areaBD =
+      emp.area ||
+      emp.area_nombre ||
+      emp.nombre_area ||
+      emp.areaName ||
+      emp.area_name ||
+      ''
+
+    // nombre legible del área seleccionada en el v-select
+    const areaSelectTitle =
+      areasItems.value.find(a => a.value === selectedArea.value)?.title || ''
+
+    return {
+      empleado: emp.empleado,
+      puesto: emp.puesto || 'Sin puesto',
+      // Si está filtrado por área, usa el título del select (ej. "Asistencias")
+      // Si está en "Todas las Áreas", usa el nombre que viene de la BD
+      area:
+        selectedArea.value !== 'todas'
+          ? (areaSelectTitle || areaBD || 'Sin área')
+          : (areaBD || 'Sin área'),
+      attendance: emp.attendance || []
+    }
+  })
 })
 
 const areaSeleccionada = computed(() => {
@@ -329,16 +350,22 @@ const employeesFiltered = computed(() => {
 // Watch para recargar datos cuando cambien filtros
 watch([selectedMonth, selectedYear, selectedArea], async () => {
   await cargarDatos()
-  // Cargar detalle si hay un área específica seleccionada
+  // Cargar detalle para el área seleccionada o para todas
   if (selectedArea.value !== 'todas') {
     const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
     if (areaObj) {
       await cargarDetalleAsistencias({
-        mes: selectedMonth.value,
-        anio: selectedYear.value,
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value),
         area_id: areaObj.id
       })
     }
+  } else {
+    // Si es "todas", cargar detalle global (sin area_id)
+    await cargarDetalleAsistencias({
+      mes: Number(selectedMonth.value),
+      anio: Number(selectedYear.value)
+    })
   }
 })
 
@@ -370,7 +397,7 @@ const calcularEstadisticas = (empleados) => {
       emp.attendance.forEach(dia => {
         if (dia) { // Solo contar si hay dato
           totalDias++
-          switch(dia) {
+          switch (dia) {
             case 'A': totalAsistencias++; break
             case 'R': totalRetardos++; break
             case 'F': totalFaltasInjustificadas++; break
@@ -384,7 +411,7 @@ const calcularEstadisticas = (empleados) => {
     }
   })
 
-  const asistenciaPromedio = totalDias > 0 
+  const asistenciaPromedio = totalDias > 0
     ? `${Math.round((totalAsistencias / totalDias) * 100)}%`
     : '0%'
 
@@ -411,26 +438,62 @@ const validarBusqueda = () => {
   }
 }
 
+// Botón aplicar filtros
 const aplicarFiltros = () => {
-  const area = selectedArea.value.toLowerCase()
-
-  // Filtrar resumen por área
-  summaryData.value = area === 'todas'
-    ? [...originalSummaryData]
-    : originalSummaryData.filter(a => a.area.toLowerCase() === area)
-
-  const labelArea = area === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
+  const labelArea = selectedArea.value === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
   mostrarMensaje(`Filtros aplicados: ${labelArea} - ${mesSeleccionado.value}. Empleados encontrados: ${employeesFiltered.value.length}`)
 }
+
+/* =========================
+   GENERACIÓN DE PDF POR ÁREA
+   ========================= */
 
 const generarReporte = async (row) => {
   generandoPdf.value = true
   try {
     mostrarMensaje(`Generando reporte PDF para: ${row.area}...`, 'info')
-    
-    // Crear PDF
-    await generarPDF(row)
-    
+
+    // 1. Cargar detalle SOLO del área del renglón
+    if (row.area_id) {
+      await cargarDetalleAsistencias({
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value),
+        area_id: row.area_id
+      })
+    } else {
+      // Por si acaso no viene el id
+      await cargarDetalleAsistencias({
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value)
+      })
+    }
+
+    // 2. Construir arreglo de empleados para esa área
+    const empleadosArea = (detalleAsistencias.value || []).map(emp => {
+      const areaBD =
+        emp.area ||
+        emp.area_nombre ||
+        emp.nombre_area ||
+        emp.areaName ||
+        emp.area_name ||
+        row.area
+
+      return {
+        empleado: emp.empleado,
+        puesto: emp.puesto || 'Sin puesto',
+        area: areaBD || row.area,
+        attendance: emp.attendance || []
+      }
+    })
+
+    if (!empleadosArea.length) {
+      mostrarMensaje(`No hay datos de asistencias para el área ${row.area}`, 'warning')
+      return
+    }
+
+    // 3. Generar PDF con esos datos
+    await generarPDF(row, empleadosArea)
+
     mostrarMensaje(`Reporte PDF generado exitosamente para: ${row.area}`, 'success')
   } catch (error) {
     console.error('Error generando PDF:', error)
@@ -440,239 +503,268 @@ const generarReporte = async (row) => {
   }
 }
 
-const generarPDF = async (row) => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Nuevo PDF
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      })
+const generarPDF = async (row, empleadosArea) => {
+  try {
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    })
 
-      // Configuración de colores
-      const colors = {
-        primary: [34, 26, 104],
-        secondary: [94, 71, 255],
-        success: [16, 185, 129],
-        warning: [245, 158, 11],
-        error: [239, 68, 68],
-        info: [59, 130, 246],
-        gray: [107, 114, 128],
-        pink: [236, 72, 153],
-        purple: [139, 92, 246]
+    // ===== días del mes (para encabezados y cuadritos) =====
+    const daysInMonth = new Date(selectedYear.value, selectedMonth.value, 0).getDate()
+
+    // Colores
+    const colors = {
+      primary: [34, 26, 104],
+      secondary: [94, 71, 255],
+      success: [16, 185, 129],
+      warning: [245, 158, 11],
+      error: [239, 68, 68],
+      info: [59, 130, 246],
+      gray: [107, 114, 128],
+      pink: [236, 72, 153],
+      purple: [139, 92, 246]
+    }
+
+    // Encabezado
+    pdf.setFontSize(16)
+    pdf.setTextColor(...colors.primary)
+    pdf.text(`Reporte de Asistencias - ${row.area}`, 20, 20)
+
+    pdf.setFontSize(12)
+    pdf.setTextColor(...colors.gray)
+    pdf.text(`Período: ${mesSeleccionado.value}`, 20, 28)
+    pdf.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 34)
+    pdf.text(`Total de empleados en el área: ${empleadosArea.length}`, 20, 40)
+
+    let yPosition = 50
+
+    // ===== Resumen estadístico del área =====
+    pdf.setFillColor(...colors.primary)
+    pdf.setTextColor(255, 255, 255)
+    pdf.rect(20, yPosition, 250, 8, 'F')
+    pdf.text('Resumen Estadístico del Área', 22, yPosition + 6)
+
+    yPosition += 15
+
+    const estadisticas = calcularEstadisticas(empleadosArea)
+
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(10)
+
+    const datosResumen = [
+      { label: 'Total Empleados:', valor: empleadosArea.length.toString() },
+      { label: '% Asistencia Promedio:', valor: estadisticas.asistenciaPromedio },
+      { label: 'Total Retardos:', valor: estadisticas.totalRetardos.toString() },
+      { label: 'Total Faltas Justificadas:', valor: estadisticas.totalFaltasJustificadas.toString() },
+      { label: 'Total Faltas Injustificadas:', valor: estadisticas.totalFaltasInjustificadas.toString() },
+      { label: 'Total Incidencias:', valor: estadisticas.totalIncidencias.toString() },
+      { label: 'Total Días Feriados:', valor: estadisticas.totalDiasFeriados.toString() },
+      { label: 'Total Vacaciones:', valor: estadisticas.totalVacaciones.toString() }
+    ]
+
+    datosResumen.forEach((dato, index) => {
+      const y = yPosition + (index * 6)
+      pdf.setFont(undefined, 'bold')
+      pdf.text(dato.label, 22, y)
+      pdf.setFont(undefined, 'normal')
+      pdf.text(dato.valor, 85, y)
+    })
+
+    yPosition += 60
+
+    // ===== Detalle de asistencias =====
+    pdf.setFillColor(...colors.primary)
+    pdf.setTextColor(255, 255, 255)
+    pdf.rect(20, yPosition, 250, 8, 'F')
+    pdf.text('Detalle de Asistencias por Empleado', 22, yPosition + 6)
+
+    yPosition += 15
+
+    const headers = [
+      'Empleado',
+      'Puesto',
+      'Área',
+      ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())
+    ]
+    const columnWidths = [45, 40, 30, ...Array(daysInMonth).fill(4.5)]
+
+    let xPosition = 20
+
+    // Encabezados
+    headers.forEach((header, index) => {
+      pdf.setFillColor(...colors.primary)
+      pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(6)
+
+      if (index < 3) {
+        pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
+      } else {
+        pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
       }
 
-      // Encabezado del reporte
-      pdf.setFontSize(16)
-      pdf.setTextColor(...colors.primary)
-      pdf.text(`Reporte de Asistencias - ${row.area}`, 20, 20)
-      
-      pdf.setFontSize(12)
-      pdf.setTextColor(...colors.gray)
-      pdf.text(`Período: ${mesSeleccionado.value}`, 20, 28)
-      pdf.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 34)
-      pdf.text(`Total de empleados en el área: ${employeesFiltered.value.length}`, 20, 40)
+      xPosition += columnWidths[index]
+    })
 
-      let yPosition = 50
+    yPosition += 8
 
-      // Resumen estadístico dinámico
-      pdf.setFillColor(...colors.primary)
-      pdf.setTextColor(255, 255, 255)
-      pdf.rect(20, yPosition, 250, 8, 'F')
-      pdf.text('Resumen Estadístico del Área', 22, yPosition + 6)
+    // Filas
+    const empleadosParaPDF = empleadosArea
 
-      yPosition += 15
+    empleadosParaPDF.forEach((emp, empIndex) => {
+      if (yPosition > 180 && empIndex < empleadosParaPDF.length - 1) {
+        pdf.addPage()
+        yPosition = 20
 
-      // Calcular estadísticas dinámicas desde los datos filtrados
-      const estadisticas = calcularEstadisticas(employeesFiltered.value)
+        // Redibujar encabezados
+        xPosition = 20
+        headers.forEach((header, index) => {
+          pdf.setFillColor(...colors.primary)
+          pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(6)
+
+          if (index < 3) {
+            pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
+          } else {
+            pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
+          }
+
+          xPosition += columnWidths[index]
+        })
+        yPosition += 8
+      }
+
+      xPosition = 20
+
+      pdf.setFillColor(empIndex % 2 === 0 ? 255 : 245, 255, 255)
+      pdf.rect(20, yPosition, 250, 6, 'F')
 
       pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(10)
-      
-      // Datos del resumen - dinámicos
-      const datosResumen = [
-        { label: 'Total Empleados:', valor: employeesFiltered.value.length.toString() },
-        { label: '% Asistencia Promedio:', valor: estadisticas.asistenciaPromedio },
-        { label: 'Total Retardos:', valor: estadisticas.totalRetardos.toString() },
-        { label: 'Total Faltas Justificadas:', valor: estadisticas.totalFaltasJustificadas.toString() },
-        { label: 'Total Faltas Injustificadas:', valor: estadisticas.totalFaltasInjustificadas.toString() },
-        { label: 'Total Incidencias:', valor: estadisticas.totalIncidencias.toString() },
-        { label: 'Total Días Feriados:', valor: estadisticas.totalDiasFeriados.toString() },
-        { label: 'Total Vacaciones:', valor: estadisticas.totalVacaciones.toString() }
-      ]
+      pdf.setFontSize(6)
 
-      datosResumen.forEach((dato, index) => {
-        const y = yPosition + (index * 6)
-        pdf.setFont(undefined, 'bold')
-        pdf.text(dato.label, 22, y)
-        pdf.setFont(undefined, 'normal')
-        pdf.text(dato.valor, 85, y)
-      })
+      pdf.text(emp.empleado.substring(0, 20), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[0]
 
-      yPosition += 60
+      pdf.text(emp.puesto.substring(0, 15), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[1]
 
-      // Detalle de asistencias
-      pdf.setFillColor(...colors.primary)
-      pdf.setTextColor(255, 255, 255)
-      pdf.rect(20, yPosition, 250, 8, 'F')
-      pdf.text('Detalle de Asistencias por Empleado', 22, yPosition + 6)
+      pdf.text(emp.area.substring(0, 10), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[2]
 
-      yPosition += 15
+      const asistencias = emp.attendance || []
+      for (let day = 1; day <= daysInMonth; day++) {
+        const att = asistencias[day - 1]
 
-      // Encabezados de la tabla adaptativos
-      const headers = ['Empleado', 'Puesto', 'Área', ...Array.from({length: diasEnMes.value}, (_, i) => (i + 1).toString())]
-      const columnWidths = [45, 40, 30, ...Array(diasEnMes.value).fill(4.5)]
-      
-      let xPosition = 20
-      
-      // Dibujar encabezados
-      headers.forEach((header, index) => {
-        pdf.setFillColor(...colors.primary)
-        pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
-        pdf.setTextColor(255, 255, 255)
-        pdf.setFontSize(6)
-        
-        if (index < 3) {
-          pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
+        // Tamaño del "badge" dentro de la celda
+        const cellWidth = columnWidths[3]
+        const cellHeight = 6
+        const badgeWidth = cellWidth - 1.2
+        const badgeHeight = 4.2
+        const badgeX = xPosition + (cellWidth - badgeWidth) / 2
+        const badgeY = yPosition + (cellHeight - badgeHeight) / 2
+        const radius = 1.2
+
+        let fillColor
+        switch (att) {
+          case 'A': fillColor = colors.success; break
+          case 'R': fillColor = colors.warning; break
+          case 'F': fillColor = colors.error; break
+          case 'I': fillColor = colors.purple; break
+          case 'FJ': fillColor = colors.info; break
+          case 'DF': fillColor = colors.gray; break
+          case 'V': fillColor = colors.pink; break
+          default:  fillColor = [255, 255, 255] // sin registro: blanco
+        }
+
+        if (!att) {
+          // Celda sin registro: solo borde gris suave
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(230, 230, 230)
+          pdf.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, radius, radius, 'S')
         } else {
-          pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
-        }
-        
-        xPosition += columnWidths[index]
-      })
-
-      yPosition += 8
-
-      // Datos de empleados
-      const empleadosParaPDF = employeesFiltered.value
-
-      empleadosParaPDF.forEach((emp, empIndex) => {
-        // Control de paginación
-        if (yPosition > 180 && empIndex < empleadosParaPDF.length - 1) {
-          pdf.addPage()
-          yPosition = 20
-          
-          // Redibujar encabezados
-          xPosition = 20
-          headers.forEach((header, index) => {
-            pdf.setFillColor(...colors.primary)
-            pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
-            pdf.setTextColor(255, 255, 255)
-            pdf.setFontSize(6)
-            
-            if (index < 3) {
-              pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
-            } else {
-              pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
-            }
-            
-            xPosition += columnWidths[index]
-          })
-          yPosition += 8
+          // Badge de estado con color
+          pdf.setFillColor(...fillColor)
+          pdf.setDrawColor(255, 255, 255) // borde blanco suave
+          pdf.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, radius, radius, 'FD')
         }
 
-        xPosition = 20
-        
-        // Fondo alternado para mejor legibilidad
-        pdf.setFillColor(empIndex % 2 === 0 ? 255 : 245, 255, 255)
-        pdf.rect(20, yPosition, 250, 6, 'F')
-        
-        pdf.setTextColor(0, 0, 0)
-        pdf.setFontSize(6)
-        
-        // Información del empleado
-        pdf.text(emp.empleado.substring(0, 20), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[0]
-        
-        pdf.text(emp.puesto.substring(0, 15), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[1]
-        
-        pdf.text(emp.area.substring(0, 10), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[2]
-        
-        // Asistencias
-        const asistencias = emp.attendance || []
-        for (let day = 1; day <= diasEnMes.value; day++) {
-          const att = asistencias[day - 1]
-          let color
-          
-          switch(att) {
-            case 'A': color = colors.success; break
-            case 'R': color = colors.warning; break
-            case 'F': color = colors.error; break
-            case 'I': color = colors.purple; break
-            case 'FJ': color = colors.info; break
-            case 'DF': color = colors.gray; break
-            case 'V': color = colors.pink; break
-            default: color = [240, 240, 240] // Sin dato
-          }
-          
-          pdf.setFillColor(...color)
-          pdf.rect(xPosition, yPosition, columnWidths[3], 6, 'F')
-          
-          // Color del texto según el fondo
-          const textoColor = (att === 'A' || att === 'FJ' || att === 'V') ? [255, 255, 255] : [0, 0, 0]
-          pdf.setTextColor(...textoColor)
-          pdf.text(att || '-', xPosition + columnWidths[3] / 2, yPosition + 4, { align: 'center' })
-          
-          xPosition += columnWidths[3]
+        // Color de texto
+        let textoColor
+        if (['A', 'FJ', 'V', 'I'].includes(att)) {
+          textoColor = [255, 255, 255]
+        } else if (!att) {
+          textoColor = [200, 200, 200]
+        } else {
+          textoColor = [0, 0, 0]
         }
-        
-        yPosition += 6
-      })
 
-      // Leyenda de estados
-      yPosition += 10
-      pdf.setFontSize(8)
-      pdf.setTextColor(...colors.primary)
-      pdf.text('Leyenda de Estados:', 20, yPosition)
-      
+        pdf.setFontSize(5.5)
+        pdf.setTextColor(...textoColor)
+        pdf.text(att || '-', badgeX + badgeWidth / 2, badgeY + badgeHeight / 2 + 1.3, {
+          align: 'center'
+        })
+
+        xPosition += cellWidth
+      }
       yPosition += 6
-      const leyendas = [
-        { texto: 'A - Asistencia', color: colors.success },
-        { texto: 'R - Retardo', color: colors.warning },
-        { texto: 'F - Falta', color: colors.error },
-        { texto: 'I - Incidencia', color: colors.purple },
-        { texto: 'FJ - Falta Justificada', color: colors.info },
-        { texto: 'DF - Días Feriados', color: colors.gray },
-        { texto: 'V - Vacaciones', color: colors.pink },
-        { texto: '- - Sin registro', color: [240, 240, 240] }
-      ]
-      
-      let xLeyenda = 20
-      leyendas.forEach((leyenda, index) => {
-        if (xLeyenda > 180) {
-          xLeyenda = 20
-          yPosition += 8
-        }
-        
-        pdf.setFillColor(...leyenda.color)
-        pdf.rect(xLeyenda, yPosition, 4, 4, 'F')
-        pdf.setTextColor(0, 0, 0)
-        pdf.text(leyenda.texto, xLeyenda + 6, yPosition + 3)
-        
-        xLeyenda += 45
-      })
+    })
 
-      // Pie de página
-      const totalPages = pdf.internal.getNumberOfPages()
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i)
-        pdf.setFontSize(8)
-        pdf.setTextColor(...colors.gray)
-        pdf.text(`Página ${i} de ${totalPages} - Generado el ${new Date().toLocaleDateString('es-ES')}`, 20, 200)
+    // Leyenda
+    yPosition += 10
+    pdf.setFontSize(8)
+    pdf.setTextColor(...colors.primary)
+    pdf.text('Leyenda de Estados:', 20, yPosition)
+
+    yPosition += 6
+    const leyendas = [
+      { texto: 'A - Asistencia', color: colors.success },
+      { texto: 'R - Retardo', color: colors.warning },
+      { texto: 'F - Falta', color: colors.error },
+      { texto: 'I - Incidencia', color: colors.purple },
+      { texto: 'FJ - Falta Justificada', color: colors.info },
+      { texto: 'DF - Días Feriados', color: colors.gray },
+      { texto: 'V - Vacaciones', color: colors.pink },
+      { texto: '- - Sin registro', color: [240, 240, 240] }
+    ]
+
+    let xLeyenda = 20
+    leyendas.forEach((leyenda) => {
+      if (xLeyenda > 180) {
+        xLeyenda = 20
+        yPosition += 8
       }
 
-      // Guardar PDF
-      pdf.save(`reporte-asistencias-${row.area.toLowerCase().replace(/\s+/g, '-')}-${selectedMonth.value}.pdf`)
-      resolve()
-    } catch (error) {
-      reject(error)
+      pdf.setFillColor(...leyenda.color)
+      pdf.rect(xLeyenda, yPosition, 4, 4, 'F')
+      pdf.setTextColor(0, 0, 0)
+      pdf.text(leyenda.texto, xLeyenda + 6, yPosition + 3)
+
+      xLeyenda += 45
+    })
+
+    // Pie de página
+    const totalPages = pdf.internal.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i)
+      pdf.setFontSize(8)
+      pdf.setTextColor(...colors.gray)
+      pdf.text(
+        `Página ${i} de ${totalPages} - Generado el ${new Date().toLocaleDateString('es-ES')}`,
+        20,
+        200
+      )
     }
-  })
+
+    pdf.save(`reporte-asistencias-${row.area.toLowerCase().replace(/\s+/g, '-')}-${selectedMonth.value}.pdf`)
+  } catch (error) {
+    throw error
+  }
 }
 </script>
+
 
 <style scoped>
 .reporteasistencias-content {

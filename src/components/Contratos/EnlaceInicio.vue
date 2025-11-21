@@ -14,8 +14,14 @@
             <button class="btn-incidencia" @click="registrarIncidencia">
                 + Registrar Incidencia
             </button>
-            <button class="btn-registro" @click="irARegistro">
-                📝 Registro de Solicitud
+            <button
+                class="btn-registro"
+                @click="!isEmpleado && irARegistro()"
+                :disabled="isEmpleado"
+                :title="isEmpleado ? 'No tienes permiso para usar esto' : ''"
+                :style="isEmpleado ? 'background: #ccc; color: #888; cursor: not-allowed;' : ''"
+            >
+                📄 Registro de Solicitud
             </button>
         </div>
 
@@ -23,19 +29,39 @@
         <div class="stats-grid">
             <div class="stat-card activos" @click="cambiarVista('activos')">
                 <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
-                <div class="stat-value">{{ stats.activos }}</div>
+                <div class="stat-value-with-icon">                     
+                    <span class="material-symbols-rounded contract-icon activo">
+                        article
+                    </span>
+                    <div class="stat-value">{{ stats.activos }}</div>
+                </div>
             </div>
             <div class="stat-card proximos" @click="cambiarVista('avencer')">
                 <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
-                <div class="stat-value">{{ stats.proximosVencer }}</div>
+                <div class="stat-value-with-icon">                     
+                    <span class="material-symbols-rounded contract-icon por-vencer">
+                        article
+                    </span>
+                    <div class="stat-value">{{ stats.proximosVencer }}</div>
+                </div>
             </div>
             <div class="stat-card vencidos" @click="cambiarVista('vencidos')">
                 <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
-                <div class="stat-value">{{ stats.vencidos }}</div>
+                <div class="stat-value-with-icon">                     
+                    <span class="material-symbols-rounded contract-icon vencido">
+                        article
+                    </span>
+                    <div class="stat-value">{{ stats.vencidos }}</div>
+                </div>
             </div>
             <div class="stat-card proceso" @click="cambiarVista('proceso')">
                 <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
+                <div class="stat-value-with-icon">                     
+                    <span class="material-symbols-rounded contract-icon proceso">
+                        article
+                    </span>
                 <div class="stat-value">{{ stats.enProceso }}</div>
+                </div>
             </div>
         </div>
 
@@ -61,15 +87,14 @@
                     <div class="table-body">
                         <div v-for="empleado in empleadosFiltrados" :key="empleado.id" class="table-row empleado-row">
                             <div class="col-datos">
-                                <img v-if="empleado.avatar" :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
-                                <div v-else class="avatar avatar-placeholder">👤</div>
+                                <img :src="empleado.avatar || defaultAvatar" :alt="empleado.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ empleado.nombre }}</div>
                                     <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
                                         empleado.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ empleado.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(empleado.puesto) }}</div>
                             <div class="col-area">{{ empleado.area }}</div>
                             <div class="col-action">
                                 <button class="btn-revisar empleado" @click="revisarContrato(empleado)">
@@ -97,15 +122,14 @@
                         <div v-for="aspirante in aspirantesFiltrados" :key="aspirante.id"
                             class="table-row aspirante-row">
                             <div class="col-datos">
-                                <img v-if="aspirante.avatar" :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
-                                <div v-else class="avatar avatar-placeholder">👤</div>
+                                <img :src="aspirante.avatar || defaultAvatar" :alt="aspirante.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ aspirante.nombre }}</div>
                                     <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
                                         aspirante.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ aspirante.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(aspirante.puesto) }}</div>
                             <div class="col-area">{{ aspirante.area }}</div>
                             <div class="col-action">
                                 <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">
@@ -122,6 +146,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 
 // Props - recibe datos del componente raíz
 const props = defineProps({
@@ -137,6 +162,13 @@ const props = defineProps({
 
 // Emits - envía eventos al componente raíz
 const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
+
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 // Estado local
 const searchQuery = ref('');
@@ -194,6 +226,24 @@ const registrarIncidencia = () => {
 const irARegistro = () => {
     emit('cambiar-vista', 'registro');
 };
+
+const { userRole } = useAuth();
+const isEmpleado = computed(() => userRole.value === 'EMPLEADO');
+
+// Formatea el nombre del rol del sistema
+function formatRoleName(role) {
+    const map = {
+        'ADMIN': 'Administrador',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+}
 </script>
 
 <style scoped>
@@ -222,10 +272,9 @@ const irARegistro = () => {
 /* Search Container - En línea */
 .search-container {
     background-color: white;
-    border: 3px solid #00a8e8;
     border-radius: 12px;
     padding: 2rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -319,8 +368,8 @@ const irARegistro = () => {
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    gap: 1rem;
+    margin: 0 2rem 1rem 2rem;
     padding: 0;
 }
 
@@ -355,7 +404,7 @@ const irARegistro = () => {
 }
 
 .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     font-weight: 700;
     line-height: 1.3;
     text-transform: uppercase;
@@ -363,19 +412,23 @@ const irARegistro = () => {
 }
 
 .stat-card.activos .stat-label {
-    color: #28a745;
+    color: #333;
+    text-align: center;
 }
 
 .stat-card.proximos .stat-label {
-    color: #ff9800;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-card.vencidos .stat-label {
-    color: #dc3545;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-card.proceso .stat-label {
-    color: #17a2b8;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-value {
@@ -385,19 +438,19 @@ const irARegistro = () => {
 }
 
 .stat-card.activos .stat-value {
-    color: #28a745;
+    color: #000000;
 }
 
 .stat-card.proximos .stat-value {
-    color: #ff9800;
+    color: #000000;
 }
 
 .stat-card.vencidos .stat-value {
-    color: #dc3545;
+    color: #000000;
 }
 
 .stat-card.proceso .stat-value {
-    color: #17a2b8;
+    color: #000000;
 }
 
 /* Destacados Header */
@@ -405,7 +458,7 @@ const irARegistro = () => {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     text-align: center;
 }
 
@@ -451,11 +504,11 @@ const irARegistro = () => {
 .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 120px;
-    padding: 1rem;
+    padding: 1rem 1rem 1rem 2.5rem;
     background-color: #f0f0f0;
     font-weight: 700;
-    color: #555;
-    font-size: 0.85rem;
+    color: #000000;
+    font-size: 0.9rem;
     text-transform: uppercase;
 }
 
@@ -476,7 +529,7 @@ const irARegistro = () => {
 }
 
 .empleado-row {
-    border: 2px solid #28a745;
+    border: 2px solid #e2e2e2;
     background-color: #f8fff9;
 }
 
@@ -486,7 +539,7 @@ const irARegistro = () => {
 }
 
 .aspirante-row {
-    border: 2px solid #00bcd4;
+    border: 2px solid #e2e2e2;
     background-color: #f0fbff;
 }
 
@@ -571,8 +624,8 @@ const irARegistro = () => {
 }
 
 .btn-revisar.empleado {
-    color: #28a745;
-    border-color: #28a745;
+    color: #669571;
+    border-color: #669571;
 }
 
 .btn-revisar.empleado:hover {
@@ -581,8 +634,8 @@ const irARegistro = () => {
 }
 
 .btn-revisar.aspirante {
-    color: #00bcd4;
-    border-color: #00bcd4;
+    color: #75a1a7;
+    border-color: #abcace;
 }
 
 .btn-revisar.aspirante:hover {
@@ -641,5 +694,33 @@ const irARegistro = () => {
     .col-datos {
         grid-column: 1 / -1;
     }
+}
+
+.stat-value-with-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 10px;
+    margin-top: 0px; 
+}
+
+.contract-icon.activo {
+    font-size: 50px;
+    color: #10b981; 
+}
+
+.contract-icon.vencido {
+    font-size: 50px;
+    color: #dc3545; 
+}
+
+.contract-icon.por-vencer {
+    font-size: 50px;
+    color: #ddc851; 
+}
+
+.contract-icon.proceso {
+    font-size: 50px;
+    color: #17a2b8; 
 }
 </style>

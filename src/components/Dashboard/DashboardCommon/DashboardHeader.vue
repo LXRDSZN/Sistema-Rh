@@ -3,7 +3,7 @@
     <div class="header-left">
       <h1>Bienvenido, {{ userName }}.</h1>
       <div class="user-info-inline">
-        <span class="role-badge" :class="userRole.toLowerCase()">{{ userRole }}</span>
+        <span class="role-badge" :class="roleBadgeClass">{{ formatRoleName(userRole) }}</span>
         <span class="permissions-count">{{ totalPermissions }} permisos</span>
       </div>
     </div>
@@ -25,13 +25,35 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+const props = defineProps({
   userName: String,
   userRole: String,
   totalPermissions: Number
 });
 
 defineEmits(['openRegisterModal', 'logout']);
+
+// Formato bonito para el nombre del rol
+function formatRoleName(role) {
+  const map = {
+    'ADMIN': 'ADMIN',
+    'JEFE_RH': 'JEFE RH',
+    'JEFE_AREA': 'JEFE ÁREA',
+    'JEFE_ASISTENCIAS': 'JEFE ASISTENCIAS',
+    'JEFE_CONTRATOS': 'JEFE CONTRATOS',
+    'JEFE_VACACIONES': 'JEFE VACACIONES',
+    'JEFE_INCIDENCIAS': 'JEFE INCIDENCIAS',
+    'EMPLEADO': 'EMPLEADO'
+  };
+  return map[role] || role;
+}
+
+// Clase para el color del badge
+const roleBadgeClass = computed(() => {
+  if (!props.userRole) return '';
+  return props.userRole.toLowerCase();
+});
 </script>
 
 <style scoped>
@@ -83,6 +105,27 @@ defineEmits(['openRegisterModal', 'logout']);
 .role-badge.empleado {
   background: #E0E7FF;
   color: #6366F1;
+}
+
+/* JEFE_ASISTENCIAS: Verde (Asistencias) */
+.role-badge.jefe_asistencias {
+  background: #D1FADF;
+  color: #12B76A;
+}
+/* JEFE_CONTRATOS: Azul fuerte (Documentación) */
+.role-badge.jefe_contratos {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+/* JEFE_VACACIONES: Morado (Vacaciones) */
+.role-badge.jefe_vacaciones {
+  background: #E9D5FF;
+  color: #A21CAF;
+}
+/* JEFE_INCIDENCIAS: Naranja (Incidencias) */
+.role-badge.jefe_incidencias {
+  background: #FFE7C2;
+  color: #F59E42;
 }
 
 .permissions-count {
