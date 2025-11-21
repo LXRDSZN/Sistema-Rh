@@ -88,7 +88,7 @@
                         <select v-model="formData.modalidad" class="form-select">
                             <option value="">Seleccione modalidad</option>
                             <option value="Híbrida">Híbrida</option>
-                            <option value="Remoto">Remoto</option>
+                            <option value="Remota">Remota</option>
                             <option value="Presencial">Presencial</option>
                         </select>
                     </div>
@@ -121,7 +121,7 @@
                         <select v-model="formData.puesto" class="form-select">
                             <option value="">Seleccione puesto</option>
                             <option v-for="p in puestos" :key="p.id" :value="p.id">
-                                {{ p.nombre }}
+                                {{ formatRoleName(p.nombre) }}
                             </option>
                         </select>
                     </div>
@@ -174,8 +174,7 @@
                     <div class="form-group">
                         <label>Tipo de Documento</label>
                         <select v-model="formData.tipoDocumento" class="form-select">
-                            <option value="">Seleccione</option>
-                            <option v-for="td in tiposDocumento" :key="td.id" :value="td.id">
+                            <option v-for="td in primerTipoDocumento" :key="td.id" :value="td.id">
                                 {{ td.nombre }}
                             </option>
                         </select>
@@ -286,6 +285,26 @@ const jornadas = ref([]);
 const plantillas = ref([]);
 const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
+
+// Computed que devuelve sólo la primera opción del catálogo de tipos de documento
+const primerTipoDocumento = computed(() => {
+    return tiposDocumento.value && tiposDocumento.value.length ? [tiposDocumento.value[0]] : [];
+});
+
+// Formatea el nombre del rol/puesto del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Admin',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 
 const fotoUrl = ref(null);
 const archivoPdf = ref(null); // aquí guardamos el File
@@ -455,6 +474,10 @@ const cargarCatalogos = async () => {
             obtenerEstadosContrato(),
             obtenerTiposDocumento()
         ]);
+        // Si existe al menos un tipo de documento, preseleccionar el primero
+        if (tiposDocumento.value && tiposDocumento.value.length && !formData.value.tipoDocumento) {
+            formData.value.tipoDocumento = tiposDocumento.value[0].id;
+        }
     } catch (e) {
         console.error('Error cargando catálogos:', e);
     }

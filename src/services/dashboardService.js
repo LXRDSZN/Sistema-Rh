@@ -51,3 +51,16 @@ export const getDemografia = async () => {
     throw error;
   }
 };
+
+/**
+ * Obtener empleados con contratos activos sin correo
+ */
+export const getEmpleadosSinCorreo = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/empleados-sin-correo`, axiosConfig);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener empleados sin correo:', error);
+    throw error;
+  }
+};

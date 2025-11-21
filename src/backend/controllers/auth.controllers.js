@@ -184,7 +184,8 @@ export const register = async (req, res) => {
     sexo,
     fechaNacimiento,
     rol,
-    esRegistroPorJefeArea
+    esRegistroPorJefeArea,
+    personaId // Para registro desde dashboard (persona ya existe)
   } = req.body;
 
   // Normalizar datos - priorizar formato completo
@@ -201,7 +202,8 @@ export const register = async (req, res) => {
     nombre: nombreFinal, 
     email: emailFinal, 
     rol: rolFinal,
-    esRegistroPorJefeArea: esRegistroPorJefeArea
+    esRegistroPorJefeArea: esRegistroPorJefeArea,
+    personaId: personaId || 'nueva persona'
   });
 
   try {
@@ -229,20 +231,44 @@ export const register = async (req, res) => {
       await client.query('BEGIN');
       console.log('✅ Transacción iniciada');
 
-      // 1. Crear persona (todos son 'Empleado', el rol específico se asigna en usuario_rol)
-      const personaResult = await client.query(
-        `INSERT INTO persona 
-         (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
-         VALUES ($1, $2, $3, $4, $5, 
-                 (SELECT id FROM sexo WHERE codigo = $6 LIMIT 1),
-                 (SELECT id FROM estado_civil WHERE nombre = 'Soltero' LIMIT 1),
-                 (SELECT id FROM nacionalidad WHERE nombre = 'Mexicana' LIMIT 1))
-         RETURNING id`,
-        ['Empleado', nombreFinal, apellidoPaternoFinal, apellidoMaternoFinal, fechaNacimientoFinal, sexoFinal]
-      );
+      let personaIdFinal;
 
-      const personaId = personaResult.rows[0].id;
-      console.log('✅ Persona creada como Empleado con ID:', personaId);
+      // Si viene personaId del dashboard, usar la persona existente
+      if (personaId) {
+        console.log('📋 Usando persona existente con ID:', personaId);
+        
+        // Verificar que la persona existe y no tiene usuario ya
+        const personaExiste = await client.query(
+          `SELECT p.id 
+           FROM persona p
+           WHERE p.id = $1
+           AND NOT EXISTS (SELECT 1 FROM usuario u WHERE u.persona_id = p.id)`,
+          [personaId]
+        );
+
+        if (personaExiste.rows.length === 0) {
+          throw new Error('La persona no existe o ya tiene un usuario registrado');
+        }
+
+        personaIdFinal = personaId;
+        console.log('✅ Persona validada:', personaIdFinal);
+      } else {
+        // 1. Crear nueva persona (registro desde SignUp)
+        const personaResult = await client.query(
+          `INSERT INTO persona 
+           (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
+           VALUES ($1, $2, $3, $4, $5, 
+                   (SELECT id FROM sexo WHERE codigo = $6 LIMIT 1),
+                   (SELECT id FROM estado_civil WHERE nombre = 'Soltero' LIMIT 1),
+                   (SELECT id FROM nacionalidad WHERE nombre = 'Mexicana' LIMIT 1))
+           RETURNING id`,
+          ['Empleado', nombreFinal, apellidoPaternoFinal, apellidoMaternoFinal, fechaNacimientoFinal, sexoFinal]
+        );
+
+        personaIdFinal = personaResult.rows[0].id;
+        console.log('✅ Nueva persona creada como Empleado con ID:', personaIdFinal);
+      }
+      
       console.log('📋 Rol asignado será:', rolFinal);
 
       // 2. Crear usuario
@@ -250,7 +276,7 @@ export const register = async (req, res) => {
         `INSERT INTO usuario (persona_id, email, password_hash, activo)
          VALUES ($1, $2, $3, true)
          RETURNING id`,
-        [personaId, emailFinal, passwordHash]
+        [personaIdFinal, emailFinal, passwordHash]
       );
 
       const usuarioId = usuarioResult.rows[0].id;

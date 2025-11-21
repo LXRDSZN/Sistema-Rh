@@ -74,7 +74,7 @@
                             <div class="estado">{{ contrato.estadoTexto || contrato.fase }}</div>
                         </div>
                     </div>
-                    <div class="col-puesto">{{ contrato.puesto }}</div>
+                    <div class="col-puesto">{{ formatRoleName(contrato.puesto) }}</div>
                     <div class="col-area">{{ contrato.area }}</div>
                     <div class="col-action">
                         <button class="btn-revisar" :style="buttonStyle" @click="revisarContrato(contrato)">
@@ -198,6 +198,21 @@ const contratosFiltrados = computed(() => {
 
     return result;
 });
+
+// Formatea el nombre del rol/puesto del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Admin',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 
 const revisarContrato = (contrato) => {
     emit('revisar-contrato', contrato);

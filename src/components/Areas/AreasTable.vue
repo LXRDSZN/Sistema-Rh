@@ -32,7 +32,6 @@
             <th>Dept</th>
             <th>Título de trabajo</th>
             <th>Fecha de inicio</th>
-            <th>Categoría</th>
             <th>Género</th>
             <th>Acciones</th>
           </tr>
@@ -43,7 +42,6 @@
             <td>{{ empleado.departamento }}</td>
             <td>{{ empleado.titulo }}</td>
             <td>{{ empleado.fechaInicio }}</td>
-            <td>{{ empleado.categoria }}</td>
             <td>{{ empleado.genero }}</td>
             <td>
               <button 
@@ -126,6 +124,17 @@ const esJefeModulo = () => {
   return rolesJefesModulo.includes(rol);
 };
 
+const obtenerAreaJefeModulo = (rol) => {
+  // Mapear rol del jefe a nombre del área que gestiona
+  const mapaAreas = {
+    'JEFE_CONTRATOS': 'Contratos',
+    'JEFE_ASISTENCIAS': 'Asistencias',
+    'JEFE_VACACIONES': 'Vacaciones',
+    'JEFE_INCIDENCIAS': 'Incidencias'
+  };
+  return mapaAreas[rol];
+};
+
 const esEmpleadoRegular = (empleado) => {
   // Permitir el botón de acciones para todos los títulos excepto los que incluyan 'JEFE'
   // Puedes ajustar la lógica si tienes una lista específica de títulos a excluir
@@ -157,9 +166,15 @@ const mostrarBotonAcciones = (empleado) => {
   // ADMIN o JEFE_RH: Pueden usar el botón para todos
   if (rol === 'ADMIN' || rol === 'JEFE_RH') return true;
   
-  // JEFE_AREA y Jefes de módulos: Solo pueden usar el botón para empleados (no jefes) de su área
-  if (rol === 'JEFE_AREA' || esJefeModulo()) {
+  // JEFE_AREA: Solo puede usar el botón para empleados (no jefes) de su área
+  if (rol === 'JEFE_AREA') {
     return empleado.departamento === area && esEmpleadoRegular(empleado);
+  }
+  
+  // Jefes de módulos: Solo pueden usar el botón para empleados de su módulo específico
+  if (esJefeModulo()) {
+    const areaDelJefe = obtenerAreaJefeModulo(rol);
+    return empleado.departamento === areaDelJefe && esEmpleadoRegular(empleado);
   }
   
   // Otros roles: No mostrar

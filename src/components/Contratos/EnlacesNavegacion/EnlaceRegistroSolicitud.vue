@@ -51,17 +51,17 @@
 
           <div class="form-group">
             <label>CURP</label>
-            <input v-model="formulario.curp" type="text" placeholder="Ej: PEPA900315HDFRNN09 (18 caracteres)" @input="handleInputCURP" />
+            <input v-model="formulario.curp" type="text" maxlength="18" placeholder="Ej: PEPA900315HDFRNN09 (18 caracteres)" @input="handleInputCURP" />
             <span v-if="erroresValidacion.curp" class="error-message">{{ erroresValidacion.curp }}</span>
           </div>
           <div class="form-group">
             <label>RFC</label>
-            <input v-model="formulario.rfc" type="text" placeholder="Ej: PEPA900315XY1 (13 caracteres)" @input="handleInputRFC" />
+            <input v-model="formulario.rfc" type="text" maxlength="13" placeholder="Ej: PEPA900315XY1 (13 caracteres)" @input="handleInputRFC" />
             <span v-if="erroresValidacion.rfc" class="error-message">{{ erroresValidacion.rfc }}</span>
           </div>
           <div class="form-group">
             <label>NSS</label>
-            <input v-model="formulario.nss" type="text" placeholder="Ej: 12345678901 (11 dígitos)" @input="handleInputNSS" />
+            <input v-model="formulario.nss" type="text" maxlength="11" placeholder="Ej: 12345678901 (11 dígitos)" @input="handleInputNSS" />
             <span v-if="erroresValidacion.nss" class="error-message">{{ erroresValidacion.nss }}</span>
           </div>
 
@@ -103,7 +103,7 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Teléfono Celular</label>
-            <input v-model="formulario.telefonoCelular" type="tel" placeholder="Solo números" @input="handleInputCelular" />
+            <input v-model="formulario.telefonoCelular" type="tel" maxlength="10" placeholder="Solo números" @input="handleInputCelular" />
             <span v-if="erroresValidacion.telefonoCelular" class="error-message">{{ erroresValidacion.telefonoCelular }}</span>
           </div>
           <div class="form-group">
@@ -225,8 +225,8 @@
             <label>Modalidad</label>
             <select v-model="formulario.modalidad" @change="handleInputModalidad">
               <option value="">Seleccionar</option>
-              <option value="Remoto">Remoto</option>
-              <option value="Híbrido">Híbrido</option>
+              <option value="Remoto">Remota</option>
+              <option value="Híbrido">Híbrida</option>
               <option value="Presencial">Presencial</option>
             </select>
             <span v-if="erroresValidacion.modalidad" class="error-message">{{ erroresValidacion.modalidad }}</span>
@@ -418,7 +418,7 @@ const puestosFiltrados = computed(() => {
 // Función para formatear nombres de puestos
 const formatearNombrePuesto = (nombre) => {
   const mapa = {
-    'ADMIN': 'Administrador',
+    'ADMIN': 'Admin',
     'EMPLEADO': 'Empleado',
     'JEFE_RH': 'Jefe de Recursos Humanos',
     'JEFE_AREA': 'Jefe de Área',
@@ -487,30 +487,34 @@ const validarCampo = (campo, valor) => {
 };
 
 // Listener para validar en tiempo real
-const handleInputCURP = (event) => {
-  const valor = event.target.value.toUpperCase();
+  const handleInputCURP = (event) => {
+  let valor = event.target.value.toUpperCase();
+  // Limitar a 18 caracteres
+  if (valor.length > 18) valor = valor.substring(0, 18);
   formulario.value.curp = valor;
   validarCampo('curp', valor);
 };
 
 const handleInputRFC = (event) => {
-  const valor = event.target.value.toUpperCase();
+  let valor = event.target.value.toUpperCase();
+  // Limitar a 13 caracteres
+  if (valor.length > 13) valor = valor.substring(0, 13);
   formulario.value.rfc = valor;
   validarCampo('rfc', valor);
 };
 
 const handleInputNSS = (event) => {
-  const valor = event.target.value;
-  // Solo permitir números
-  const soloNumeros = valor.replace(/[^0-9]/g, '');
+  let valor = event.target.value;
+  // Solo permitir números y limitar a 11
+  const soloNumeros = valor.replace(/[^0-9]/g, '').substring(0, 11);
   formulario.value.nss = soloNumeros;
   validarCampo('nss', soloNumeros);
 };
 
 const handleInputCelular = (event) => {
-  const valor = event.target.value;
-  // Solo permitir números
-  const soloNumeros = valor.replace(/[^0-9]/g, '');
+  let valor = event.target.value;
+  // Solo permitir números y limitar a 10
+  const soloNumeros = valor.replace(/[^0-9]/g, '').substring(0, 10);
   formulario.value.telefonoCelular = soloNumeros;
   validarCampo('telefonoCelular', soloNumeros);
 };
@@ -826,10 +830,17 @@ const enviarSolicitud = async () => {
     if (response.success) {
       exito.value = true;
       limpiarFormulario();
-      
+
+      // Mostrar mensaje de éxito brevemente y recargar la página
       setTimeout(() => {
         exito.value = false;
-        emit('volver-inicio');
+        // Recarga la página completa para reflejar el nuevo registro
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload();
+        } else {
+          // Fallback: emitir evento para que el padre maneje la navegación
+          emit('volver-inicio');
+        }
       }, 2000);
     }
   } catch (err) {
