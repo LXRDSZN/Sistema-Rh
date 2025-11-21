@@ -24,16 +24,16 @@ export const useAspirantesContratos = () => {
    */
   const obtenerCvAspirante = async (personaId) => {
     try {
-      const response = await axios.get(
-        `${API_URL}/aspirantes/${personaId}/cv`
+      const { data } = await axios.get(
+        `${API_URL}/aspirantes/${personaId}/cv`,
+        { withCredentials: true }
       );
-      return response.data.cvUrl;
+
+      return data.cvUrl || null;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        return null;
-      }
-      console.error('Error al obtener CV del aspirante:', error);
-      throw error;
+      console.error('Error al obtener CV del aspirante:', error.response?.data || error);
+      // puedes devolver null para que el componente muestre su alert
+      return null;
     }
   };
 
