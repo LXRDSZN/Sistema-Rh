@@ -830,10 +830,17 @@ const enviarSolicitud = async () => {
     if (response.success) {
       exito.value = true;
       limpiarFormulario();
-      
+
+      // Mostrar mensaje de éxito brevemente y recargar la página
       setTimeout(() => {
         exito.value = false;
-        emit('volver-inicio');
+        // Recarga la página completa para reflejar el nuevo registro
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload();
+        } else {
+          // Fallback: emitir evento para que el padre maneje la navegación
+          emit('volver-inicio');
+        }
       }, 2000);
     }
   } catch (err) {
