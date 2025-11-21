@@ -15,12 +15,12 @@
             <div class="form-section">
                 <h3 class="subsection-title">Datos Personales</h3>
 
-                <!-- Foto + nombre -->
+                <!-- Foto placeholder y Nombre completo -->
                 <div class="form-row">
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
                             <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl || defaultAvatar" alt="Foto" class="aspirante-foto"
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
                                     @error="onImgError" />
                             </div>
                             <div v-else class="photo-box">
@@ -30,17 +30,22 @@
                     </div>
 
                     <div class="form-group" style="grid-column: 2 / 4;">
-                        <label>Nombre Completo</label>
+                        <label>
+                            Nombre Completo
+                            <small v-if="esRenovacionEmpleado" class="helper-text">
+                                (solo lectura en renovación)
+                            </small>
+                        </label>
                         <div class="inline-fields">
-                            <input type="text" :value="formData.nombre" :disabled="esRenovacionEmpleado"
+                            <input type="text" :value="formData.nombre"
                                 @input="limpiarYFormatearNombre('nombre', $event)" placeholder="Nombre"
-                                class="form-input" />
-                            <input type="text" :value="formData.apellidoPaterno" :disabled="esRenovacionEmpleado"
+                                class="form-input" :disabled="esRenovacionEmpleado" />
+                            <input type="text" :value="formData.apellidoPaterno"
                                 @input="limpiarYFormatearNombre('apellidoPaterno', $event)"
-                                placeholder="Apellido Paterno" class="form-input" />
-                            <input type="text" :value="formData.apellidoMaterno" :disabled="esRenovacionEmpleado"
+                                placeholder="Apellido Paterno" class="form-input" :disabled="esRenovacionEmpleado" />
+                            <input type="text" :value="formData.apellidoMaterno"
                                 @input="limpiarYFormatearNombre('apellidoMaterno', $event)"
-                                placeholder="Apellido Materno" class="form-input" />
+                                placeholder="Apellido Materno" class="form-input" :disabled="esRenovacionEmpleado" />
                         </div>
                     </div>
                 </div>
@@ -55,15 +60,11 @@
                             <option value="Por Proyecto">Por Proyecto</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Fecha de inicio</label>
-                        <input type="date" v-model="formData.fechaInicio" class="form-input"
-                            :min="esAspiranteNuevo ? minFechaInicio : null"
-                            :max="esAspiranteNuevo ? maxFechaInicio : null"
-                            @change="esAspiranteNuevo ? validarFechaInicio() : null" />
+                        <input type="date" v-model="formData.fechaInicio" class="form-input" :min="minFechaInicio"
+                            :max="maxFechaInicio" @change="validarFechaInicio" />
                     </div>
-
                     <div class="form-group">
                         <label>Fecha de término</label>
                         <input type="date" v-model="formData.fechaTermino" class="form-input"
@@ -77,13 +78,11 @@
                         <input type="text" v-model="formData.proyecto" placeholder="Nombre del proyecto"
                             class="form-input" />
                     </div>
-
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
-                        <input type="number" step="0.01" min="0" v-model="formData.sueldoMensual" class="form-input"
-                            @input="limpiarSueldo" />
+                        <input type="text" v-model="formData.sueldoMensual" class="form-input" placeholder="0.00"
+                            @input="limpiarNumero('sueldoMensual')" />
                     </div>
-
                     <div class="form-group">
                         <label>Modalidad</label>
                         <select v-model="formData.modalidad" class="form-select">
@@ -98,8 +97,7 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Observaciones</label>
-                        <textarea v-model="formData.observaciones" class="form-textarea" rows="4"
-                            maxlength="500"></textarea>
+                        <textarea v-model="formData.observaciones" class="form-textarea" rows="4"></textarea>
                     </div>
                 </div>
             </div>
@@ -118,7 +116,6 @@
                             </option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Puesto</label>
                         <select v-model="formData.puesto" class="form-select">
@@ -128,7 +125,6 @@
                             </option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Jornada Laboral</label>
                         <select v-model="formData.jornadaLaboral" class="form-select">
@@ -150,7 +146,6 @@
                             </option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Estado del contrato</label>
                         <select v-model="formData.estadoContrato" class="form-select">
@@ -160,12 +155,10 @@
                             </option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Entrada</label>
                         <input type="time" v-model="formData.entrada" class="form-input time-input" />
                     </div>
-
                     <div class="form-group">
                         <label>Salida</label>
                         <input type="time" v-model="formData.salida" class="form-input time-input" />
@@ -210,7 +203,7 @@
                 </div>
             </div>
 
-            <!-- Botones -->
+            <!-- Botones de acción -->
             <div class="form-actions">
                 <button class="btn-guardar" @click="guardarContrato">
                     <span class="material-symbols-rounded">save</span>
@@ -242,10 +235,12 @@ const props = defineProps({
         type: Object,
         default: null
     },
+    // Cuando vienes desde EMPLEADO (renovación)
     datosEmpleado: {
         type: Object,
         default: null
     },
+    // Para saber si es contrato nuevo o renovación
     modo: {
         type: String,
         default: 'aspirante-nuevo' // 'aspirante-nuevo' | 'empleado-renovar'
@@ -256,6 +251,7 @@ const emit = defineEmits(['volver-inicio']);
 
 // Avatar por defecto
 const defaultAvatar = '/src/assets/default-user.png';
+
 const onImgError = (event) => {
     event.target.onerror = null;
     event.target.src = defaultAvatar;
@@ -274,15 +270,16 @@ const {
 const { subirArchivo } = useS3Files();
 const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
 
-// Modo
+// Modo renovación
 const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
-const esAspiranteNuevo = computed(() => props.modo === 'aspirante-nuevo');
 
 const tituloContrato = computed(() =>
     esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
 );
 
-// Estados
+// ========================
+//  ESTADOS
+// ========================
 const areas = ref([]);
 const puestos = ref([]);
 const jornadas = ref([]);
@@ -291,7 +288,7 @@ const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
 
 const fotoUrl = ref(null);
-const archivoPdf = ref(null);
+const archivoPdf = ref(null); // aquí guardamos el File
 
 const formData = ref({
     nombre: '',
@@ -312,7 +309,7 @@ const formData = ref({
     entrada: '',
     salida: '',
     tipoDocumento: '',
-    documento: '',
+    documento: '', // nombre del archivo seleccionado
     fechaGeneracion: ''
 });
 
@@ -399,22 +396,25 @@ const cargarDatosAspirante = async () => {
     actualizarEstadoInicial();
 };
 
-// ===== CARGA EMPLEADO (RENOVACIÓN) =====
+// ===== CARGA DATOS DEL EMPLEADO =====
 const cargarDatosEmpleadoRenovacion = async () => {
-    const personaId = props.datosEmpleado?.persona_id || props.datosEmpleado?.id;
+    const personaId = props.datosEmpleado?.persona_id;
     if (!personaId) return;
 
     try {
         const datos = await obtenerDatosRenovacionEmpleado(personaId);
 
+        // Foto y nombre
         fotoUrl.value = datos.foto_url || fotoUrl.value;
         formData.value.nombre = datos.nombre || '';
         formData.value.apellidoPaterno = datos.apellido_paterno || '';
         formData.value.apellidoMaterno = datos.apellido_materno || '';
 
+        // Asignación laboral
         formData.value.area = datos.area_id || '';
         formData.value.puesto = datos.puesto_id || '';
 
+        // Contrato
         formData.value.tipoContrato = datos.tipo_contrato || '';
         formData.value.modalidad = datos.modalidad || '';
         formData.value.sueldoMensual = datos.salario_mensual || '';
@@ -426,6 +426,7 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
+        // Fecha de generación = hoy
         if (!formData.value.fechaGeneracion) {
             formData.value.fechaGeneracion = hoyISO;
         }
@@ -461,7 +462,11 @@ const cargarCatalogos = async () => {
 
 // ===== VALIDACIONES =====
 const limpiarYFormatearNombre = (campo, event) => {
+    // Si es renovación, no debe poder editar
+    if (esRenovacionEmpleado.value) return;
+
     let valor = event.target.value || '';
+    // Solo letras y espacios
     valor = valor.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, '');
     valor = valor.replace(/\s+/g, ' ');
     valor = valor.replace(/^\s+/, '');
@@ -471,20 +476,16 @@ const limpiarYFormatearNombre = (campo, event) => {
     formData.value[campo] = valor;
 };
 
-const limpiarSueldo = (event) => {
-    let valor = event.target.value || '';
-    valor = valor.replace(/[^\d.]/g, '');
+const limpiarNumero = (campo) => {
+    let valor = String(formData.value[campo] ?? '');
+    // Solo dígitos y punto
+    valor = valor.replace(/[^0-9.]/g, '');
+    // Un solo punto decimal
     const partes = valor.split('.');
     if (partes.length > 2) {
         valor = partes[0] + '.' + partes.slice(1).join('');
     }
-
-    if (valor && !isNaN(valor)) {
-        const num = parseFloat(valor);
-        formData.value.sueldoMensual = num >= 0 ? num : 0;
-    } else {
-        formData.value.sueldoMensual = '';
-    }
+    formData.value[campo] = valor;
 };
 
 const validarFechaInicio = () => {
@@ -542,6 +543,89 @@ watch(
     }
 );
 
+// Validación general antes de guardar
+const obtenerErroresValidacion = () => {
+    const errores = [];
+
+    // Datos personales (solo para aspirante nuevo)
+    if (!esRenovacionEmpleado.value) {
+        if (!formData.value.nombre.trim()) {
+            errores.push('El nombre es obligatorio.');
+        }
+        if (!formData.value.apellidoPaterno.trim()) {
+            errores.push('El apellido paterno es obligatorio.');
+        }
+    }
+
+    // Asignación laboral
+    if (!formData.value.area) {
+        errores.push('Debes seleccionar un área de trabajo.');
+    }
+    if (!formData.value.puesto) {
+        errores.push('Debes seleccionar un puesto.');
+    }
+
+    // Contrato
+    if (!formData.value.tipoContrato) {
+        errores.push('Debes seleccionar el tipo de contrato.');
+    }
+    if (!formData.value.fechaInicio) {
+        errores.push('Debes indicar la fecha de inicio del contrato.');
+    }
+    if (
+        formData.value.tipoContrato !== 'Indefinido' &&
+        !formData.value.fechaTermino
+    ) {
+        errores.push(
+            'Debes indicar la fecha de término para contratos que no son indefinidos.'
+        );
+    }
+
+    if (!formData.value.modalidad) {
+        errores.push('Debes seleccionar la modalidad de trabajo.');
+    }
+
+    // Sueldo
+    const sueldo = Number(formData.value.sueldoMensual);
+    if (!formData.value.sueldoMensual || isNaN(sueldo) || sueldo <= 0) {
+        errores.push('Debes capturar un sueldo mensual mayor a cero.');
+    }
+
+    // Jornada / horario
+    if (!formData.value.jornadaLaboral) {
+        errores.push('Debes seleccionar una jornada laboral.');
+    }
+    if (!formData.value.entrada) {
+        errores.push('Debes capturar la hora de entrada.');
+    }
+    if (!formData.value.salida) {
+        errores.push('Debes capturar la hora de salida.');
+    }
+
+    // Plantilla y estado
+    if (!formData.value.plantillaContrato) {
+        errores.push('Debes seleccionar la plantilla de contrato.');
+    }
+    if (!formData.value.estadoContrato) {
+        errores.push('Debes seleccionar el estado del contrato.');
+    }
+
+    // Documentos
+    if (!formData.value.tipoDocumento) {
+        errores.push('Debes seleccionar el tipo de documento asociado.');
+    }
+    if (!archivoPdf.value) {
+        errores.push('Debes seleccionar el archivo PDF a subir.');
+    }
+
+    // Fecha de generación
+    if (!formData.value.fechaGeneracion) {
+        errores.push('Debes indicar la fecha de generación del documento.');
+    }
+
+    return errores;
+};
+
 // ===== FILE INPUT =====
 const onFileChange = (event) => {
     const file = event.target.files?.[0] || null;
@@ -564,29 +648,14 @@ const confirmarSalida = () => {
 
 // ===== GUARDAR CONTRATO =====
 const guardarContrato = async () => {
-    // Validaciones base
-    if (!formData.value.nombre || !formData.value.apellidoPaterno) {
-        alert('Nombre y Apellido Paterno son obligatorios.');
-        return;
-    }
+    // Validaciones de formulario
+    const errores = obtenerErroresValidacion();
 
-    if (!formData.value.area) {
-        alert('Selecciona un área.');
-        return;
-    }
-
-    if (!formData.value.tipoContrato || !formData.value.fechaInicio) {
-        alert('Tipo de contrato y fecha de inicio son obligatorios.');
-        return;
-    }
-
-    if (!formData.value.tipoDocumento) {
-        alert('Selecciona el tipo de documento asociado.');
-        return;
-    }
-
-    if (!archivoPdf.value) {
-        alert('Selecciona el PDF a subir antes de guardar.');
+    if (errores.length > 0) {
+        alert(
+            'No se puede guardar el contrato por los siguientes motivos:\n\n- ' +
+            errores.join('\n- ')
+        );
         return;
     }
 
@@ -706,6 +775,7 @@ const enviarLimpiar = () => {
         ) {
             return;
         }
+
         formData.value[key] = '';
     });
 
@@ -723,7 +793,7 @@ const enviarLimpiar = () => {
 watch(
     () => props.datosAspirante,
     (nuevo) => {
-        if (esAspiranteNuevo.value && nuevo) {
+        if (props.modo === 'aspirante-nuevo' && nuevo) {
             cargarDatosAspirante();
         }
     }
@@ -732,7 +802,7 @@ watch(
 watch(
     () => props.datosEmpleado,
     (nuevo) => {
-        if (esRenovacionEmpleado.value && nuevo) {
+        if (props.modo === 'empleado-renovar' && nuevo) {
             cargarDatosEmpleadoRenovacion();
         }
     }
@@ -741,13 +811,14 @@ watch(
 onMounted(async () => {
     await cargarCatalogos();
 
-    if (esAspiranteNuevo.value && props.datosAspirante) {
+    if (props.modo === 'aspirante-nuevo' && props.datosAspirante) {
         await cargarDatosAspirante();
-    } else if (esRenovacionEmpleado.value && props.datosEmpleado) {
+    } else if (props.modo === 'empleado-renovar' && props.datosEmpleado) {
         await cargarDatosEmpleadoRenovacion();
     }
 });
 </script>
+
 
 
 
