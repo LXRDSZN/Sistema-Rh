@@ -58,6 +58,30 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
 import { useContratos } from '@/composables/useContratos';
+import { useAuth } from '@/composables/useAuth';
+// =====================
+// PERMISOS POR ROL
+// =====================
+const { userRole, isAdmin, isJefeRH, isJefeArea } = useAuth();
+
+const isJefeModulo = computed(() => {
+  // Jefe de área o jefe de contratos tiene acceso total
+  return [
+    'JEFE_AREA',
+    'JEFE_CONTRATOS',
+    'JEFE_ASISTENCIAS',
+    'JEFE_VACACIONES',
+    'JEFE_INCIDENCIAS',
+    'JEFE_RH',
+    'ADMIN'
+  ].includes(userRole.value);
+});
+
+const isEmpleado = computed(() => userRole.value === 'EMPLEADO');
+
+// Ejemplo de uso en la lógica interna:
+// if (isAdmin.value || isJefeModulo.value) { ... acceso total ... }
+// if (isEmpleado.value) { ... acceso mínimo ... }
 
 import EnlaceInicio from './EnlaceInicio.vue';
 import EnlaceActivos from './EnlacesNavegacion/EnlaceActivos.vue';
@@ -170,10 +194,14 @@ const handleCrearContrato = () => {
 
 // 🔹 Revisar tarjeta de la lista
 const handleRevisarContrato = (contrato) => {
+  // Empleado no puede ver detalle de otros empleados
+  if (isEmpleado.value) {
+    alert('No tienes permisos para ver los contratos de otros empleados.');
+    activeTab.value = 'inicio';
+    return;
+  }
   console.log('Revisar contrato:', contrato);
-
   const tipo = (contrato.tipo || '').toLowerCase().trim();
-
   if (tipo === 'empleado') {
     empleadoSeleccionado.value = contrato;
     activeTab.value = 'detalleEmpleado';
@@ -186,11 +214,15 @@ const handleRevisarContrato = (contrato) => {
 // 🔹 Renovar contrato DESDE DetalleEmpleado
 //    (asegúrate de llamar handleRenovarContrato(empleado) desde DetalleEmpleado)
 const handleRenovarContrato = (empleado) => {
+  // Empleado no puede renovar contratos
+  if (isEmpleado.value) {
+    alert('No tienes permisos para renovar contratos.');
+    activeTab.value = 'inicio';
+    return;
+  }
   console.log('Renovar contrato de empleado:', empleado);
-
   empleadoParaRenovar.value = empleado;
   aspiranteParaContrato.value = null;
-
   modoContrato.value = 'empleado-renovar';      // ⭐ modo renovación
   activeTab.value = 'crear';
 };
