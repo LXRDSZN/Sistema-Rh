@@ -91,22 +91,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Selección de Categoría -->
-        <div class="form-section">
-          <label class="form-label">Categoría</label>
-          <div class="options-grid">
-            <button 
-              v-for="cat in categorias" 
-              :key="cat"
-              class="option-btn"
-              :class="{ active: empleado?.categoria === cat }"
-              @click="actualizarCategoria(cat)"
-            >
-              {{ cat }}
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Footer del Modal -->
@@ -120,7 +104,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import { DEPARTAMENTOS, TITULOS, CATEGORIAS } from '@/constants/areas';
+import { DEPARTAMENTOS, TITULOS } from '@/constants/areas';
 
 // ============================================
 // PROPS
@@ -135,10 +119,6 @@ const props = defineProps({
   titulos: {
     type: Array,
     default: () => TITULOS
-  },
-  categorias: {
-    type: Array,
-    default: () => CATEGORIAS
   }
 });
 
@@ -163,8 +143,7 @@ const emit = defineEmits([
   'cerrar',
   'guardar',
   'actualizarDepartamento',
-  'actualizarTitulo',
-  'actualizarCategoria'
+  'actualizarTitulo'
 ]);
 
 // ============================================
@@ -194,10 +173,6 @@ const actualizarDepartamento = (dept) => {
 
 const actualizarTitulo = (titulo) => {
   emit('actualizarTitulo', titulo);
-};
-
-const actualizarCategoria = (categoria) => {
-  emit('actualizarCategoria', categoria);
 };
 </script>
 

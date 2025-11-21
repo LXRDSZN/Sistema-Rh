@@ -107,10 +107,14 @@ export function useUserRegistration() {
   });
 
   const handleRegisterUser = async () => {
-    if (isRegistering.value) return;
+    if (isRegistering.value) {
+      console.log('Ya se está procesando un registro, ignorando llamada duplicada');
+      return;
+    }
     
     try {
       isRegistering.value = true;
+      console.log('=== INICIO REGISTRO USUARIO ===');
       console.log('Registrando usuario:', newUser.value);
       
       // Validar campos requeridos
