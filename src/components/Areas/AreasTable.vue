@@ -127,8 +127,9 @@ const esJefeModulo = () => {
 };
 
 const esEmpleadoRegular = (empleado) => {
-  // Verificar si el título del empleado es "Empleado" (no es jefe)
-  return empleado.titulo === 'Empleado';
+  // Permitir el botón de acciones para todos los títulos excepto los que incluyan 'JEFE'
+  // Puedes ajustar la lógica si tienes una lista específica de títulos a excluir
+  return !/JEFE/i.test(empleado.titulo);
 };
 
 const mostrarBotonAcciones = (empleado) => {
