@@ -329,16 +329,22 @@ const employeesFiltered = computed(() => {
 // Watch para recargar datos cuando cambien filtros
 watch([selectedMonth, selectedYear, selectedArea], async () => {
   await cargarDatos()
-  // Cargar detalle si hay un área específica seleccionada
+  // Cargar detalle para el área seleccionada o para todas
   if (selectedArea.value !== 'todas') {
     const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
     if (areaObj) {
       await cargarDetalleAsistencias({
-        mes: selectedMonth.value,
-        anio: selectedYear.value,
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value),
         area_id: areaObj.id
       })
     }
+  } else {
+    // Si es "todas", cargar detalle global (sin area_id)
+    await cargarDetalleAsistencias({
+      mes: Number(selectedMonth.value),
+      anio: Number(selectedYear.value)
+    })
   }
 })
 
