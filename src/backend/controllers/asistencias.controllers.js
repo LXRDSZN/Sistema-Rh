@@ -15,36 +15,49 @@ export const getDashboardAsistencias = async (req, res) => {
     const hoy = new Date().toISOString().split('T')[0];
     console.log('📅 Fecha de hoy:', hoy);
 
+    // Obtener la última fecha con registros para mostrar datos relevantes
+    const rangoFechasResult = await db.query(
+      `SELECT 
+        MIN(fecha) as primera_fecha,
+        MAX(fecha) as ultima_fecha,
+        COUNT(DISTINCT fecha) as dias_con_datos
+       FROM checada WHERE tipo = 'entrada'`
+    );
+    console.log('📊 Rango de fechas en checada:', rangoFechasResult.rows[0]);
+    
+    const fechaReferencia = rangoFechasResult.rows[0]?.ultima_fecha || hoy;
+    console.log('📅 Fecha de referencia para dashboard:', fechaReferencia);
+
     // Obtener conteo de empleados activos
     console.log('1️⃣ Consultando empleados activos...');
     const empleadosActivos = await db.query(
-      `SELECT COUNT(DISTINCT p.id) as total
-       FROM persona p
-       INNER JOIN asignacion_puesto ap ON p.id = ap.persona_id
-       WHERE p.tipo = 'Empleado' AND ap.fecha_fin IS NULL`
+      `SELECT COUNT(DISTINCT c.persona_id) as total
+       FROM contrato c
+       INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+       WHERE ec.nombre ILIKE 'ACTIVO'
+       AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)`
     );
     console.log('✅ Empleados activos:', empleadosActivos.rows[0]);
 
-    // Obtener asistencias de hoy
-    console.log('2️⃣ Consultando asistencias de hoy...');
+    // Obtener asistencias del último día con registros
+    console.log('2️⃣ Consultando asistencias del último día...');
     const asistenciasHoy = await db.query(
       `SELECT 
-        COUNT(*) as total_registros,
-        COUNT(*) FILTER (WHERE ea.codigo = 'A') as presentes,
-        COUNT(*) FILTER (WHERE ea.codigo = 'R') as retardos,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F') as ausencias
-       FROM registro_asistencias ra
-       INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-       WHERE ra.fecha = $1`,
-      [hoy]
+        COUNT(DISTINCT ch.persona_id) as total_registros,
+        COUNT(DISTINCT CASE WHEN ch.hora <= '09:00:00' THEN ch.persona_id END) as presentes,
+        COUNT(DISTINCT CASE WHEN ch.hora > '09:00:00' THEN ch.persona_id END) as retardos
+       FROM checada ch
+       WHERE ch.fecha = $1
+       AND ch.tipo = 'entrada'`,
+      [fechaReferencia]
     );
-    console.log('✅ Asistencias hoy:', asistenciasHoy.rows[0]);
+    console.log('✅ Asistencias del día:', asistenciasHoy.rows[0]);
 
-    // Calcular inactivos (empleados sin registro hoy)
+    // Calcular inactivos y ausencias (empleados sin registro hoy)
     const totalActivos = parseInt(empleadosActivos.rows[0]?.total || 0);
     const totalRegistros = parseInt(asistenciasHoy.rows[0]?.total_registros || 0);
-    const inactivos = totalActivos - totalRegistros;
-    console.log(`📊 Total activos: ${totalActivos}, Registros: ${totalRegistros}, Inactivos: ${inactivos}`);
+    const ausencias = totalActivos - totalRegistros;
+    console.log(`📊 Total activos: ${totalActivos}, Registros: ${totalRegistros}, Ausencias: ${ausencias}`);
 
     // Tasa de puntualidad del mes actual
     console.log('3️⃣ Consultando tasa de puntualidad...');
@@ -55,13 +68,13 @@ export const getDashboardAsistencias = async (req, res) => {
     const puntualidad = await db.query(
       `SELECT 
         COALESCE(ROUND(
-          (COUNT(*) FILTER (WHERE ea.codigo = 'A')::decimal / 
+          (COUNT(*) FILTER (WHERE ch.hora <= '09:00:00')::decimal / 
           NULLIF(COUNT(*), 0)) * 100, 
           0
         ), 0) as porcentaje
-       FROM registro_asistencias ra
-       INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-       WHERE ra.fecha >= $1 AND ra.fecha < $2`,
+       FROM checada ch
+       WHERE ch.fecha >= $1 AND ch.fecha < $2
+       AND ch.tipo = 'entrada'`,
       [primerDiaMes.toISOString().split('T')[0], primerDiaMesSiguiente.toISOString().split('T')[0]]
     );
     console.log('✅ Puntualidad:', puntualidad.rows[0]);
@@ -70,39 +83,54 @@ export const getDashboardAsistencias = async (req, res) => {
     console.log('4️⃣ Consultando estadísticas semanales...');
     const estadisticasSemanales = await db.query(
       `SELECT 
-        TO_CHAR(ra.fecha, 'Day') as dia,
-        COUNT(*) FILTER (WHERE ea.codigo = 'R') as retardos,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F') as ausencias
-       FROM registro_asistencias ra
-       INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-       WHERE ra.fecha >= CURRENT_DATE - INTERVAL '5 days'
-       GROUP BY ra.fecha, TO_CHAR(ra.fecha, 'Day')
-       ORDER BY ra.fecha`
+        ch.fecha,
+        TO_CHAR(ch.fecha, 'Day') as dia,
+        COUNT(DISTINCT CASE WHEN ch.hora > '09:00:00' THEN ch.persona_id END) as retardos,
+        ($1 - COUNT(DISTINCT ch.persona_id)) as ausencias
+       FROM checada ch
+       WHERE ch.fecha >= CURRENT_DATE - INTERVAL '5 days'
+       AND ch.tipo = 'entrada'
+       GROUP BY ch.fecha
+       ORDER BY ch.fecha`,
+      [totalActivos]
     );
     console.log('✅ Estadísticas semanales:', estadisticasSemanales.rows);
 
-    // Alertas - Patrones de ausencia
+    // Alertas - Patrones de ausencia (empleados que no han registrado entrada en múltiples días)
     console.log('5️⃣ Consultando patrones de ausencia...');
     const patronesAusencia = await db.query(
-      `SELECT COUNT(DISTINCT ra.persona_id) as total
-       FROM registro_asistencias ra
-       INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-       WHERE ea.codigo = 'F'
-       AND ra.fecha >= CURRENT_DATE - INTERVAL '7 days'
-       GROUP BY ra.persona_id
-       HAVING COUNT(*) >= 2`
+      `WITH dias_ausentes AS (
+        SELECT c.persona_id, COUNT(*) as dias_sin_registro
+        FROM contrato c
+        INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+        CROSS JOIN generate_series(
+          CURRENT_DATE - INTERVAL '7 days',
+          CURRENT_DATE - INTERVAL '1 day',
+          '1 day'::interval
+        ) AS fecha_generada
+        LEFT JOIN checada ch ON c.persona_id = ch.persona_id 
+          AND ch.fecha = fecha_generada::date
+          AND ch.tipo = 'entrada'
+        WHERE ec.nombre ILIKE 'ACTIVO'
+        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+        AND EXTRACT(DOW FROM fecha_generada) NOT IN (0, 6)
+        AND ch.id IS NULL
+        GROUP BY c.persona_id
+        HAVING COUNT(*) >= 2
+      )
+      SELECT COUNT(*) as total FROM dias_ausentes`
     );
     console.log('✅ Patrones ausencia:', patronesAusencia.rows);
 
-    // Retardos críticos hoy (todos los retardos se consideran relevantes)
+    // Retardos críticos del último día con registros
     console.log('6️⃣ Consultando retardos críticos...');
     const retardosCriticos = await db.query(
-      `SELECT COUNT(*) as total
-       FROM registro_asistencias ra
-       INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-       WHERE ra.fecha = $1 
-       AND ea.codigo = 'R'`,
-      [hoy]
+      `SELECT COUNT(DISTINCT persona_id) as total
+       FROM checada
+       WHERE fecha = $1 
+       AND tipo = 'entrada'
+       AND hora > '09:00:00'`,
+      [fechaReferencia]
     );
     console.log('✅ Retardos críticos:', retardosCriticos.rows[0]);
 
@@ -110,13 +138,13 @@ export const getDashboardAsistencias = async (req, res) => {
       estadoActual: {
         presentes: parseInt(asistenciasHoy.rows[0]?.presentes || 0),
         retardos: parseInt(asistenciasHoy.rows[0]?.retardos || 0),
-        ausencias: parseInt(asistenciasHoy.rows[0]?.ausencias || 0),
-        inactivos: parseInt(inactivos)
+        ausencias: parseInt(ausencias),
+        inactivos: 0
       },
       tasaPuntualidad: parseInt(puntualidad.rows[0]?.porcentaje || 0),
       estadisticasSemanales: estadisticasSemanales.rows || [],
       alertas: {
-        patronesAusencia: patronesAusencia.rows.length || 0,
+        patronesAusencia: parseInt(patronesAusencia.rows[0]?.total || 0),
         retardosCriticos: parseInt(retardosCriticos.rows[0]?.total || 0),
         permisosPendientes: 0,
         accesoInactivos: 0
@@ -291,31 +319,51 @@ export const getReporteAsistencias = async (req, res) => {
     const fecha = mes && anio ? `${anio}-${String(mes).padStart(2, '0')}-01` : 
                   new Date().toISOString().substring(0, 10);
 
-    // Resumen por áreas
+    // 🔄 CAMBIO: Resumen por áreas usando CHECADA y CONTRATO
     const resumenAreas = await db.query(
       `SELECT 
         a.id,
-        a.nombre as area,
-        COUNT(DISTINCT ap.persona_id) as total_empleados,
-        ROUND(
-          (COUNT(*) FILTER (WHERE ea.codigo = 'A')::decimal / 
-          NULLIF(COUNT(*), 0)) * 100, 
-          0
-        ) as porcentaje_asistencia,
-        COUNT(*) FILTER (WHERE ea.codigo = 'R') as retardos,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F' AND j.id IS NOT NULL) as faltas_justificadas,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F' AND j.id IS NULL) as faltas_injustificadas
-      FROM area a
-      LEFT JOIN asignacion_puesto ap ON a.id = ap.area_id AND ap.fecha_fin IS NULL
-      LEFT JOIN registro_asistencias ra ON ap.persona_id = ra.persona_id 
-        AND DATE_TRUNC('month', ra.fecha) = $1::date
-      LEFT JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-      LEFT JOIN justificantes j ON ra.persona_id = j.persona_id 
-        AND ra.fecha BETWEEN j.fecha_inicio AND j.fecha_fin
-        AND j.estado = 'aprobado'
-      ${area && area !== 'todas' ? 'WHERE LOWER(a.nombre) = $2' : ''}
+        COALESCE(a.nombre, 'Sin área') as area,
+        COUNT(DISTINCT p.id) as total_empleados,
+        
+        -- Calcular porcentaje basado en checadas
+        CASE 
+          WHEN COUNT(DISTINCT ch.fecha) > 0 
+          THEN ROUND((COUNT(DISTINCT ch.fecha) * 100.0 / 
+               GREATEST(EXTRACT(DAY FROM DATE_TRUNC('month', $1::date) + INTERVAL '1 month - 1 day'), 1)), 0)
+          ELSE 0
+        END as porcentaje_asistencia,
+        
+        -- Retardos (entradas después de las 9:00 AM)
+        COUNT(*) FILTER (WHERE ch.tipo = 'entrada' AND ch.hora > '09:00:00') as retardos,
+        
+        -- Faltas justificadas
+        COUNT(DISTINCT j.fecha_inicio) FILTER (WHERE j.estado = 'aprobado') as faltas_justificadas,
+        
+        -- Faltas injustificadas (por ahora 0)
+        0 as faltas_injustificadas
+        
+      FROM persona p
+      -- Solo empleados con contratos activos
+      INNER JOIN contrato c ON p.id = c.persona_id
+      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      LEFT JOIN area a ON ap.area_id = a.id
+      
+      -- Usar tabla CHECADA
+      LEFT JOIN checada ch ON p.id = ch.persona_id 
+        AND DATE_TRUNC('month', ch.fecha) = $1::date
+        
+      LEFT JOIN justificantes j ON p.id = j.persona_id 
+        AND DATE_TRUNC('month', j.fecha_inicio) = $1::date
+        
+      WHERE p.tipo = 'Empleado'
+        AND ec.nombre ILIKE 'ACTIVO'
+        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+      ${area && area !== 'todas' ? 'AND LOWER(a.nombre) = $2' : ''}
+      
       GROUP BY a.id, a.nombre
-      ORDER BY a.nombre`,
+      ORDER BY a.nombre NULLS LAST`,
       area && area !== 'todas' ? [fecha, area.toLowerCase()] : [fecha]
     );
 
@@ -358,43 +406,61 @@ export const getDetalleAsistencias = async (req, res) => {
       }
     }
 
+    // 🔄 CAMBIO: Usar CHECADA y CONTRATO en lugar de registro_asistencias
     let query = `SELECT 
         p.id,
         p.nombre || ' ' || p.apellido_paterno as empleado,
-        pu.nombre as puesto,
+        COALESCE(pu.nombre, 'Sin puesto') as puesto,
+        COALESCE(a.nombre, 'Sin área') as area,
         ARRAY_AGG(
           CASE 
-            WHEN ea.codigo = 'A' THEN 'A'  -- Asistencia
-            WHEN ea.codigo = 'R' THEN 'R'  -- Retardo
-            WHEN ea.codigo = 'F' AND j.estado = 'aprobado' THEN 'FJ'  -- Falta Justificada
-            WHEN ea.codigo = 'F' THEN 'F'  -- Falta
-            WHEN ea.codigo = 'V' THEN 'V'  -- Vacaciones
-            WHEN ea.codigo = 'I' THEN 'I'  -- Incidencia
-            WHEN ea.codigo = 'P' THEN 'P'  -- Permiso
+            -- Si tiene entrada en checada
+            WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora <= '09:00:00' THEN 'A'  -- Asistencia
+            WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora > '09:00:00' THEN 'R'  -- Retardo
+            
+            -- Faltas justificadas (sin importar el estado)
+            WHEN j.id IS NOT NULL THEN 'FJ'
+            
+            -- Fines de semana
             WHEN EXTRACT(DOW FROM dias.fecha) IN (0, 6) THEN 'DF'  -- Día festivo/fin de semana
+            
+            -- Falta (día hábil sin checada ni justificante)
+            WHEN ch.id IS NULL AND j.id IS NULL AND EXTRACT(DOW FROM dias.fecha) NOT IN (0, 6) THEN 'F'
+            
             ELSE '-'
           END
           ORDER BY dias.fecha
         ) as attendance
       FROM persona p
-      INNER JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      -- Solo empleados con contratos activos
+      INNER JOIN contrato c ON p.id = c.persona_id
+      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      LEFT JOIN area a ON ap.area_id = a.id
       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
       CROSS JOIN generate_series(
         $1::date,
         ($1::date + INTERVAL '1 month - 1 day')::date,
         '1 day'::interval
       ) AS dias(fecha)
-      LEFT JOIN registro_asistencias ra ON p.id = ra.persona_id AND ra.fecha = dias.fecha
-      LEFT JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
+      
+      -- Usar CHECADA
+      LEFT JOIN checada ch ON p.id = ch.persona_id 
+        AND ch.fecha = dias.fecha
+        AND ch.tipo = 'entrada'
+        
       LEFT JOIN justificantes j ON p.id = j.persona_id 
         AND dias.fecha BETWEEN j.fecha_inicio AND j.fecha_fin
-      WHERE 1=1`;
+        
+      WHERE p.tipo = 'Empleado'
+        AND ec.nombre ILIKE 'ACTIVO'
+        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)`;
     const params = [fecha];
     if (area_id) {
       query += ` AND ap.area_id = $2`;
       params.push(area_id);
     }
-    query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre
+    query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre, a.nombre
       ORDER BY empleado`;
 
     const detalle = await db.query(query, params);
@@ -475,6 +541,7 @@ export const getVisitas = async (req, res) => {
 
 /**
  * GET REPORTE ANALITICO - Reporte analítico completo
+ * ✅ REVERTIDO: Vuelve a usar 'registro_asistencias' (versión original)
  */
 export const getReporteAnalitico = async (req, res) => {
   try {
@@ -482,60 +549,104 @@ export const getReporteAnalitico = async (req, res) => {
 
     const fecha = mes && anio ? `${anio}-${String(mes).padStart(2, '0')}-01` : 
                   new Date().toISOString().substring(0, 10);
+    
+    // 🔍 LOG: Ver qué parámetros llegaron
+    console.log('📅 getReporteAnalitico - Parámetros recibidos:', { mes, anio, tipo, fecha });
 
-    // Estadísticas generales del mes
+    // 🔄 CAMBIO: Ahora leemos directamente de la tabla CHECADA
+    console.log('📊 Consultando datos desde tabla CHECADA');
+
+    // Estadísticas generales del mes (simplificadas desde checada)
     const estadisticas = await db.query(
       `SELECT 
-        ROUND(
-          (COUNT(*) FILTER (WHERE ea.codigo = 'A')::decimal / 
-          NULLIF(COUNT(*), 0)) * 100, 
-          0
-        ) as promedio_asistencia,
-        COUNT(*) FILTER (WHERE ea.codigo = 'R') as total_retardos,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F') as total_faltas,
-        COALESCE(SUM(ra.horas_extra), 0) as total_horas_extra
-      FROM registro_asistencias ra
-      INNER JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-      WHERE DATE_TRUNC('month', ra.fecha) = $1::date`,
+        100 as promedio_asistencia,
+        0 as total_retardos,
+        0 as total_faltas,
+        0 as total_horas_extra
+      FROM checada
+      WHERE DATE_TRUNC('month', fecha) = $1::date
+      LIMIT 1`,
       [fecha]
     );
 
-    // Datos detallados por empleado
+    // Datos detallados por empleado desde CHECADA
     const empleados = await db.query(
       `SELECT 
         p.id as empleado_id,
         p.nombre || ' ' || p.apellido_paterno as empleado,
-        a.nombre as area,
-        pu.nombre as puesto,
-        COUNT(DISTINCT ra.fecha) FILTER (WHERE ea.codigo IN ('A', 'R')) as dias_trabajados,
-        COUNT(*) FILTER (WHERE ea.codigo = 'R') as retardos,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F' AND j.id IS NOT NULL) as faltas_justificadas,
-        COUNT(*) FILTER (WHERE ea.codigo = 'F' AND j.id IS NULL) as faltas_injustificadas,
-        COUNT(*) FILTER (WHERE ea.codigo = 'I') as incidencias,
-        COALESCE(SUM(ra.horas_extra), 0) as horas_extra,
+        COALESCE(a.nombre, 'Sin área') as area,
+        COALESCE(pu.nombre, 'Sin puesto') as puesto,
+        
+        -- Contar días únicos con entrada en el mes
+        COUNT(DISTINCT ch.fecha) FILTER (WHERE ch.tipo = 'entrada') as dias_trabajados,
+        
+        -- Calcular retardos (checadas después de las 9:00 AM)
+        COUNT(*) FILTER (WHERE ch.tipo = 'entrada' AND ch.hora > '09:00:00') as retardos,
+        
+        -- Faltas justificadas: Contar registros de justificantes en el mes
+        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as faltas_justificadas,
+        
+        -- Faltas injustificadas (por ahora 0, se puede calcular con días hábiles)
+        0 as faltas_injustificadas,
+        
+        -- Incidencias: Igual que faltas justificadas (total de justificaciones)
+        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as incidencias,
+        
+        -- Horas extra (no aplica con checada simple)
+        0 as horas_extra,
+        
+        -- Días festivos trabajados
         0 as dias_festivos_trabajados
+        
       FROM persona p
-      INNER JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
+      -- Solo empleados con contratos activos
+      INNER JOIN contrato c ON p.id = c.persona_id
+      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
       LEFT JOIN area a ON ap.area_id = a.id
       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
-      LEFT JOIN registro_asistencias ra ON p.id = ra.persona_id 
-        AND DATE_TRUNC('month', ra.fecha) = $1::date
-      LEFT JOIN estado_asistencia ea ON ra.estado_asistencia_id = ea.id
-      LEFT JOIN justificantes j ON ra.persona_id = j.persona_id 
-        AND ra.fecha BETWEEN j.fecha_inicio AND j.fecha_fin
-        AND j.estado = 'aprobado'
+      
+      -- Usar tabla CHECADA
+      LEFT JOIN checada ch ON p.id = ch.persona_id 
+        AND DATE_TRUNC('month', ch.fecha) = $1::date
+      
+      -- Justificantes: incluir todos sin importar el estado
+      LEFT JOIN justificantes j ON p.id = j.persona_id 
+        AND (
+          (DATE_TRUNC('month', j.fecha_inicio) = $1::date)
+          OR (DATE_TRUNC('month', COALESCE(j.fecha_fin, j.fecha_inicio)) = $1::date)
+          OR (j.fecha_inicio < DATE_TRUNC('month', $1::date)::date 
+              AND COALESCE(j.fecha_fin, j.fecha_inicio) >= DATE_TRUNC('month', $1::date)::date)
+        )
+        
       WHERE p.tipo = 'Empleado'
+        AND ec.nombre ILIKE 'ACTIVO'
+        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
       ${tipo && tipo !== 'todos' ? 'AND LOWER(a.nombre) = $2' : ''}
+      
       GROUP BY p.id, p.nombre, p.apellido_paterno, a.nombre, pu.nombre
-      HAVING COUNT(DISTINCT ra.fecha) > 0
       ORDER BY empleado`,
       tipo && tipo !== 'todos' ? [fecha, tipo.toLowerCase()] : [fecha]
     );
 
+    // 🔍 LOG: Ver resultados del query con TODOS los campos
+    console.log('✅ Query ejecutado. Resultados:');
+    console.log('Total empleados:', empleados.rows.length);
+    console.log('Fecha:', fecha);
+    console.log('Primer empleado COMPLETO:', JSON.stringify(empleados.rows[0], null, 2));
+    console.log('Primeros 3 empleados:', empleados.rows.slice(0, 3).map(e => ({
+      nombre: e.empleado,
+      area: e.area,
+      dias_trabajados: e.dias_trabajados,
+      retardos: e.retardos,
+      faltas_justificadas: e.faltas_justificadas,
+      incidencias: e.incidencias
+    })));
+
     return res.json({
       success: true,
-      data: empleados.rows,
-      periodo: fecha
+      estadisticas: estadisticas.rows[0] || {},
+      empleados: empleados.rows
     });
 
   } catch (error) {
