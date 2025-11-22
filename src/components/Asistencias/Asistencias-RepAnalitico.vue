@@ -2,7 +2,6 @@
   <div class="repanalitico-content">
     <div class="content-inner">
       <h2 class="page-title">Reporte Analítico</h2>
-      <br>
 
       <!-- Filtros Superiores -->
       <div class="filtros-superiores">
@@ -72,28 +71,28 @@
         <h2 class="card-titulo">Estadísticas del Mes</h2>
         <v-card-text class="card-text-custom">
           <v-row class="stats-grid">
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.promedioAsistencia }}%</div>
                 <div class="stat-label">Asistencia Promedio</div>
               </div>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalRetardos }}</div>
                 <div class="stat-label">Total Retardos</div>
               </div>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalFaltas }}</div>
                 <div class="stat-label">Total Faltas</div>
               </div>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalHorasExtra }}</div>
                 <div class="stat-label">Horas Extra</div>
@@ -111,6 +110,7 @@
             <thead>
               <tr>
                 <th class="text-center">Empleado</th>
+                <th class="text-center">Área</th>
                 <th class="text-center">Días Trabajados</th>
                 <th class="text-center">Retardos</th>
                 <th class="text-center">Falt. Justif.</th>
@@ -118,13 +118,12 @@
                 <th class="text-center">Incidencias</th>
                 <th class="text-center">Horas Extra</th>
                 <th class="text-center">D. Fdos. Trabajados</th>
-                <th class="text-center tabla-acciones-header">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <!-- Estado de carga -->
               <tr v-if="loading">
-                <td colspan="9" class="text-center py-8">
+                <td colspan="8" class="text-center py-8">
                   <v-progress-circular indeterminate color="#5E47FF" size="40"></v-progress-circular>
                   <p class="mt-4 text-grey">Cargando datos...</p>
                 </td>
@@ -132,7 +131,7 @@
               
               <!-- Sin resultados -->
               <tr v-else-if="analyticsData.length === 0">
-                <td colspan="9" class="text-center py-8">
+                <td colspan="8" class="text-center py-8">
                   <v-icon size="64" color="#9ca3af">mdi-account-search-outline</v-icon>
                   <p class="mt-4 text-grey-darken-1 font-weight-medium">No se encontraron empleados</p>
                   <p class="text-grey text-caption">Abre la consola (F12) para ver logs de depuración</p>
@@ -144,6 +143,7 @@
               <!-- Datos -->
               <tr v-else v-for="(item, index) in analyticsData" :key="index">
                 <td class="text-center">{{ item.empleado }}</td>
+                <td class="text-center">{{ item.area || 'N/A' }}</td>
                 <td class="text-center">{{ item.diasTrabajados }}</td>
                 <td class="text-center">
                   <span :class="getRetardosClass(item.retardos)">{{ item.retardos }}</span>
@@ -157,26 +157,6 @@
                   <span :class="getHorasExtraClass(item.horasExtra)">{{ item.horasExtra }}</span>
                 </td>
                 <td class="text-center">{{ item.dFdosTrabajados }}</td>
-                <td class="text-center">
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="verDetalleEmpleado(item)"
-                    color="primary"
-                  >
-                    <v-icon size="20">mdi-eye</v-icon>
-                  </v-btn>
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="descargarDetalle(item)"
-                    color="success"
-                  >
-                    <v-icon size="20">mdi-download</v-icon>
-                  </v-btn>
-                </td>
               </tr>
             </tbody>
           </v-table>
@@ -384,6 +364,7 @@ const analyticsData = computed(() => {
   // mapeo base
   resultado = resultado.map(emp => ({
     empleado: emp.empleado || 'N/A',
+    area: emp.area || emp.area_nombre || emp.departamento || 'N/A',
 
     //  Forzamos a número todos los campos numéricos
     diasTrabajados: Number(emp.dias_trabajados) || 0,
@@ -394,8 +375,7 @@ const analyticsData = computed(() => {
     horasExtra: Number(emp.horas_extra) || 0,
     dFdosTrabajados: Number(emp.dias_festivos_trabajados) || 0,
 
-    empleado_id: emp.empleado_id,
-    area: emp.area || emp.area_nombre || emp.departamento || null
+    empleado_id: emp.empleado_id
   }))
 
   // 🔍 LOG: Ver datos después del mapeo
@@ -581,6 +561,7 @@ const generarReporte = () => {
 
     const headers = [
       'Empleado',
+      'Área',
       'Días Trab.',
       'Retardos',
       'Falt. Justif.',
@@ -590,7 +571,7 @@ const generarReporte = () => {
       'Días Fdos. Trab.'
     ]
 
-    const columnWidths = [50, 20, 20, 25, 25, 25, 25, 40] // suma < 250
+    const columnWidths = [40, 30, 18, 18, 22, 22, 22, 22, 35] // suma = 229
     let xPosition = 20
 
     // Encabezados de tabla
@@ -629,13 +610,14 @@ const generarReporte = () => {
 
       // Fondo alternado
       pdf.setFillColor(index % 2 === 0 ? 255 : 245, 255, 255)
-      pdf.rect(20, yPosition, 250, 6, 'F')
+      pdf.rect(20, yPosition, 229, 6, 'F')
 
       pdf.setTextColor(0, 0, 0)
       pdf.setFontSize(6)
 
       const fila = [
-        (emp.empleado || '').substring(0, 28),
+        (emp.empleado || '').substring(0, 25),
+        (emp.area || 'N/A').substring(0, 15),
         String(emp.diasTrabajados),
         String(emp.retardos),
         String(emp.faltJustif),
@@ -715,11 +697,12 @@ const descargarDetalle = (empleado) => {
     doc.setFontSize(12)
     doc.setTextColor(...colors.gray)
     doc.text(`Empleado: ${empleado.empleado}`, 20, 40)
-    doc.text(`Período: ${mesSeleccionado.value}`, 20, 47)
-    doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 54)
+    doc.text(`Área: ${empleado.area || 'N/A'}`, 20, 47)
+    doc.text(`Período: ${mesSeleccionado.value}`, 20, 54)
+    doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 61)
 
     // ===== CUERPO DEL REPORTE =====
-    let y = 70
+    let y = 75
 
     const drawRow = (label, value) => {
       doc.setFontSize(10)
@@ -767,247 +750,265 @@ const getHorasExtraClass = (horas) => {
 }
 </script>
 
-  <style scoped>
+<style scoped>
+.repanalitico-content {
+  flex: 1;
+  padding: 0rem !important;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #E4E4E7;
+}
+
+.content-inner {
+  width: 100%;
+  background-color: #E4E4E7;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0rem 2rem 1rem;
+  padding: 0.2rem;
+}
+
+/* Inputs con fondo blanco */
+.input-white :deep(.v-field) {
+  background-color: #FAFAFA;
+}
+
+/* Filtros superiores - PEGADOS AL TÍTULO */
+.filtros-superiores {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  width: 85%;
+  padding: 0;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+}
+
+.filter-select {
+  width: 200px;
+}
+
+.filter-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Cards */
+.card-formulario,
+.card-monitoreo {
+  padding: 0.5rem;
+  background-color: #FAFAFA;
+  box-sizing: border-box;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.card-titulo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #544F65;
+  padding: 1rem 1.5rem 0.4rem;
+  background-color: #FAFAFA;
+}
+
+.card-text-custom {
+  width: 100%;
+  padding: 1.5rem 2rem;
+  margin: 0.5rem 0 0.5rem;
+}
+
+/* Estadísticas - MEJOR ESPACIADO */
+.stats-grid {
+  gap: 7.5rem;
+  width: 100%;
+}
+
+.stat-card {
+  background: rgb(242, 241, 241);
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-left: 5px solid #5E47FF;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #6b7280;
+  font-weight: 500;
+  padding: 0.7rem;
+}
+
+/* Tablas con filas alternadas */
+.tabla-monitoreo {
+  border: 1px solid #e5e7eb;
+  background-color: #FAFAFA;
+}
+
+.tabla-monitoreo :deep(thead) {
+  background-color: #221A68;
+}
+
+.tabla-monitoreo :deep(thead th) {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+}
+
+/* Filas alternadas para tabla de monitoreo */
+.tabla-monitoreo :deep(tbody tr:nth-child(odd)) {
+  background-color: #ffffff;
+}
+
+.tabla-monitoreo :deep(tbody tr:nth-child(even)) {
+  background-color: #f8fafc;
+}
+
+.tabla-monitoreo :deep(tbody td) {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Estados condicionales */
+.buen-estado {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.estado-regular {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.mal-estado {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.horas-positivas {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Filtros de monitoreo */
+.filtros-monitoreo {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  width: 1100px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.filter-select-monitor {
+  width: 200px;
+}
+
+.search-input-monitor {
+  width: 350px;
+}
+
+/* Responsive */
+@media (min-width: 1024px) {
   .repanalitico-content {
-    flex: 1;
-    padding: 2rem;
-    margin-left: 60px;
-    margin-right: 15px;
-    display: flex;
-    align-items: flex-start;
-    width: 85vw;
-    height: 100vw;
-    box-sizing: border-box;
-    background-color: #E4E4E7;
+    padding: 3rem;
   }
-  
-  .content-inner {
-    width: 100vw;
-    max-width: 100%;
-    background-color: #E4E4E7;
+}
+
+@media (max-width: 768px) {
+  .repanalitico-content {
+    padding: 1rem;
   }
-  
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0;
-  }
-  
-  /* Inputs con fondo blanco */
-  .input-white :deep(.v-field) {
-    background-color: #FAFAFA;
-  }
-  
-  /* Filtros superiores */
+
   .filtros-superiores {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
     width: 100%;
-    max-width: 1400px;
-    padding: 0.5rem;
-    box-sizing: border-box;
-    margin-bottom: 0.2rem;
+    margin-left: 0;
   }
-  
-  .filter-select {
-    width: 200px;
+
+  .filter-select,
+  .filter-select-monitor,
+  .search-input-monitor {
+    width: 100%;
   }
-  
-  .filter-btn {
-    text-transform: none;
-    font-weight: 500;
-    letter-spacing: 0;
-  }
-  
-  /* Cards */
-  .card-formulario,
-  .card-monitoreo {
-    padding: 0.5;
-    background-color: #FAFAFA;
-    box-sizing: border-box;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    margin-top: 2rem;
-  }
-  
-  .card-titulo {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #544F65;
-    padding: 1rem 1.5rem 0.4rem;
-    margin: 0.5rem 0 0.5rem;
-    background-color: #FAFAFA;
-  }
-  
-  .card-text-custom {
-    padding-bottom: 0;
-  }
-  
-  /* Estadísticas */
+
   .stats-grid {
-    margin-top: 1rem;
+    gap: 1rem;
   }
-  
+
   .stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-left: 4px solid #5E47FF;
+    padding: 1.5rem 1rem;
   }
-  
+
   .stat-value {
     font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 0.5rem;
   }
-  
-  .stat-label {
-    font-size: 0.875rem;
-    color: #6b7280;
-    font-weight: 500;
-  }
-  
-  /* Tablas con filas alternadas */
-  .tabla-monitoreo {
-    border: 1px solid #e5e7eb;
-    background-color: #FAFAFA;
-  }
-  
-  .tabla-monitoreo :deep(thead) {
-    background-color: #221A68;
-  }
-  
-  .tabla-monitoreo :deep(thead th) {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    font-size: 0.875rem;
-    padding: 0.75rem;
-  }
-  
-  .tabla-acciones-header {
-    width: 120px;
-  }
-  
-  /* Filas alternadas para tabla de monitoreo */
-  .tabla-monitoreo :deep(tbody tr:nth-child(odd)) {
-    background-color: #ffffff;
-  }
-  
-  .tabla-monitoreo :deep(tbody tr:nth-child(even)) {
-    background-color: #f8fafc;
-  }
-  
-  .tabla-monitoreo :deep(tbody td) {
-    padding: 0.75rem;
-    font-size: 0.875rem;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  /* Estados condicionales */
-  .buen-estado {
-    color: #10b981;
-    font-weight: 600;
-  }
-  
-  .estado-regular {
-    color: #f59e0b;
-    font-weight: 600;
-  }
-  
-  .mal-estado {
-    color: #ef4444;
-    font-weight: 600;
-  }
-  
-  .horas-positivas {
-    color: #3b82f6;
-    font-weight: 600;
-  }
-  
-  /* Filtros de monitoreo */
-  .filtros-monitoreo {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    align-items: center;
-    width: 1100px;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
-  
-  .filter-select-monitor {
-    width: 200px;
-  }
-  
-  .search-input-monitor {
-    width: 350px;
-  }
-  
-  /* Responsive */
-  @media (min-width: 1024px) {
-    .justificaciones-content {
-      padding: 3rem;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .justificaciones-content {
-      padding: 1rem;
-    }
-  
-    .filtros-superiores {
-      flex-direction: column;
-      align-items: stretch;
-    }
-  
-    .filter-select,
-    .filter-select-monitor,
-    .search-input-monitor {
-      width: 100%;
-    }
-  
-    .stats-grid {
-      gap: 1rem;
-    }
-  }
-  .detalle-title {
+}
+
+.detalle-title {
   padding: 1rem 1.5rem 0.5rem;
   border-bottom: 1px solid #e5e7eb;
-  }
+}
 
-  .detalle-header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
+.detalle-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 
-  .detalle-nombre {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #111827;
-  }
+.detalle-nombre {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
 
-  .detalle-periodo {
-    font-size: 0.9rem;
-    color: #6b7280;
-  }
+.detalle-periodo {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
 
-  .detalle-label {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin-bottom: 0.1rem;
-  }
+.detalle-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.1rem;
+}
 
-  .detalle-value {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-    margin: 0 0 0.5rem;
-  }
-  </style>
+.detalle-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem;
+}
+</style>

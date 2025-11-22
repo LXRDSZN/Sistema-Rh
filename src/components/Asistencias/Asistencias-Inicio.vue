@@ -199,7 +199,7 @@ const calcularAncho = (valor) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin: 0 0rem 2rem 1rem;
 }
 
 h1 {
