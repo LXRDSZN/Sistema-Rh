@@ -267,7 +267,7 @@ const {
     obtenerTiposDocumento
 } = useCatalogosContratos();
 const { subirArchivo } = useS3Files();
-const { obtenerDatosRenovacionEmpleado } = useEmpleadoContratos();
+const { obtenerDatosRenovacionEmpleado, renovarContratoEmpleado } = useEmpleadoContratos();
 
 // Modo renovación
 const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
@@ -722,9 +722,7 @@ const guardarContrato = async () => {
 
             console.log('Payload renovación empleado:', payloadRenovacion);
 
-            await axios.post(`${API_URL}/contratos/empleado/renovar`, payloadRenovacion, {
-                withCredentials: true
-            });
+            await renovarContratoEmpleado(payloadRenovacion);
 
             alert('Contrato renovado correctamente.');
             actualizarEstadoInicial();
