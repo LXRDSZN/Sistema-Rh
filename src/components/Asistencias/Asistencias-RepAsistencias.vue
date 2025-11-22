@@ -230,6 +230,8 @@ const mostrarMensaje = (texto, color = 'success') => {
 onMounted(async () => {
   await cargarAreas()
   await cargarDatos()
+  // Cargar también el detalle inicial
+  await cargarDetalleInicial()
 })
 
 const cargarAreas = async () => {
@@ -252,6 +254,18 @@ const cargarDatos = async () => {
   } catch (error) {
     console.error('Error al cargar reporte:', error)
     mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
+const cargarDetalleInicial = async () => {
+  try {
+    // Cargar detalle para todas las áreas al inicio
+    await cargarDetalleAsistencias({
+      mes: Number(selectedMonth.value),
+      anio: Number(selectedYear.value)
+    })
+  } catch (error) {
+    console.error('Error al cargar detalle inicial:', error)
   }
 }
 
@@ -289,28 +303,14 @@ const employeesData = computed(() => {
   if (!detalleAsistencias.value || detalleAsistencias.value.length === 0) return []
 
   return detalleAsistencias.value.map(emp => {
-    // intenta varias posibles llaves de área que pueda mandar tu API
-    const areaBD =
-      emp.area ||
-      emp.area_nombre ||
-      emp.nombre_area ||
-      emp.areaName ||
-      emp.area_name ||
-      ''
-
-    // nombre legible del área seleccionada en el v-select
-    const areaSelectTitle =
-      areasItems.value.find(a => a.value === selectedArea.value)?.title || ''
+    // Usar SIEMPRE el área que viene de la base de datos
+    // Intentar múltiples posibles nombres de propiedad
+    const areaBD = emp.area || emp.area_nombre || emp.nombre_area || emp.areaName || emp.area_name || 'Sin área'
 
     return {
-      empleado: emp.empleado,
+      empleado: emp.empleado || 'Sin nombre',
       puesto: emp.puesto || 'Sin puesto',
-      // Si está filtrado por área, usa el título del select (ej. "Asistencias")
-      // Si está en "Todas las Áreas", usa el nombre que viene de la BD
-      area:
-        selectedArea.value !== 'todas'
-          ? (areaSelectTitle || areaBD || 'Sin área')
-          : (areaBD || 'Sin área'),
+      area: areaBD,  // Usar directamente el área de la BD sin condicionales
       attendance: emp.attendance || []
     }
   })
@@ -439,9 +439,32 @@ const validarBusqueda = () => {
 }
 
 // Botón aplicar filtros
-const aplicarFiltros = () => {
-  const labelArea = selectedArea.value === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
-  mostrarMensaje(`Filtros aplicados: ${labelArea} - ${mesSeleccionado.value}. Empleados encontrados: ${employeesFiltered.value.length}`)
+const aplicarFiltros = async () => {
+  try {
+    // Recargar el detalle según el área seleccionada
+    if (selectedArea.value !== 'todas') {
+      const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
+      if (areaObj) {
+        await cargarDetalleAsistencias({
+          mes: Number(selectedMonth.value),
+          anio: Number(selectedYear.value),
+          area_id: areaObj.id
+        })
+      }
+    } else {
+      // Si es "todas", cargar detalle global (sin area_id)
+      await cargarDetalleAsistencias({
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value)
+      })
+    }
+    
+    const labelArea = selectedArea.value === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
+    mostrarMensaje(`Filtros aplicados: ${labelArea} - ${mesSeleccionado.value}. Empleados encontrados: ${employeesFiltered.value.length}`)
+  } catch (error) {
+    console.error('Error al aplicar filtros:', error)
+    mostrarMensaje('Error al aplicar filtros', 'error')
+  }
 }
 
 /* =========================

@@ -122,7 +122,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in analyticsData" :key="index">
+              <!-- Estado de carga -->
+              <tr v-if="loading">
+                <td colspan="9" class="text-center py-8">
+                  <v-progress-circular indeterminate color="#5E47FF" size="40"></v-progress-circular>
+                  <p class="mt-4 text-grey">Cargando datos...</p>
+                </td>
+              </tr>
+              
+              <!-- Sin resultados -->
+              <tr v-else-if="analyticsData.length === 0">
+                <td colspan="9" class="text-center py-8">
+                  <v-icon size="64" color="#9ca3af">mdi-account-search-outline</v-icon>
+                  <p class="mt-4 text-grey-darken-1 font-weight-medium">No se encontraron empleados</p>
+                  <p class="text-grey text-caption">Abre la consola (F12) para ver logs de depuración</p>
+                  <p class="text-grey text-caption">reporteAnalitico: {{ reporteAnalitico ? 'SÍ tiene datos' : 'NULL' }}</p>
+                  <p class="text-grey text-caption">analyticsData.length: {{ analyticsData.length }}</p>
+                </td>
+              </tr>
+              
+              <!-- Datos -->
+              <tr v-else v-for="(item, index) in analyticsData" :key="index">
                 <td class="text-center">{{ item.empleado }}</td>
                 <td class="text-center">{{ item.diasTrabajados }}</td>
                 <td class="text-center">
@@ -256,8 +276,9 @@ import jsPDF from 'jspdf'   //  IMPORT jsPDF
 const { reporteAnalitico, loading, cargarReporteAnalitico } = useAsistencias()
 
 // Estados
-const selectedMonth = ref(new Date().getMonth() + 1)
-const selectedYear = ref(new Date().getFullYear())
+// 🔄 CAMBIO: Usar octubre 2025 por defecto (mes con más probabilidad de tener datos)
+const selectedMonth = ref(10)  // Octubre
+const selectedYear = ref(2025)
 
 // CAMBIO: ahora usamos selectedArea en vez de selectedType
 const selectedArea = ref(null)
@@ -343,43 +364,64 @@ const areasItems = [
 
 // Data
 const analyticsData = computed(() => {
-  if (!reporteAnalitico.value || reporteAnalitico.value.length === 0) return []
+  if (!reporteAnalitico.value) {
+    console.log('⚠️ reporteAnalitico.value es null/undefined')
+    return []
+  }
 
+  // El backend retorna { estadisticas: {...}, empleados: [...] }
   let resultado = Array.isArray(reporteAnalitico.value)
     ? reporteAnalitico.value
     : (reporteAnalitico.value.empleados || [])
 
+  // 🔍 LOG: Ver datos crudos del backend
+  console.log('📥 Datos recibidos del backend:', {
+    total: resultado.length,
+    primerEmpleado: resultado[0],
+    todosLosNombres: resultado.map(e => e.empleado || e.nombre)
+  })
+
   // mapeo base
-resultado = resultado.map(emp => ({
-  empleado: emp.empleado || 'N/A',
+  resultado = resultado.map(emp => ({
+    empleado: emp.empleado || 'N/A',
 
-  //  Forzamos a número todos los campos numéricos
-  diasTrabajados: Number(emp.dias_trabajados) || 0,
-  retardos: Number(emp.retardos) || 0,
-  faltJustif: Number(emp.faltas_justificadas) || 0,
-  faltInjustif: Number(emp.faltas_injustificadas) || 0,
-  incidencias: Number(emp.incidencias) || 0,
-  horasExtra: Number(emp.horas_extra) || 0,
-  dFdosTrabajados: Number(emp.dias_festivos_trabajados) || 0,
+    //  Forzamos a número todos los campos numéricos
+    diasTrabajados: Number(emp.dias_trabajados) || 0,
+    retardos: Number(emp.retardos) || 0,
+    faltJustif: Number(emp.faltas_justificadas) || 0,
+    faltInjustif: Number(emp.faltas_injustificadas) || 0,
+    incidencias: Number(emp.incidencias) || 0,
+    horasExtra: Number(emp.horas_extra) || 0,
+    dFdosTrabajados: Number(emp.dias_festivos_trabajados) || 0,
 
-  empleado_id: emp.empleado_id,
-  area: emp.area || emp.area_nombre || emp.departamento || null
-}))
+    empleado_id: emp.empleado_id,
+    area: emp.area || emp.area_nombre || emp.departamento || null
+  }))
 
+  // 🔍 LOG: Ver datos después del mapeo
+  console.log('✅ Datos mapeados:', {
+    total: resultado.length,
+    empleados: resultado.map(e => e.empleado)
+  })
 
   // Filtro búsqueda
   if (filtrosAplicados.value.searchTerm) {
     const search = filtrosAplicados.value.searchTerm.toLowerCase()
+    const antesDeFiltar = resultado.length
     resultado = resultado.filter(emp =>
       emp.empleado.toLowerCase().includes(search)
     )
+    console.log(`🔍 Búsqueda "${search}": ${antesDeFiltar} → ${resultado.length} empleados`)
   }
 
   // Filtro área
   if (filtrosAplicados.value.area && filtrosAplicados.value.area !== 'todas') {
+    const antesDeFiltar = resultado.length
     resultado = resultado.filter(emp => emp.area === filtrosAplicados.value.area)
+    console.log(`📍 Filtro área "${filtrosAplicados.value.area}": ${antesDeFiltar} → ${resultado.length} empleados`)
   }
 
+  console.log('🎯 RESULTADO FINAL analyticsData:', resultado.length, 'empleados')
   return resultado
 })
 
@@ -388,11 +430,11 @@ watch([selectedMonth, selectedYear], async () => {
   await cargarDatos()
 })
 
-// Computed - Estadísticas
+// Computed - Estadísticas (calculadas dinámicamente)
 const estadisticas = computed(() => {
   if (!analyticsData.value || analyticsData.value.length === 0) {
     return {
-      promedioAsistencia: 0,
+      promedioAsistencia: '0.0',
       totalRetardos: 0,
       totalFaltas: 0,
       totalHorasExtra: 0
@@ -400,25 +442,68 @@ const estadisticas = computed(() => {
   }
 
   const totalEmpleados = analyticsData.value.length
+  
+  // Sumar todos los días trabajados de todos los empleados
   const totalDiasTrabajados = analyticsData.value
-    .reduce((sum, emp) => sum + emp.diasTrabajados, 0)
+    .reduce((sum, emp) => sum + Number(emp.diasTrabajados || 0), 0)
+  
+  // Sumar retardos
   const totalRetardos = analyticsData.value
-    .reduce((sum, emp) => sum + emp.retardos, 0)
+    .reduce((sum, emp) => sum + Number(emp.retardos || 0), 0)
+  
+  // Sumar faltas (justificadas + injustificadas)
   const totalFaltas = analyticsData.value
-    .reduce((sum, emp) => sum + emp.faltJustif + emp.faltInjustif, 0)
+    .reduce((sum, emp) => sum + Number(emp.faltJustif || 0) + Number(emp.faltInjustif || 0), 0)
+  
+  // Sumar horas extra
   const totalHorasExtra = analyticsData.value
-    .reduce((sum, emp) => sum + emp.horasExtra, 0)
+    .reduce((sum, emp) => sum + Number(emp.horasExtra || 0), 0)
 
-  const diasHabiles = new Date(selectedYear.value, selectedMonth.value, 0).getDate()
-  const promedioAsistencia = totalEmpleados > 0
-    ? ((totalDiasTrabajados / (totalEmpleados * diasHabiles)) * 100).toFixed(1)
-    : 0
+  // Calcular días hábiles del mes (excluyendo fines de semana)
+  const year = selectedYear.value
+  const month = selectedMonth.value // 1-12
+  // Para obtener días del mes: new Date(year, month, 0) da el último día del mes indicado
+  // Ejemplo: new Date(2025, 11, 0) = 30 de noviembre (correcto)
+  const diasEnMes = new Date(year, month, 0).getDate()
+  
+  let diasHabiles = 0
+  for (let dia = 1; dia <= diasEnMes; dia++) {
+    // month - 1 porque Date espera 0-11
+    const fecha = new Date(year, month - 1, dia)
+    const diaSemana = fecha.getDay()
+    // 0 = Domingo, 6 = Sábado
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasHabiles++
+    }
+  }
+
+  // Calcular promedio de asistencia: (días trabajados / días hábiles esperados) * 100
+  const diasEsperados = totalEmpleados * diasHabiles
+  const promedioAsistencia = diasEsperados > 0
+    ? ((totalDiasTrabajados / diasEsperados) * 100).toFixed(1)
+    : '0.0'
+
+  // 🔍 LOG PARA DEBUGGING - Puedes comentar esto en producción
+  console.log('📊 Estadísticas Reporte Analítico:', {
+    totalEmpleados,
+    diasEnMes,
+    diasHabiles,
+    diasEsperados,
+    totalDiasTrabajados,
+    promedioAsistencia: `${promedioAsistencia}%`,
+    totalRetardos,
+    totalFaltas,
+    totalHorasExtra,
+    formula: `(${totalDiasTrabajados} / ${diasEsperados}) × 100 = ${promedioAsistencia}%`
+  })
 
   return {
     promedioAsistencia,
     totalRetardos,
     totalFaltas,
-    totalHorasExtra
+    totalHorasExtra,
+    diasHabiles,  // Agregamos para referencia
+    totalEmpleados  // Agregamos para referencia
   }
 })
 

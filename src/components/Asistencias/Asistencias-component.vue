@@ -23,14 +23,7 @@
 </template>
 
 <script setup>
-// Roles que pueden ver el reporte analítico
-const analiticoRoles = [
-  'ADMIN',
-  'JEFE_RH',
-  'JEFE_ASISTENCIAS',
-  'JEFE_CONTRATOS'
-];
-const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
+// Imports primero
 import { ref, watch, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
@@ -47,6 +40,15 @@ const router = useRouter();
 const activeTab = ref('inicio');
 const { contentMarginLeft, contentWidth } = useSidebar();
 const { userRole } = useAuth();
+
+// Roles que pueden ver el reporte analítico
+const analiticoRoles = [
+  'ADMIN',
+  'JEFE_RH',
+  'JEFE_ASISTENCIAS',
+  'JEFE_CONTRATOS'
+];
+const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {

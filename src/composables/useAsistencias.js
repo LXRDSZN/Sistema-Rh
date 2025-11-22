@@ -163,9 +163,18 @@ export function useAsistencias() {
     error.value = null;
     
     try {
-      const response = await asistenciasService.getReporteAnalitico(filtros);
-      reporteAnalitico.value = response.data;
-      return response;
+      // El servicio YA retorna response.data, así que 'data' es directamente { empleados: [], estadisticas: {} }
+      const data = await asistenciasService.getReporteAnalitico(filtros);
+      
+      // 🔍 LOG: Ver qué estructura retorna el backend
+      console.log('📦 Respuesta del backend (cargarReporteAnalitico):', {
+        estructura: data ? Object.keys(data) : 'null',
+        empleados: data?.empleados?.length || 0,
+        estadisticas: data?.estadisticas
+      });
+      
+      reporteAnalitico.value = data;
+      return data;
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al cargar reporte analítico';
       throw err;
