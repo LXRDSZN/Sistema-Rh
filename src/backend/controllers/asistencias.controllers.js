@@ -418,8 +418,8 @@ export const getDetalleAsistencias = async (req, res) => {
             WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora <= '09:00:00' THEN 'A'  -- Asistencia
             WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora > '09:00:00' THEN 'R'  -- Retardo
             
-            -- Faltas justificadas
-            WHEN j.id IS NOT NULL AND j.estado = 'aprobado' THEN 'FJ'
+            -- Faltas justificadas (sin importar el estado)
+            WHEN j.id IS NOT NULL THEN 'FJ'
             
             -- Fines de semana
             WHEN EXTRACT(DOW FROM dias.fecha) IN (0, 6) THEN 'DF'  -- Día festivo/fin de semana
