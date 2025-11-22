@@ -1,7 +1,7 @@
 <template>
   <div class="reporteasistencias-content">
     <div class="content-inner">
-      <h2 class="page-title">Reporte de Asistencias</h2>
+      <h2 class="page-title">Informe de Asistencias</h2>
       
       <div class="filtros-superiores">
         <v-select

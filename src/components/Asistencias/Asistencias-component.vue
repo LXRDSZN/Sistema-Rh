@@ -17,6 +17,7 @@
         <!-- Reporte Analítico solo para roles permitidos -->
         <AsistenciasRepAnalitico v-else-if="activeTab === 'reporte-analitico' && canSeeAnalitico" />
         <AsistenciasPaseLista v-else-if="activeTab === 'pase-lista'" />
+        <AsistenciasRegistroVisita v-else-if="activeTab === 'registro-visita'" />
       </div>
     </template>
   </div>
@@ -34,6 +35,7 @@ import AsistenciasRepAsi from './Asistencias-RepAsistencias.vue';
 import AsistenciasRepVisitas from './Asistencias-RepVisitas.vue';
 import AsistenciasRepAnalitico from './Asistencias-RepAnalitico.vue';
 import AsistenciasPaseLista from './Asistencias-PaseLista.vue';
+import AsistenciasRegistroVisita from './Asistencias-RegistroVisita.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -62,6 +64,8 @@ const updateTabFromRoute = () => {
     activeTab.value = 'reporte-analitico';
   } else if (route.path === '/Asistencias/pase-lista') {
     activeTab.value = 'pase-lista';
+  } else if (route.path === '/Asistencias/registro-visita') {
+    activeTab.value = 'registro-visita';
   } else {
     activeTab.value = 'inicio';
   }

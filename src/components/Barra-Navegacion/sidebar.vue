@@ -58,20 +58,23 @@
               <span>Inicio</span>
             </RouterLink>
             <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-            <span>Pase de lista / Huella</span>
-           </RouterLink>
+              <span>Pase de lista</span>
+             </RouterLink>
+            <RouterLink to="/Asistencias/registro-visita" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+              <span>Visitas</span>
+            </RouterLink>
             <RouterLink to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
               <span>Justificantes</span>
             </RouterLink>
             <RouterLink to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Reporte de Asistencias</span>
+              <span>Informe de Asistencias</span>
             </RouterLink>
             <!-- Reporte Analítico solo para roles permitidos -->
             <RouterLink v-if="canSeeAnalitico" to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Reporte Analítico</span>
+              <span>Informe Analítico</span>
             </RouterLink>
             <RouterLink to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Reporte de Visitas</span>
+              <span>Informe de Visitas</span>
             </RouterLink>
           </template>
 

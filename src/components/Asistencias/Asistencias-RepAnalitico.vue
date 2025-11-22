@@ -1,7 +1,7 @@
 <template>
   <div class="repanalitico-content">
     <div class="content-inner">
-      <h2 class="page-title">Reporte Analítico</h2>
+      <h2 class="page-title">Informe Analítico</h2>
 
       <!-- Filtros Superiores -->
       <div class="filtros-superiores">
@@ -71,33 +71,25 @@
         <h2 class="card-titulo">Estadísticas del Mes</h2>
         <v-card-text class="card-text-custom">
           <v-row class="stats-grid">
-            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.promedioAsistencia }}%</div>
                 <div class="stat-label">Asistencia Promedio</div>
               </div>
-            </v-col>
 
-            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalRetardos }}</div>
                 <div class="stat-label">Total Retardos</div>
               </div>
-            </v-col>
 
-            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalFaltas }}</div>
                 <div class="stat-label">Total Faltas</div>
               </div>
-            </v-col>
 
-            <v-col cols="12" sm="6" md="2">
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalHorasExtra }}</div>
                 <div class="stat-label">Horas Extra</div>
               </div>
-            </v-col>
           </v-row>
         </v-card-text>
       </v-card>
@@ -785,14 +777,14 @@ const getHorasExtraClass = (horas) => {
   flex-direction: row;
   flex-wrap: nowrap;
   gap: 1rem;
-  width: 85%;
+  width: 100%;
   padding: 0;
   box-sizing: border-box;
   margin-bottom: 1rem;
 }
 
 .filter-select {
-  width: 200px;
+  width: 230px;
 }
 
 .filter-btn {
@@ -809,7 +801,7 @@ const getHorasExtraClass = (horas) => {
   box-sizing: border-box;
   border-radius: 12px;
   margin-bottom: 2rem;
-  margin-top: 2rem;
+  margin-top: 1rem;
   width: 100%;
 }
 
@@ -817,8 +809,9 @@ const getHorasExtraClass = (horas) => {
   font-size: 1.125rem;
   font-weight: 600;
   color: #544F65;
-  padding: 1rem 1.5rem 0.4rem;
+  padding: 1rem 1rem 0.4rem;
   background-color: #FAFAFA;
+  width: 100%;
 }
 
 .card-text-custom {
@@ -829,7 +822,7 @@ const getHorasExtraClass = (horas) => {
 
 /* Estadísticas - MEJOR ESPACIADO */
 .stats-grid {
-  gap: 7.5rem;
+  gap: 2.1rem;
   width: 100%;
 }
 
@@ -841,8 +834,9 @@ const getHorasExtraClass = (horas) => {
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   border-left: 5px solid #5E47FF;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  width: 300px;
+  width: 315px;
   display: flex;
+  flex: 1;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;

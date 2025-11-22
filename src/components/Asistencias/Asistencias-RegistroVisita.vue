@@ -1,0 +1,835 @@
+<template>
+  <div class="justificaciones-content">
+    <div class="content-inner">
+      <h2 class="page-title">Gestión de Visitas</h2>
+      
+      <!-- Formulario: Registro de Visitas -->
+      <v-card class="card-formulario" elevation="0">
+        <h2 class="card-titulo">Registrar Nueva Visita</h2>
+
+        <v-card-text class="card-text-custom">
+          <!-- Información del Visitante -->
+          <div class="seccion-formulario">
+            
+            <div class="campos-grid">
+              <div class="campo-grupo">
+                <label class="form-label">Nombre*</label>
+                <v-text-field
+                  v-model="formulario.nombre"
+                  placeholder="Ingrese el nombre"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Apellido Paterno*</label>
+                <v-text-field
+                  v-model="formulario.apellido_paterno"
+                  placeholder="Ingrese el apellido paterno"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Apellido Materno</label>
+                <v-text-field
+                  v-model="formulario.apellido_materno"
+                  placeholder="Ingrese el apellido materno"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Cargo*</label>
+                <v-text-field
+                  v-model="formulario.cargo"
+                  placeholder="Cargo del visitante"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Identificación*</label>
+                <v-text-field
+                  v-model="formulario.identificacion"
+                  placeholder="Número de identificación"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Teléfono*</label>
+                <v-text-field
+                  v-model="formulario.telefono"
+                  placeholder="Número de teléfono"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                  type="tel"
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Email</label>
+                <v-text-field
+                  v-model="formulario.email"
+                  placeholder="correo@ejemplo.com"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  type="email"
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Empresa/Institución*</label>
+                <v-select
+                  v-model="formulario.empresa"
+                  :items="empresas"
+                  placeholder="Seleccione empresa"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Información de la Visita -->
+          <div class="seccion-formulario">
+            <h3 class="seccion-titulo">Información de la Visita</h3>
+            
+            <div class="campos-grid">
+              <div class="campo-grupo">
+                <label class="form-label">Área Visitada*</label>
+                <v-select
+                  v-model="formulario.area_visitada"
+                  :items="areasVisitadas"
+                  placeholder="Seleccione el área"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Persona Visitada*</label>
+                <v-autocomplete
+                  v-model="formulario.persona_visitada"
+                  :items="empleados"
+                  item-title="nombre_completo"
+                  placeholder="Seleccione la persona"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Motivo de la Visita*</label>
+                <v-select
+                  v-model="formulario.motivo"
+                  :items="motivosVisita"
+                  placeholder="Seleccione el motivo"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Fecha de Ingreso</label>
+                <v-text-field
+                  :model-value="fechaActual"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  readonly
+                  hide-details
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Hora de Ingreso</label>
+                <v-text-field
+                  :model-value="horaActual"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  readonly
+                  hide-details
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Información Adicional -->
+          <div class="seccion-formulario" v-if="formulario.motivo === 'Otro'">
+            <h3 class="seccion-titulo">Especificar Motivo</h3>
+            <div class="campo-grupo-full">
+              <v-textarea
+                v-model="formulario.motivo_especifico"
+                placeholder="Por favor, especifique el motivo de la visita..."
+                class="input-custom"
+                rows="3"
+                variant="outlined"
+                hide-details
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Botones -->
+          <div class="form-botones">
+            <v-btn
+              color="#5E47FF"
+              class="btn-action btn-primario"
+              @click="registrarIngreso"
+              :loading="guardando"
+              size="large"
+            >
+              <v-icon left size="20">mdi-login</v-icon>
+              Registrar Ingreso
+            </v-btn>
+            <v-btn
+              color="#6C6C85"
+              class="btn-action"
+              @click="limpiarFormulario"
+              size="large"
+            >
+              <v-icon left size="20">mdi-broom</v-icon>
+              Limpiar Formulario
+            </v-btn>
+          </div>
+        </v-card-text>
+      </v-card>
+
+      <!-- Tabla de Monitoreo de Visitas Activas -->
+      <v-card class="card-monitoreo" elevation="0">
+        <h2 class="card-titulo">Monitoreo de Visitas</h2>
+
+        <v-card-text>
+          <div class="filtros-monitoreo">
+            <v-text-field
+              v-model="filtroBusqueda"
+              placeholder="Buscar visitante, empresa o persona visitada..."
+              class="search-input-monitor input-white"
+              variant="outlined"
+              density="compact"
+              hide-details
+            >
+              <template v-slot:append-inner>
+                <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
+              </template>
+            </v-text-field>
+
+            <v-btn
+              color="#5E47FF"
+              class="filter-btn"
+              @click="aplicarFiltros"
+            >
+              Aplicar Filtro
+            </v-btn>
+          </div>
+
+          <v-table class="tabla-monitoreo">
+            <thead>
+              <tr>
+                <th class="text-center">Visitante</th>
+                <th class="text-center">Empresa</th>
+                <th class="text-center">Persona Visitada</th>
+                <th class="text-center">Área</th>
+                <th class="text-center">Hora Entrada</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center tabla-acciones-header">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loading">
+                <td colspan="7" class="text-center py-4">
+                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
+                  <p class="mt-2">Cargando visitas...</p>
+                </td>
+              </tr>
+              <tr v-else-if="visitasActivasFiltradas.length === 0">
+                <td colspan="7" class="text-center py-4 text-grey">
+                  No hay visitas activas
+                </td>
+              </tr>
+              <tr v-for="(visita, index) in visitasActivasFiltradas" :key="visita.id || index" v-else>
+                <td class="text-center">
+                  {{ visita.nombre }} {{ visita.apellido_paterno }} {{ visita.apellido_materno }}
+                </td>
+                <td class="text-center">{{ visita.empresa }}</td>
+                <td class="text-center">{{ visita.persona_visitada }}</td>
+                <td class="text-center">{{ visita.area_visitada }}</td>
+                <td class="text-center">{{ visita.hora_ingreso }}</td>
+                <td class="text-center">
+                  <span class="estado-en-curso">
+                    En curso
+                  </span>
+                </td>
+                <td class="text-center">
+                  <v-btn
+                    color="#10b981"
+                    class="btn-salida"
+                    @click="registrarSalida(visita)"
+                    size="small"
+                  >
+                    <v-icon left size="16">mdi-logout</v-icon>
+                    Registrar Salida
+                  </v-btn>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+      </v-card>
+    </div>
+
+    <!-- Snackbar para mensajes -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="5000"
+      location="bottom center"
+      min-width="auto"
+      class="custom-snackbar"
+    >
+      <div class="snackbar-content">
+        {{ snackbar.text }}
+      </div>
+    </v-snackbar>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+
+// Estados del formulario
+const formulario = ref({
+  nombre: '',
+  apellido_paterno: '',
+  apellido_materno: '',
+  cargo: '',
+  identificacion: '',
+  telefono: '',
+  email: '',
+  empresa: null,
+  area_visitada: null,
+  persona_visitada: null,
+  motivo: '',
+  motivo_especifico: ''
+})
+
+// Estados de UI
+const guardando = ref(false)
+const loading = ref(false)
+const snackbar = ref({
+  show: false,
+  text: '',
+  color: 'success'
+})
+
+// Filtros
+const filtroBusqueda = ref('')
+
+// Listas de opciones
+const empresas = ref([
+  'Tech Solutions SA',
+  'Consultores Asociados',
+  'Innovation Labs',
+  'Global Services Corp',
+  'Digital Transformations',
+  'Enterprise Systems',
+  'Smart Solutions Inc',
+  'Future Technologies'
+])
+
+const areasVisitadas = ref([
+  'Recursos Humanos',
+  'Administración',
+  'Contabilidad',
+  'TI/Sistemas',
+  'Operaciones',
+  'Ventas',
+  'Marketing',
+  'Dirección',
+  'Recepción',
+  'Almacén'
+])
+
+const motivosVisita = ref([
+  'Reunión de trabajo',
+  'Entrevista',
+  'Entrega de documentación',
+  'Recolección de información',
+  'Mantenimiento técnico',
+  'Capacitación',
+  'Visita comercial',
+  'Auditoría',
+  'Otro'
+])
+
+const empleados = ref([
+  { id: 1, nombre_completo: 'Juan Pérez García' },
+  { id: 2, nombre_completo: 'María López Hernández' },
+  { id: 3, nombre_completo: 'Carlos Rodríguez Martínez' },
+  { id: 4, nombre_completo: 'Ana García Sánchez' },
+  { id: 5, nombre_completo: 'Pedro Martínez López' }
+])
+
+// Visitas registradas
+const visitasRegistradas = ref([])
+
+// Tiempo actual
+const fechaActual = ref('')
+const horaActual = ref('')
+let intervaloReloj
+
+// Actualizar hora y fecha en tiempo real
+const actualizarReloj = () => {
+  const ahora = new Date()
+  fechaActual.value = ahora.toLocaleDateString('es-ES')
+  horaActual.value = ahora.toLocaleTimeString('es-ES', { 
+    hour: '2-digit', 
+    minute: '2-digit'
+  })
+}
+
+onMounted(() => {
+  actualizarReloj()
+  intervaloReloj = setInterval(actualizarReloj, 1000)
+  cargarVisitas()
+})
+
+onUnmounted(() => {
+  if (intervaloReloj) {
+    clearInterval(intervaloReloj)
+  }
+})
+
+// Computed para visitas activas filtradas
+const visitasActivasFiltradas = computed(() => {
+  let visitas = visitasRegistradas.value.filter(visita => !visita.hora_salida)
+
+  // Filtro por búsqueda
+  if (filtroBusqueda.value) {
+    const busqueda = filtroBusqueda.value.toLowerCase().trim()
+    visitas = visitas.filter(visita => 
+      visita.nombre.toLowerCase().includes(busqueda) ||
+      visita.apellido_paterno.toLowerCase().includes(busqueda) ||
+      visita.empresa.toLowerCase().includes(busqueda) ||
+      visita.persona_visitada.toLowerCase().includes(busqueda) ||
+      visita.area_visitada.toLowerCase().includes(busqueda)
+    )
+  }
+
+  return visitas
+})
+
+// Funciones principales
+const cargarVisitas = () => {
+  // Simular carga de visitas desde API
+  loading.value = true
+  setTimeout(() => {
+    // Datos de ejemplo - solo visitas activas
+    visitasRegistradas.value = [
+      {
+        id: 1,
+        nombre: 'Carlos',
+        apellido_paterno: 'Gómez',
+        apellido_materno: 'López',
+        cargo: 'Gerente Comercial',
+        empresa: 'Tech Solutions SA',
+        persona_visitada: 'Juan Pérez García',
+        motivo: 'Reunión de trabajo',
+        area_visitada: 'Ventas',
+        fecha_ingreso: new Date().toLocaleDateString('es-ES'),
+        hora_ingreso: '09:30',
+        hora_salida: null
+      },
+      {
+        id: 2,
+        nombre: 'Ana',
+        apellido_paterno: 'Martínez',
+        apellido_materno: 'Rodríguez',
+        cargo: 'Auditora',
+        empresa: 'Consultores Asociados',
+        persona_visitada: 'María López Hernández',
+        motivo: 'Auditoría',
+        area_visitada: 'Contabilidad',
+        fecha_ingreso: new Date().toLocaleDateString('es-ES'),
+        hora_ingreso: '10:15',
+        hora_salida: null
+      }
+    ]
+    loading.value = false
+  }, 1000)
+}
+
+const registrarIngreso = async () => {
+  try {
+    // Validación básica
+    const camposObligatorios = [
+      'nombre', 'apellido_paterno', 'cargo', 'identificacion', 'telefono',
+      'empresa', 'area_visitada', 'persona_visitada', 'motivo'
+    ]
+    
+    const formularioValido = camposObligatorios.every(campo => {
+      const valor = formulario.value[campo]
+      return valor && valor.toString().trim().length > 0
+    })
+
+    if (!formularioValido) {
+      mostrarMensaje('Por favor complete todos los campos obligatorios', 'error')
+      return
+    }
+
+    if (formulario.value.motivo === 'Otro' && !formulario.value.motivo_especifico) {
+      mostrarMensaje('Debe especificar el motivo de la visita', 'error')
+      return
+    }
+
+    guardando.value = true
+
+    // Crear registro de visita
+    const nuevaVisita = {
+      id: Date.now(),
+      ...formulario.value,
+      fecha_ingreso: fechaActual.value,
+      hora_ingreso: horaActual.value,
+      hora_salida: null,
+      fecha_registro: new Date().toISOString()
+    }
+
+    // Agregar a visitas registradas
+    visitasRegistradas.value.unshift(nuevaVisita)
+
+    mostrarMensaje('Ingreso de visita registrado correctamente')
+    limpiarFormulario()
+    
+  } catch (error) {
+    console.error('Error al registrar ingreso:', error)
+    mostrarMensaje('Error al registrar el ingreso', 'error')
+  } finally {
+    guardando.value = false
+  }
+}
+
+const registrarSalida = (visita) => {
+  const horaSalida = new Date().toLocaleTimeString('es-ES', { 
+    hour: '2-digit', 
+    minute: '2-digit'
+  })
+  
+  // Actualizar la visita con la hora de salida
+  const visitaIndex = visitasRegistradas.value.findIndex(v => v.id === visita.id)
+  if (visitaIndex !== -1) {
+    visitasRegistradas.value[visitaIndex].hora_salida = horaSalida
+  }
+  
+  // La visita desaparecerá automáticamente de la tabla porque ya no estará activa
+  mostrarMensaje(`Salida registrada para ${visita.nombre} ${visita.apellido_paterno} a las ${horaSalida}`)
+}
+
+const aplicarFiltros = () => {
+  mostrarMensaje('Filtros aplicados correctamente')
+}
+
+const limpiarFormulario = () => {
+  formulario.value = {
+    nombre: '',
+    apellido_paterno: '',
+    apellido_materno: '',
+    cargo: '',
+    identificacion: '',
+    telefono: '',
+    email: '',
+    empresa: null,
+    area_visitada: null,
+    persona_visitada: null,
+    motivo: '',
+    motivo_especifico: ''
+  }
+}
+
+const mostrarMensaje = (texto, color = 'success') => {
+  snackbar.value = {
+    show: true,
+    text: texto,
+    color: color
+  }
+}
+</script>
+
+<style scoped>
+.visitas-content {
+  flex: 1;
+  padding: 0rem !important;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #E4E4E7;
+  margin-left: auto;
+}
+
+.content-inner {
+  width: 100%;
+  max-width: 100%;
+  background-color: #E4E4E7;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0rem 2rem 1rem;
+  padding: 0.2rem;
+}
+
+.card-formulario,
+.card-monitoreo {
+  padding: 1.2rem;
+  background-color: #FAFAFA;
+  box-sizing: border-box;
+  border-radius: 12px;
+  margin-bottom: 1.7rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.card-titulo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #544F65;
+  margin: 0 0 0.8rem 0;
+  text-align: left;
+}
+
+.seccion-formulario {
+  margin-bottom: 2rem;
+}
+
+.seccion-titulo {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.campos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.campo-grupo-full {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.input-custom {
+  width: 100%;
+}
+
+.input-custom :deep(.v-field) {
+  background-color: #ffffff;
+  border-radius: 8px;
+}
+
+.form-botones {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+  border-radius: 8px;
+  min-width: 200px;
+}
+
+.btn-primario {
+  background: linear-gradient(135deg, #5E47FF, #8B5CF6);
+}
+
+/* Filtros de monitoreo */
+.filtros-monitoreo {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 45%;
+}
+
+.search-input-monitor {
+  width: 250px;
+}
+
+.filter-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Tabla de monitoreo */
+.tabla-monitoreo {
+  border: 1px solid #e5e7eb;
+  background-color: #FAFAFA;
+}
+
+.tabla-monitoreo :deep(thead) {
+  background-color: #221A68;
+}
+
+.tabla-monitoreo :deep(thead th) {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+}
+
+.tabla-acciones-header {
+  width: 150px;
+}
+
+/* Filas alternadas para tabla de monitoreo */
+.tabla-monitoreo :deep(tbody tr:nth-child(odd)) {
+  background-color: #ffffff;
+}
+
+.tabla-monitoreo :deep(tbody tr:nth-child(even)) {
+  background-color: #f8fafc;
+}
+
+.tabla-monitoreo :deep(tbody td) {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Estados */
+.estado-en-curso {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* Botón de salida */
+.btn-salida {
+  text-transform: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.custom-snackbar {
+  border-radius: 8px;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  min-width: 300px !important;
+  justify-content: center !important;
+}
+
+.snackbar-content {
+  text-align: center;
+  padding: 8px 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .content-inner {
+    padding: 0 1rem;
+  }
+  
+  .campos-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .card-formulario,
+  .card-monitoreo {
+    padding: 1rem;
+  }
+  
+  .form-botones {
+    flex-direction: column;
+  }
+  
+  .btn-action {
+    min-width: 100%;
+  }
+  
+  .filtros-monitoreo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-input-monitor {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .card-titulo {
+    font-size: 1.2rem;
+  }
+  
+  .content-inner {
+    padding: 0 0.5rem;
+  }
+}
+</style>
