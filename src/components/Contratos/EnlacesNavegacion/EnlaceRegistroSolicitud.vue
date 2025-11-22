@@ -3,7 +3,7 @@
     <!-- Header con botón atrás -->
     <div class="registro-header">
       <button class="btn-back" @click="volver">
-        <span class="icon">←</span>
+        <span class="material-symbols-rounded">arrow_back</span>
       </button>
       <h1>Solicitud</h1>
     </div>
@@ -951,6 +951,7 @@ const volver = () => {
   color: #333;
   position: absolute;
   left: 2rem;
+  font-size: 24px;
 }
 
 .btn-back:hover {
