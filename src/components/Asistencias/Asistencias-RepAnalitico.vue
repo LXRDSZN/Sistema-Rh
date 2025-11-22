@@ -350,6 +350,7 @@ const analyticsData = computed(() => {
   console.log('📥 Datos recibidos del backend:', {
     total: resultado.length,
     primerEmpleado: resultado[0],
+    primerEmpleadoCompleto: JSON.parse(JSON.stringify(resultado[0])),
     todosLosNombres: resultado.map(e => e.empleado || e.nombre)
   })
 
@@ -373,6 +374,7 @@ const analyticsData = computed(() => {
   // 🔍 LOG: Ver datos después del mapeo
   console.log('✅ Datos mapeados:', {
     total: resultado.length,
+    primerEmpleadoMapeado: resultado[0],
     empleados: resultado.map(e => e.empleado)
   })
 

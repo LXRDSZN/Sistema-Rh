@@ -163,9 +163,9 @@
         <v-card-text>
           <div class="filtros-monitoreo">
             <v-select
-              v-model="monitoreo.periodo"
-              :items="periodosItems"
-              placeholder="Mes pasado"
+              v-model="monitoreo.mes"
+              :items="monthsItems"
+              placeholder="Seleccionar mes"
               class="filter-select-monitor input-white"
               variant="outlined"
               density="compact"
@@ -251,9 +251,9 @@
           <!-- Filtros para la tabla de registro (iguales a monitoreo) -->
           <div class="filtros-registro">
             <v-select
-              v-model="registro.periodo"
-              :items="periodosItems"
-              placeholder="Mes pasado"
+              v-model="registro.mes"
+              :items="monthsItems"
+              placeholder="Seleccionar mes"
               class="filter-select-registro input-white"
               variant="outlined"
               density="compact"
@@ -479,6 +479,10 @@ const fileInput = ref(null)
 const nombreArchivo = ref('Ningún archivo seleccionado')
 const archivoPrevisualizacion = ref(null)
 
+// Año actual para los meses
+const currentDate = new Date()
+const selectedYear = ref(currentDate.getFullYear())
+
 // Datos del formulario
 const formulario = ref({
   empleado_id: null,
@@ -488,16 +492,16 @@ const formulario = ref({
   motivo: ''
 })
 
-// Filtros - eliminados los filtros superiores
+// Filtros con mes específico
 const monitoreo = ref({
-  periodo: 'mes-pasado',
+  mes: currentDate.getMonth() + 1,
   area_id: null,
   busqueda: ''
 })
 
 // Nuevos filtros para registro
 const registro = ref({
-  periodo: 'mes-pasado',
+  mes: currentDate.getMonth() + 1,
   area_id: null,
   busqueda: ''
 })
@@ -553,11 +557,17 @@ const cargarDatosIniciales = async () => {
   }
 }
 
-const periodosItems = [
-  { title: 'Mes pasado', value: 'mes-pasado' },
-  { title: 'Este mes', value: 'este-mes' },
-  { title: 'Último trimestre', value: 'trimestre' }
-]
+// Items para selector de meses
+const monthsItems = computed(() => {
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return meses.map((mes, index) => ({
+    title: `${mes} ${selectedYear.value}`,
+    value: index + 1
+  }))
+})
 
 const areasMonitoreoItems = computed(() => [
   { title: 'Todas las áreas', value: null },
@@ -593,6 +603,16 @@ const tiposIncidenciaConPlaceholder = computed(() => {
 const justificacionesFiltradas = computed(() => {
   let resultado = [...(justificantes.value || [])]
   
+  // Filtro por mes
+  if (monitoreo.value.mes) {
+    resultado = resultado.filter(item => {
+      if (!item.fecha_inicio) return false
+      const fechaItem = new Date(item.fecha_inicio)
+      return fechaItem.getMonth() + 1 === monitoreo.value.mes && 
+             fechaItem.getFullYear() === selectedYear.value
+    })
+  }
+  
   // Filtro por búsqueda de empleado
   if (monitoreo.value.busqueda) {
     const busqueda = monitoreo.value.busqueda.toLowerCase().trim()
@@ -613,6 +633,16 @@ const justificacionesFiltradas = computed(() => {
 
 const registroJustificacionesFiltradas = computed(() => {
   let resultado = [...(justificantes.value || [])]
+  
+  // Filtro por mes
+  if (registro.value.mes) {
+    resultado = resultado.filter(item => {
+      if (!item.fecha_inicio) return false
+      const fechaItem = new Date(item.fecha_inicio)
+      return fechaItem.getMonth() + 1 === registro.value.mes && 
+             fechaItem.getFullYear() === selectedYear.value
+    })
+  }
   
   // Filtro por búsqueda de empleado
   if (registro.value.busqueda) {
@@ -718,12 +748,22 @@ const quitarArchivo = () => {
   mostrarMensaje('Archivo removido correctamente')
 }
 
-const aplicarFiltrosMonitoreo = () => {
-  mostrarMensaje('Filtros de monitoreo aplicados')
+const aplicarFiltrosMonitoreo = async () => {
+  try {
+    await cargarJustificantes()
+    mostrarMensaje('Filtros de monitoreo aplicados')
+  } catch (error) {
+    console.error('Error al aplicar filtros:', error)
+  }
 }
 
-const aplicarFiltrosRegistro = () => {
-  mostrarMensaje('Filtros de registro aplicados')
+const aplicarFiltrosRegistro = async () => {
+  try {
+    await cargarJustificantes()
+    mostrarMensaje('Filtros de registro aplicados')
+  } catch (error) {
+    console.error('Error al aplicar filtros:', error)
+  }
 }
 
 const abrirSelectorArchivo = () => {
