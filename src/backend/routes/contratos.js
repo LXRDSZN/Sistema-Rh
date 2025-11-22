@@ -447,7 +447,7 @@ router.get('/contratos/empleado/:personaId/contrato-actual', async (req, res) =>
         });
     }
 });
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
 // ========================================
 // Todo esto es de la ventana estadisticas 
 // ========================================
@@ -541,7 +541,7 @@ router.get('/contratos/estadisticas/estado-proceso', async (req, res) => {
         });
     }
 });
-
+7
 // ========================================
 // ENDPOINT: Estadísticas generales (activos y vacantes)
 // ========================================
@@ -616,6 +616,7 @@ router.get('/contratos/historial', async (req, res) => {
         });
     }
 });
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
 
 // ========================================
 // ENDPOINT: Obtener tipos de contratos (para filtro)
@@ -672,7 +673,7 @@ router.get('/contratos/areas', async (req, res) => {
     }
 });
 
-// Crear contrato de aspirante (pasos 2,3,4)
+// Crear contrato de aspirante (pasos 2,3,4) se llama directamente en vue guardar contrato enlacecrearcontrato
 router.post('/contratos/aspirante', verificarToken, async (req, res) => {
   const client = await pool.connect();
 
