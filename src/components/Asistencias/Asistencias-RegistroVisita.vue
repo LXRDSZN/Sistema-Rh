@@ -242,14 +242,15 @@
           <div class="filtros-monitoreo">
             <v-text-field
               v-model="filtroBusqueda"
-              placeholder="Buscar visitante, empresa o persona visitada..."
+              placeholder="Buscar..."
               class="search-input-monitor input-white"
               variant="outlined"
               density="compact"
               hide-details
+              style="width: 250px;"
             >
               <template v-slot:append-inner>
-                <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
+                <v-icon size="18" color="#9ca3af">mdi-magnify</v-icon>
               </template>
             </v-text-field>
 
@@ -257,6 +258,7 @@
               color="#5E47FF"
               class="filter-btn"
               @click="aplicarFiltros"
+              size="small"
             >
               Aplicar Filtro
             </v-btn>
@@ -423,7 +425,8 @@ const actualizarReloj = () => {
   fechaActual.value = ahora.toLocaleDateString('es-ES')
   horaActual.value = ahora.toLocaleTimeString('es-ES', { 
     hour: '2-digit', 
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   })
 }
 
@@ -476,7 +479,11 @@ const cargarVisitas = () => {
         motivo: 'Reunión de trabajo',
         area_visitada: 'Ventas',
         fecha_ingreso: new Date().toLocaleDateString('es-ES'),
-        hora_ingreso: '09:30',
+        hora_ingreso: new Date(new Date().setHours(9, 30)).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        }),
         hora_salida: null
       },
       {
@@ -490,7 +497,11 @@ const cargarVisitas = () => {
         motivo: 'Auditoría',
         area_visitada: 'Contabilidad',
         fecha_ingreso: new Date().toLocaleDateString('es-ES'),
-        hora_ingreso: '10:15',
+        hora_ingreso: new Date(new Date().setHours(14, 15)).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        }),
         hora_salida: null
       }
     ]
@@ -550,7 +561,8 @@ const registrarIngreso = async () => {
 const registrarSalida = (visita) => {
   const horaSalida = new Date().toLocaleTimeString('es-ES', { 
     hour: '2-digit', 
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   })
   
   // Actualizar la visita con la hora de salida
@@ -705,11 +717,10 @@ const mostrarMensaje = (texto, color = 'success') => {
 /* Filtros de monitoreo */
 .filtros-monitoreo {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   align-items: center;
-  flex-wrap: wrap;
-  width: 45%;
+  flex-wrap: nowrap;
 }
 
 .search-input-monitor {
@@ -720,6 +731,7 @@ const mostrarMensaje = (texto, color = 'success') => {
   text-transform: none;
   font-weight: 500;
   letter-spacing: 0;
+  height: 40px;
 }
 
 /* Tabla de monitoreo */
