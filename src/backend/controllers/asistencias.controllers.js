@@ -411,6 +411,7 @@ export const getDetalleAsistencias = async (req, res) => {
         p.id,
         p.nombre || ' ' || p.apellido_paterno as empleado,
         COALESCE(pu.nombre, 'Sin puesto') as puesto,
+        COALESCE(a.nombre, 'Sin área') as area,
         ARRAY_AGG(
           CASE 
             -- Si tiene entrada en checada
@@ -459,7 +460,7 @@ export const getDetalleAsistencias = async (req, res) => {
       query += ` AND ap.area_id = $2`;
       params.push(area_id);
     }
-    query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre
+    query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre, a.nombre
       ORDER BY empleado`;
 
     const detalle = await db.query(query, params);
