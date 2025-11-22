@@ -242,7 +242,7 @@
           <div class="filtros-monitoreo">
             <v-text-field
               v-model="filtroBusqueda"
-              placeholder="Buscar..."
+              placeholder="Buscar visitante, empresa o persona visitada..."
               class="search-input-monitor input-white"
               variant="outlined"
               density="compact"
@@ -721,6 +721,7 @@ const mostrarMensaje = (texto, color = 'success') => {
   margin-bottom: 1.5rem;
   align-items: center;
   flex-wrap: nowrap;
+  width: 40%;
 }
 
 .search-input-monitor {
@@ -729,7 +730,8 @@ const mostrarMensaje = (texto, color = 'success') => {
 
 .filter-btn {
   text-transform: none;
-  font-weight: 500;
+  font-weight: 500 !important;
+  font-size: 0.85rem;
   letter-spacing: 0;
   height: 40px;
 }
