@@ -583,14 +583,14 @@ export const getReporteAnalitico = async (req, res) => {
         -- Calcular retardos (checadas después de las 9:00 AM)
         COUNT(*) FILTER (WHERE ch.tipo = 'entrada' AND ch.hora > '09:00:00') as retardos,
         
-        -- Faltas justificadas
-        COUNT(DISTINCT j.fecha_inicio) FILTER (WHERE j.estado = 'aprobado') as faltas_justificadas,
+        -- Faltas justificadas: Contar registros de justificantes en el mes
+        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as faltas_justificadas,
         
         -- Faltas injustificadas (por ahora 0, se puede calcular con días hábiles)
         0 as faltas_injustificadas,
         
-        -- Incidencias (por ahora 0)
-        0 as incidencias,
+        -- Incidencias: Igual que faltas justificadas (total de justificaciones)
+        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as incidencias,
         
         -- Horas extra (no aplica con checada simple)
         0 as horas_extra,
@@ -610,8 +610,14 @@ export const getReporteAnalitico = async (req, res) => {
       LEFT JOIN checada ch ON p.id = ch.persona_id 
         AND DATE_TRUNC('month', ch.fecha) = $1::date
       
+      -- Justificantes: incluir todos sin importar el estado
       LEFT JOIN justificantes j ON p.id = j.persona_id 
-        AND DATE_TRUNC('month', j.fecha_inicio) = $1::date
+        AND (
+          (DATE_TRUNC('month', j.fecha_inicio) = $1::date)
+          OR (DATE_TRUNC('month', COALESCE(j.fecha_fin, j.fecha_inicio)) = $1::date)
+          OR (j.fecha_inicio < DATE_TRUNC('month', $1::date)::date 
+              AND COALESCE(j.fecha_fin, j.fecha_inicio) >= DATE_TRUNC('month', $1::date)::date)
+        )
         
       WHERE p.tipo = 'Empleado'
         AND ec.nombre ILIKE 'ACTIVO'
@@ -623,15 +629,19 @@ export const getReporteAnalitico = async (req, res) => {
       tipo && tipo !== 'todos' ? [fecha, tipo.toLowerCase()] : [fecha]
     );
 
-    // 🔍 LOG: Ver resultados del query
-    console.log('✅ Query ejecutado. Resultados:', {
-      totalEmpleados: empleados.rows.length,
-      primerosEmpleados: empleados.rows.slice(0, 3).map(e => ({ 
-        nombre: e.empleado, 
-        dias: e.dias_trabajados,
-        area: e.area 
-      }))
-    });
+    // 🔍 LOG: Ver resultados del query con TODOS los campos
+    console.log('✅ Query ejecutado. Resultados:');
+    console.log('Total empleados:', empleados.rows.length);
+    console.log('Fecha:', fecha);
+    console.log('Primer empleado COMPLETO:', JSON.stringify(empleados.rows[0], null, 2));
+    console.log('Primeros 3 empleados:', empleados.rows.slice(0, 3).map(e => ({
+      nombre: e.empleado,
+      area: e.area,
+      dias_trabajados: e.dias_trabajados,
+      retardos: e.retardos,
+      faltas_justificadas: e.faltas_justificadas,
+      incidencias: e.incidencias
+    })));
 
     return res.json({
       success: true,
