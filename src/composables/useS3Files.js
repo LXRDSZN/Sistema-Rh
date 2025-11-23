@@ -126,6 +126,25 @@ export const useS3Files = () => {
     }
   };
 
+    // ✅ Nuevo: obtener URL firmada del contrato actual
+  const obtenerUrlContratoActual = async (personaId) => {
+    try {
+      const { data } = await axios.get(
+        `${API_URL}/s3/contrato-actual/${personaId}`,
+        { withCredentials: true }
+      );
+
+      if (!data.ok || !data.url) {
+        throw new Error(data.error || 'No se pudo obtener la URL del contrato');
+      }
+
+      return data.url;
+    } catch (error) {
+      console.error('Error al obtener URL del contrato actual:', error.response || error);
+      throw error;
+    }
+  };
+
   return {
     subirArchivo,
     obtenerArchivos,
@@ -135,6 +154,7 @@ export const useS3Files = () => {
     obtenerUrlFirmada,
     descargarArchivo,
     listarArchivosS3,
-    listarBuckets
+    listarBuckets,
+    obtenerUrlContratoActual
   };
 };

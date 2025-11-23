@@ -17,7 +17,7 @@
             <h2 class="section-title">EMPLEADO</h2>
 
             <!-- Componente de Header del Empleado -->
-            <EmpleadoHeader :empleado="empleadoCompleto" @ver-contrato="activeTab = 'contratoActual'"
+            <EmpleadoHeader :empleado="empleadoCompleto" @ver-contrato="verContratoActual"
                 @renovar-contrato="renovarContrato" />
 
             <!-- Tabs de navegación -->
@@ -53,6 +53,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useContratos } from '@/composables/useContratos';
+import { useS3Files } from '@/composables/useS3Files';
+
 import DetalleEmpleadoTabs from './DetalleEmpleadoTabs.vue';
 import EmpleadoHeader from './EmpleadoHeader.vue';
 import ContratoActualTab from './TabsContent/ContratoActualTab.vue';
@@ -70,6 +72,8 @@ const props = defineProps({
 const emit = defineEmits(['cerrar', 'renovar-contrato']);
 
 const { obtenerEncabezadoEmpleado, obtenerContratoActualEmpleado } = useContratos();
+const { obtenerUrlContratoActual } = useS3Files();
+
 const activeTab = ref('contratoActual');
 const loading = ref(false);
 const empleadoCompleto = ref(null);
@@ -198,6 +202,26 @@ const formatearMoneda = (cantidad) => {
         maximumFractionDigits: 2
     }).format(cantidad);
 };
+
+const verContratoActual = async () => {
+    try {
+        console.log('Revisar contrato:', empleadoCompleto.value);
+
+        const personaId = empleadoCompleto.value?.persona_id;
+        if (!personaId) {
+            alert('No se encontró personaId del empleado.');
+            return;
+        }
+
+        const url = await obtenerUrlContratoActual(personaId);
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error al abrir contrato actual:', error.response || error);
+        alert('No se pudo abrir el contrato actual.');
+    }
+};
+
+
 
 
 const cambiarTab = (tab) => {
