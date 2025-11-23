@@ -134,7 +134,8 @@ router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
           al.pretension_salarial,
           al.fecha_disponible,
           al.jornada_id,
-          j.nombre AS jornada
+          j.nombre AS jornada,
+          al.comentario
       FROM aspiracion_laboral al
       LEFT JOIN area ar ON ar.id = al.area_id
       LEFT JOIN puesto pt ON pt.id = al.puesto_id
@@ -222,8 +223,113 @@ router.put('/aspirantes/:personaId/nombre', async (req, res) => {
   }
 });
 
+// ========================================
+// ACTUALIZAR ETAPA DEL PROCESO DE SELECCIÓN
+// ========================================
+router.put('/aspirantes/:personaId/etapa', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+    const { etapa } = req.body;
 
+    if (!etapa) {
+      return res.status(400).json({
+        ok: false,
+        error: 'La etapa es obligatoria'
+      });
+    }
 
+    const updateSql = `
+      UPDATE persona
+      SET etapa = $1
+      WHERE id = $2
+      RETURNING id, etapa, fecha_registro;
+    `;
 
+    const values = [etapa, personaId];
+
+    const { rows } = await pool.query(updateSql, values);
+    //console.log('Actualizar etapa persona:', { personaId, etapa, rows });
+
+    if (!rows.length) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Aspirante no encontrado o ya no es aspirante'
+      });
+    }
+
+    res.json({
+      ok: true,
+      mensaje: 'Etapa del proceso actualizada correctamente',
+      proceso: rows[0]
+    });
+  } catch (error) {
+    console.error('Error al actualizar etapa del aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// ========================================
+// ACTUALIZAR COMENTARIO DE ASPIRACIÓN LABORAL
+// ========================================
+router.put('/aspirantes/:personaId/aspiracion-laboral/comentario', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+    const { comentario } = req.body;
+
+    const comentarioLimpio = (comentario || '').trim();
+
+    if (!comentarioLimpio) {
+      return res.status(400).json({
+        ok: false,
+        error: 'El comentario es obligatorio'
+      });
+    }
+
+    // Primero intentamos actualizar si ya existe aspiración_laboral
+    const updateSql = `
+      UPDATE aspiracion_laboral
+      SET comentario = $1
+      WHERE persona_id = $2
+      RETURNING id, persona_id, comentario, creado_en;
+    `;
+
+    const values = [comentarioLimpio, personaId];
+
+    let { rows } = await pool.query(updateSql, values);
+
+    // Si no existe registro, lo creamos con este comentario
+    if (!rows.length) {
+      const insertSql = `
+        INSERT INTO aspiracion_laboral (persona_id, comentario)
+        VALUES ($1, $2)
+        RETURNING id, persona_id, comentario, creado_en;
+      `;
+      const insertValues = [personaId, comentarioLimpio];
+      const insertResult = await pool.query(insertSql, insertValues);
+      rows = insertResult.rows;
+    }
+
+    console.log('Actualizar comentario aspiracion:', {
+      personaId,
+      comentario: comentarioLimpio,
+      rows
+    });
+
+    res.json({
+      ok: true,
+      mensaje: 'Comentario actualizado correctamente',
+      aspiracion: rows[0]
+    });
+  } catch (error) {
+    console.error('Error al actualizar comentario de aspiración laboral:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
 
 export default router;

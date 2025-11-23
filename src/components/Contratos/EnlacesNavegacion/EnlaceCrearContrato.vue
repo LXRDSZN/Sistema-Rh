@@ -121,7 +121,7 @@
                         <label>Puesto</label>
                         <select v-model="formData.puesto" class="form-select">
                             <option value="">Seleccione puesto</option>
-                            <option v-for="p in puestos" :key="p.id" :value="p.id">
+                            <option v-for="p in puestosHastaJefeArea" :key="p.id" :value="p.id">
                                 {{ formatRoleName(p.nombre) }}
                             </option>
                         </select>
@@ -280,9 +280,9 @@ const tituloContrato = computed(() =>
     esRenovacionEmpleado.value ? 'RENOVAR CONTRATO' : 'CONTRATO NUEVO'
 );
 
-// ========================
-//  ESTADOS
-// ========================
+  // ========================
+  //  ESTADOS
+  // ========================
 const areas = ref([]);
 const puestos = ref([]);
 const jornadas = ref([]);
@@ -290,6 +290,16 @@ const plantillas = ref([]);
 const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
 
+// Solo mostrar puestos hasta JEFE_AREA (incluido)
+const puestosHastaJefeArea = computed(() => {
+    const lista = puestos.value || [];
+    const indexJefeArea = lista.findIndex((p) => p.nombre === 'JEFE_AREA');
+    if (indexJefeArea === -1) {
+        return lista;
+    }
+    return lista.slice(0, indexJefeArea + 1);
+});
+  
 // Computed que devuelve sólo la primera opción del catálogo de tipos de documento
 const primerTipoDocumento = computed(() => {
     return tiposDocumento.value && tiposDocumento.value.length ? [tiposDocumento.value[0]] : [];
