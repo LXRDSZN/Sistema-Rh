@@ -27,12 +27,11 @@
         <!-- Filtros -->
         <div class="filters-container">
             <div class="filter-group">
-                <label>Nombre</label>
+                <label>Ordenar</label>
                 <select v-model="filtroNombre" class="filter-select" :style="filterStyle">
-                    <option value="">Ingresa nombre</option>
-                    <option v-for="nombre in nombresUnicos" :key="nombre" :value="nombre">
-                        {{ nombre }}
-                    </option>
+                    <option value="">Sin filtro</option>
+                    <option value="asc">A - Z (Ascendente)</option>
+                    <option value="desc">Z - A (Descendente)</option>
                 </select>
             </div>
 
@@ -54,6 +53,7 @@
                     <option value="antigua">Más antigua</option>
                 </select>
             </div>
+
         </div>
 
         <!-- Tabla de contratos -->
@@ -68,13 +68,13 @@
             <div class="table-body">
                 <div v-for="contrato in contratosFiltrados" :key="contrato.id" class="table-row" :style="rowStyle">
                     <div class="col-datos">
-                        <img :src="contrato.avatar" :alt="contrato.nombre" class="avatar">
+                        <img :src="contrato.avatar || defaultAvatar" :alt="contrato.nombre" class="avatar" @error="onImgError">
                         <div class="datos-info">
                             <div class="nombre">{{ contrato.nombre }}</div>
                             <div class="estado">{{ contrato.estadoTexto || contrato.fase }}</div>
                         </div>
                     </div>
-                    <div class="col-puesto">{{ contrato.puesto }}</div>
+                    <div class="col-puesto">{{ formatRoleName(contrato.puesto) }}</div>
                     <div class="col-area">{{ contrato.area }}</div>
                     <div class="col-action">
                         <button class="btn-revisar" :style="buttonStyle" @click="revisarContrato(contrato)">
@@ -119,6 +119,14 @@ const props = defineProps({
 
 const emit = defineEmits(['revisar-contrato', 'volver-inicio']);
 
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
+
 const searchQuery = ref('');
 const filtroNombre = ref('');
 const filtroArea = ref('');
@@ -147,10 +155,6 @@ const buttonStyle = computed(() => ({
     borderColor: props.primaryColor
 }));
 
-const nombresUnicos = computed(() => {
-    return [...new Set(props.contratos.map(c => c.nombre))];
-});
-
 const areasUnicas = computed(() => {
     return [...new Set(props.contratos.map(c => c.area))];
 });
@@ -167,26 +171,48 @@ const contratosFiltrados = computed(() => {
         );
     }
 
-    if (filtroNombre.value) {
-        result = result.filter(c => c.nombre === filtroNombre.value);
-    }
-
     if (filtroArea.value) {
         result = result.filter(c => c.area === filtroArea.value);
     }
 
+    // Ordenar por nombre si se seleccionó (igual que EnlaceHistorial)
+    if (filtroNombre.value === 'asc') {
+        result = [...result].sort((a, b) =>
+            (a.nombre || '').toString().localeCompare((b.nombre || '').toString(), 'es', { sensitivity: 'base' })
+        );
+    } else if (filtroNombre.value === 'desc') {
+        result = [...result].sort((a, b) =>
+            (b.nombre || '').toString().localeCompare((a.nombre || '').toString(), 'es', { sensitivity: 'base' })
+        );
+    }
+
     if (filtroFecha.value === 'reciente') {
         result = [...result].sort((a, b) =>
-            new Date(b.fechaInicio) - new Date(a.fechaInicio)
+            new Date(b.fechainicio) - new Date(a.fechainicio)
         );
     } else if (filtroFecha.value === 'antigua') {
         result = [...result].sort((a, b) =>
-            new Date(a.fechaInicio) - new Date(b.fechaInicio)
+            new Date(a.fechainicio) - new Date(b.fechainicio)
         );
     }
 
     return result;
 });
+
+// Formatea el nombre del rol/puesto del sistema
+const formatRoleName = (role) => {
+    const map = {
+        'ADMIN': 'Admin',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+};
 
 const revisarContrato = (contrato) => {
     emit('revisar-contrato', contrato);
@@ -244,7 +270,7 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -295,7 +321,7 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .section-title h2 {
@@ -311,9 +337,10 @@ const volverInicio = () => {
     background-color: white;
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    /* Poner columnas */
     gap: 2rem;
 }
 

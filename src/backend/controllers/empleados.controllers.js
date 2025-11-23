@@ -23,29 +23,30 @@ export const getAllEmpleados = async (req, res) => {
         a.id as area_id,
         pu.nombre as puesto,
         pu.id as puesto_id,
-        ap.fecha_inicio,
-        ap.es_principal,
-        CASE 
-          WHEN ap.fecha_fin IS NULL THEN 'Tiempo completo'
-          ELSE 'Por contrato'
-        END as categoria
+        c.fecha_inicio,
+        c.fecha_fin,
+        c.tipo_contrato,
+        c.modalidad,
+        ec.nombre as estado_contrato
       FROM persona p
       LEFT JOIN sexo s ON p.sexo_id = s.id
-      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
-      LEFT JOIN puesto pu ON ap.puesto_id = pu.id
+      LEFT JOIN contrato c ON p.id = c.persona_id 
+        AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO' LIMIT 1)
+        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+      LEFT JOIN area a ON c.area_id = a.id
+      LEFT JOIN puesto pu ON c.puesto_id = pu.id
+      LEFT JOIN estado_contrato ec ON c.estado_id = ec.id
       WHERE p.tipo = 'Empleado'
-      ORDER BY p.nombre, p.apellido_paterno`
+      ORDER BY p.apellido_paterno, p.apellido_materno, p.nombre`
     );
 
     // Formatear los datos para el frontend
     const empleados = result.rows.map(row => ({
       id: row.id,
-      nombre: `${row.nombre} ${row.apellido_paterno} ${row.apellido_materno || ''}`.trim(),
+      nombre: `${row.apellido_paterno} ${row.apellido_materno || ''} ${row.nombre}`.trim(),
       departamento: row.area || 'Sin asignar',
       titulo: row.puesto || 'Sin puesto',
       fechaInicio: row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-MX') : 'N/A',
-      categoria: row.categoria,
       genero: row.sexo || 'No especificado',
       area_id: row.area_id,
       puesto_id: row.puesto_id
@@ -123,9 +124,9 @@ export const getEmpleadoById = async (req, res) => {
 export const updateEmpleadoAsignacion = async (req, res) => {
   try {
     const { id } = req.params;
-    const { area_id, puesto_id, motivo, categoria } = req.body;
+    const { area_id, puesto_id, motivo } = req.body;
 
-    console.log('📝 Actualizando empleado:', { id, area_id, puesto_id, motivo, categoria });
+    console.log('📝 Actualizando empleado:', { id, area_id, puesto_id, motivo });
 
     // Validar que puesto_id no sea null
     if (!puesto_id) {
@@ -149,35 +150,36 @@ export const updateEmpleadoAsignacion = async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Finalizar asignación actual
-      await client.query(
-        `UPDATE asignacion_puesto 
-         SET fecha_fin = CURRENT_DATE
-         WHERE persona_id = $1 AND fecha_fin IS NULL`,
-        [id]
+      // Actualizar el contrato activo con el nuevo área y puesto
+      const updateResult = await client.query(
+        `UPDATE contrato 
+         SET area_id = $2, puesto_id = $3
+         WHERE persona_id = $1 
+         AND estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO' LIMIT 1)
+         AND (fecha_fin IS NULL OR fecha_fin >= CURRENT_DATE)
+         RETURNING id`,
+        [id, area_id, puesto_id]
       );
 
-      // Crear nueva asignación
-      await client.query(
-        `INSERT INTO asignacion_puesto 
-         (persona_id, puesto_id, area_id, fecha_inicio, es_principal)
-         VALUES ($1, $2, $3, CURRENT_DATE, true)`,
-        [id, puesto_id, area_id]
-      );
+      if (updateResult.rows.length === 0) {
+        throw new Error('No se encontró un contrato activo para actualizar');
+      }
 
-      console.log('✅ Asignación actualizada');
+      console.log('✅ Contrato actualizado');
 
-      // Si se proporcionó un motivo, guardarlo en observaciones de persona
+      // Si se proporcionó un motivo, guardarlo en observaciones del contrato
       if (motivo && motivo.trim()) {
-        // Obtener observaciones actuales
+        const contratoId = updateResult.rows[0].id;
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        const nuevaObservacion = `[${fechaHoy}] Cambio de puesto/área: ${motivo}`;
+        
+        // Obtener observaciones actuales del contrato
         const observacionesResult = await client.query(
-          `SELECT observaciones FROM persona WHERE id = $1`,
-          [id]
+          `SELECT observaciones FROM contrato WHERE id = $1`,
+          [contratoId]
         );
         
         const observacionesActuales = observacionesResult.rows[0]?.observaciones || '';
-        const fechaHoy = new Date().toISOString().split('T')[0];
-        const nuevaObservacion = `[${fechaHoy}] Cambio de puesto/área: ${motivo}`;
         
         // Agregar nueva observación
         const observacionesActualizadas = observacionesActuales 
@@ -185,16 +187,26 @@ export const updateEmpleadoAsignacion = async (req, res) => {
           : nuevaObservacion;
         
         await client.query(
-          `UPDATE persona SET observaciones = $1 WHERE id = $2`,
-          [observacionesActualizadas, id]
+          `UPDATE contrato SET observaciones = $1 WHERE id = $2`,
+          [observacionesActualizadas, contratoId]
         );
         
-        // Registrar en historial_puesto
+        // Registrar en historial_contrato
         await client.query(
-          `INSERT INTO historial_puesto 
-           (persona_id, puesto_id, area_id, fecha_inicio)
-           VALUES ($1, $2, $3, CURRENT_DATE)`,
-          [id, puesto_id, area_id]
+          `INSERT INTO historial_contrato 
+           (contrato_id, persona_id, cambios)
+           VALUES ($1, $2, $3)`,
+          [
+            contratoId, 
+            id,
+            JSON.stringify({
+              tipo: 'cambio_area_puesto',
+              area_id: area_id,
+              puesto_id: puesto_id,
+              motivo: motivo,
+              fecha: fechaHoy
+            })
+          ]
         );
         
         console.log('📋 Motivo guardado en observaciones:', motivo);

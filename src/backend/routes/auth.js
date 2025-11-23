@@ -17,6 +17,8 @@ router.post("/logout", verificarToken, logout);
 router.get("/verify", verifyToken);
 router.get("/me", verificarToken, verifyToken);
 router.post("/change-password", verificarToken, changePassword);
+// Ruta protegida para registro desde Dashboard (con área automática)
+router.post("/register-dashboard", verificarToken, validateSchema(registerSchema), register);
 
 export default router;
 

@@ -78,6 +78,27 @@ export const login = async (req, res) => {
 
     const permisos = permisosResult.rows.map(p => p.codigo);
 
+    // Obtener el área del usuario desde asignacion_puesto
+    const areaResult = await db.query(
+      `SELECT a.nombre as area_nombre
+      FROM asignacion_puesto ap
+      JOIN area a ON ap.area_id = a.id
+      WHERE ap.persona_id = $1 AND ap.fecha_fin IS NULL
+      ORDER BY ap.fecha_inicio DESC
+      LIMIT 1`,
+      [user.persona_id]
+    );
+
+    const area = areaResult.rows.length > 0 ? areaResult.rows[0].area_nombre : null;
+
+    // Debug: Verificar área obtenida
+    console.log('🏛️ Área obtenida para usuario:', {
+      personaId: user.persona_id,
+      email: user.email,
+      area: area,
+      areaRows: areaResult.rows
+    });
+
     // Crear token JWT con información del usuario y permisos
     const token = jwt.sign(
       {
@@ -87,6 +108,7 @@ export const login = async (req, res) => {
         nombre: `${user.nombre} ${user.apellido_paterno}`,
         rol: user.rol_nombre,
         rolId: user.rol_id,
+        area: area,
         permisos: permisos
       },
       config.jwt.secret,
@@ -161,7 +183,9 @@ export const register = async (req, res) => {
     password,
     sexo,
     fechaNacimiento,
-    rol
+    rol,
+    esRegistroPorJefeArea,
+    personaId // Para registro desde dashboard (persona ya existe)
   } = req.body;
 
   // Normalizar datos - priorizar formato completo
@@ -177,7 +201,9 @@ export const register = async (req, res) => {
   console.log('📝 Registrando usuario:', { 
     nombre: nombreFinal, 
     email: emailFinal, 
-    rol: rolFinal 
+    rol: rolFinal,
+    esRegistroPorJefeArea: esRegistroPorJefeArea,
+    personaId: personaId || 'nueva persona'
   });
 
   try {
@@ -205,20 +231,44 @@ export const register = async (req, res) => {
       await client.query('BEGIN');
       console.log('✅ Transacción iniciada');
 
-      // 1. Crear persona (todos son 'Empleado', el rol específico se asigna en usuario_rol)
-      const personaResult = await client.query(
-        `INSERT INTO persona 
-         (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
-         VALUES ($1, $2, $3, $4, $5, 
-                 (SELECT id FROM sexo WHERE codigo = $6 LIMIT 1),
-                 (SELECT id FROM estado_civil WHERE nombre = 'Soltero' LIMIT 1),
-                 (SELECT id FROM nacionalidad WHERE nombre = 'Mexicana' LIMIT 1))
-         RETURNING id`,
-        ['Empleado', nombreFinal, apellidoPaternoFinal, apellidoMaternoFinal, fechaNacimientoFinal, sexoFinal]
-      );
+      let personaIdFinal;
 
-      const personaId = personaResult.rows[0].id;
-      console.log('✅ Persona creada como Empleado con ID:', personaId);
+      // Si viene personaId del dashboard, usar la persona existente
+      if (personaId) {
+        console.log('📋 Usando persona existente con ID:', personaId);
+        
+        // Verificar que la persona existe y no tiene usuario ya
+        const personaExiste = await client.query(
+          `SELECT p.id 
+           FROM persona p
+           WHERE p.id = $1
+           AND NOT EXISTS (SELECT 1 FROM usuario u WHERE u.persona_id = p.id)`,
+          [personaId]
+        );
+
+        if (personaExiste.rows.length === 0) {
+          throw new Error('La persona no existe o ya tiene un usuario registrado');
+        }
+
+        personaIdFinal = personaId;
+        console.log('✅ Persona validada:', personaIdFinal);
+      } else {
+        // 1. Crear nueva persona (registro desde SignUp)
+        const personaResult = await client.query(
+          `INSERT INTO persona 
+           (tipo, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo_id, estado_civil_id, nacionalidad_id)
+           VALUES ($1, $2, $3, $4, $5, 
+                   (SELECT id FROM sexo WHERE codigo = $6 LIMIT 1),
+                   (SELECT id FROM estado_civil WHERE nombre = 'Soltero' LIMIT 1),
+                   (SELECT id FROM nacionalidad WHERE nombre = 'Mexicana' LIMIT 1))
+           RETURNING id`,
+          ['Empleado', nombreFinal, apellidoPaternoFinal, apellidoMaternoFinal, fechaNacimientoFinal, sexoFinal]
+        );
+
+        personaIdFinal = personaResult.rows[0].id;
+        console.log('✅ Nueva persona creada como Empleado con ID:', personaIdFinal);
+      }
+      
       console.log('📋 Rol asignado será:', rolFinal);
 
       // 2. Crear usuario
@@ -226,7 +276,7 @@ export const register = async (req, res) => {
         `INSERT INTO usuario (persona_id, email, password_hash, activo)
          VALUES ($1, $2, $3, true)
          RETURNING id`,
-        [personaId, emailFinal, passwordHash]
+        [personaIdFinal, emailFinal, passwordHash]
       );
 
       const usuarioId = usuarioResult.rows[0].id;
@@ -246,7 +296,51 @@ export const register = async (req, res) => {
 
       console.log('✅ Rol asignado:', rolFinal);
 
-      // 4. Crear token JWT para login automático (solo si es desde SignUp)
+      // 4. Si es registro por Jefe de Área y el usuario no es EMPLEADO, asignar área automáticamente
+      if (esRegistroPorJefeArea && req.user) {
+        console.log('📍 Asignando área automáticamente...');
+        console.log('Usuario autenticado:', req.user);
+        
+        // Obtener el área del Jefe de Área autenticado
+        const jefeAreaResult = await client.query(
+          `SELECT DISTINCT ap.area_id, p.nombre as puesto_nombre
+           FROM asignacion_puesto ap
+           JOIN puesto p ON ap.puesto_id = p.id
+           WHERE ap.persona_id = $1 AND ap.es_principal = true
+           LIMIT 1`,
+          [req.user.personaId]
+        );
+
+        if (jefeAreaResult.rows.length > 0) {
+          const { area_id, puesto_nombre } = jefeAreaResult.rows[0];
+          console.log(`📍 Área del Jefe: ${area_id}, Puesto: ${puesto_nombre}`);
+
+          // Obtener el puesto_id basado en el rol
+          const puestoResult = await client.query(
+            `SELECT id FROM puesto WHERE nombre = $1`,
+            [rolFinal]
+          );
+
+          if (puestoResult.rows.length > 0) {
+            const puestoId = puestoResult.rows[0].id;
+            
+            // Crear asignación de puesto
+            await client.query(
+              `INSERT INTO asignacion_puesto (persona_id, puesto_id, area_id, fecha_inicio, es_principal)
+               VALUES ($1, $2, $3, NOW(), true)`,
+              [personaId, puestoId, area_id]
+            );
+
+            console.log(`✅ Usuario asignado a área ${area_id} con puesto ${rolFinal}`);
+          } else {
+            console.log(`⚠️ Puesto ${rolFinal} no encontrado, continuando sin asignación de área`);
+          }
+        } else {
+          console.log('⚠️ No se encontró área del Jefe de Área autenticado');
+        }
+      }
+
+      // 5. Crear token JWT para login automático (solo si es desde SignUp)
       const token = jwt.sign(
         {
           usuarioId: usuarioId,
@@ -361,6 +455,7 @@ export const verifyToken = async (req, res) => {
         email: decoded.email,
         nombre: decoded.nombre,
         rol: decoded.rol,
+        area: decoded.area,
         permisos: decoded.permisos
       }
     });

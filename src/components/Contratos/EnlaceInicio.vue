@@ -2,17 +2,32 @@
     <div class="inicio-view">
         <!-- Encabezado simplificado -->
         <div class="header">
-            <h1>Contratos/Inicio</h1>
+            <div>
+                <h1>Contratos/Inicio</h1>
+                <div class="header-sub">Resumen y accesos rápidos</div>
+            </div>
         </div>
 
         <!-- Barra de búsqueda con botón de incidencia (todo en una línea) -->
         <div class="search-container">
             <div class="search-box">
                 <input type="text" placeholder="Buscar" v-model="searchQuery">
-                <span class="material-symbols-rounded search-icon">search</span>
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21l-4.35-4.35" stroke="#666" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="11" cy="11" r="6" stroke="#666" stroke-width="1.6" fill="none"/>
+                </svg>
             </div>
             <button class="btn-incidencia" @click="registrarIncidencia">
                 + Registrar Incidencia
+            </button>
+            <button
+                class="btn-registro"
+                @click="!isEmpleado && irARegistro()"
+                :disabled="isEmpleado"
+                :title="isEmpleado ? 'No tienes permiso para usar esto' : ''"
+                :style="isEmpleado ? 'background: #ccc; color: #888; cursor: not-allowed;' : ''"
+            >
+                📄 Registro de Solicitud
             </button>
         </div>
 
@@ -20,19 +35,51 @@
         <div class="stats-grid">
             <div class="stat-card activos" @click="cambiarVista('activos')">
                 <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
-                <div class="stat-value">{{ stats.activos }}</div>
+                <div class="stat-value-with-icon">                     
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 7a2 2 0 012-2h6l4 4v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+                            <path d="M13 7v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ activosDisplay }}</span></div>
+                </div>
             </div>
             <div class="stat-card proximos" @click="cambiarVista('avencer')">
                 <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
-                <div class="stat-value">{{ stats.proximosVencer }}</div>
+                <div class="stat-value-with-icon">                     
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                            <path d="M7 8h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ proximosDisplay }}</span></div>
+                </div>
             </div>
             <div class="stat-card vencidos" @click="cambiarVista('vencidos')">
                 <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
-                <div class="stat-value">{{ stats.vencidos }}</div>
+                <div class="stat-value-with-icon">                     
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                            <path d="M6 8h12v10a2 2 0 01-2 2H8a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ vencidosDisplay }}</span></div>
+                </div>
             </div>
             <div class="stat-card proceso" @click="cambiarVista('proceso')">
                 <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
-                <div class="stat-value">{{ stats.enProceso }}</div>
+                <div class="stat-value-with-icon">                      
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                        </svg>
+                    </div>
+                <div class="stat-value"><span class="num">{{ enProcesoDisplay }}</span></div>
+                </div>
             </div>
         </div>
 
@@ -58,19 +105,19 @@
                     <div class="table-body">
                         <div v-for="empleado in empleadosFiltrados" :key="empleado.id" class="table-row empleado-row">
                             <div class="col-datos">
-                                <img :src="empleado.avatar" :alt="empleado.nombre" class="avatar">
+                                <img :src="empleado.avatar || defaultAvatar" :alt="empleado.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ empleado.nombre }}</div>
                                     <div class="estado" :class="empleado.estadoClase">{{ empleado.estadoTexto ||
                                         empleado.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ empleado.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(empleado.puesto) }}</div>
                             <div class="col-area">{{ empleado.area }}</div>
                             <div class="col-action">
-                                <button class="btn-revisar empleado" @click="revisarContrato(empleado)">
-                                    REVISAR
-                                </button>
+                                <div class="row-actions">
+                                    <button class="btn-revisar empleado" @click="revisarContrato(empleado)">REVISAR</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -93,19 +140,19 @@
                         <div v-for="aspirante in aspirantesFiltrados" :key="aspirante.id"
                             class="table-row aspirante-row">
                             <div class="col-datos">
-                                <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar">
+                                <img :src="aspirante.avatar || defaultAvatar" :alt="aspirante.nombre" class="avatar" @error="onImgError">
                                 <div class="datos-info">
                                     <div class="nombre">{{ aspirante.nombre }}</div>
                                     <div class="estado" :class="aspirante.estadoClase">{{ aspirante.estadoTexto ||
                                         aspirante.fase }}</div>
                                 </div>
                             </div>
-                            <div class="col-puesto">{{ aspirante.puesto }}</div>
+                            <div class="col-puesto">{{ formatRoleName(aspirante.puesto) }}</div>
                             <div class="col-area">{{ aspirante.area }}</div>
                             <div class="col-action">
-                                <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">
-                                    REVISAR
-                                </button>
+                                <div class="row-actions">
+                                    <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">REVISAR</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -116,7 +163,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useAuth } from '@/composables/useAuth';
 
 // Props - recibe datos del componente raíz
 const props = defineProps({
@@ -132,6 +180,34 @@ const props = defineProps({
 
 // Emits - envía eventos al componente raíz
 const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
+
+const defaultAvatar = '/src/assets/default-user.png';
+
+// Animated stats display
+const activosDisplay = ref(0);
+const proximosDisplay = ref(0);
+const vencidosDisplay = ref(0);
+const enProcesoDisplay = ref(0);
+
+const animateCount = (targetRef, to, duration = 700) => {
+    const start = performance.now();
+    const from = Number(targetRef.value) || 0;
+    const diff = to - from;
+    if (diff === 0) { targetRef.value = to; return; }
+    const step = (now) => {
+        const t = Math.min((now - start) / duration, 1);
+        targetRef.value = Math.floor(from + diff * t);
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+};
+
+// Per-row actions state (three-dot menus removed)
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 // Estado local
 const searchQuery = ref('');
@@ -169,6 +245,24 @@ const aspirantesFiltrados = computed(() => {
     );
 });
 
+// animate stats on mount and when props.stats changes
+onMounted(() => {
+    if (props.stats) {
+        animateCount(activosDisplay, props.stats.activos || 0);
+        animateCount(proximosDisplay, props.stats.proximosVencer || 0);
+        animateCount(vencidosDisplay, props.stats.vencidos || 0);
+        animateCount(enProcesoDisplay, props.stats.enProceso || 0);
+    }
+});
+
+watch(() => props.stats, (ns) => {
+    if (!ns) return;
+    animateCount(activosDisplay, ns.activos || 0);
+    animateCount(proximosDisplay, ns.proximosVencer || 0);
+    animateCount(vencidosDisplay, ns.vencidos || 0);
+    animateCount(enProcesoDisplay, ns.enProceso || 0);
+}, { deep: true });
+
 // Métodos
 const crearContrato = () => {
     emit('crear-contrato');
@@ -185,6 +279,28 @@ const cambiarVista = (vista) => {
 const registrarIncidencia = () => {
     emit('registrar-incidencia');
 };
+
+const irARegistro = () => {
+    emit('cambiar-vista', 'registro');
+};
+
+const { userRole } = useAuth();
+const isEmpleado = computed(() => userRole.value === 'EMPLEADO');
+
+// Formatea el nombre del rol del sistema
+function formatRoleName(role) {
+    const map = {
+        'ADMIN': 'Admin',
+        'EMPLEADO': 'Empleado',
+        'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+        'JEFE_VACACIONES': 'Jefe de Vacaciones',
+        'JEFE_CONTRATOS': 'Jefe de Contratos',
+        'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+        'JEFE_AREA': 'Jefe de Área',
+        'JEFE_RH': 'Jefe de Recursos Humanos'
+    };
+    return map[role] || role;
+}
 </script>
 
 <style scoped>
@@ -213,10 +329,9 @@ const registrarIncidencia = () => {
 /* Search Container - En línea */
 .search-container {
     background-color: white;
-    border: 3px solid #00a8e8;
     border-radius: 12px;
     padding: 2rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -279,20 +394,46 @@ const registrarIncidencia = () => {
     box-shadow: 0 2px 8px rgba(79, 57, 246, 0.3);
 }
 
+.btn-registro {
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-registro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.btn-registro:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
 
 /* Stats Grid - 4 columnas en una línea */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    gap: 1rem;
+    margin: 0 2rem 1rem 2rem;
     padding: 0;
 }
 
 .stat-card {
     background: white;
-    padding: 2rem;
-    border-radius: 12px;
+    padding: 2.2rem 2.4rem;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -320,7 +461,7 @@ const registrarIncidencia = () => {
 }
 
 .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     font-weight: 700;
     line-height: 1.3;
     text-transform: uppercase;
@@ -328,49 +469,65 @@ const registrarIncidencia = () => {
 }
 
 .stat-card.activos .stat-label {
-    color: #28a745;
+    color: #333;
+    text-align: center;
 }
 
 .stat-card.proximos .stat-label {
-    color: #ff9800;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-card.vencidos .stat-label {
-    color: #dc3545;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-card.proceso .stat-label {
-    color: #17a2b8;
+    color: #000000;
+    text-align: center;
 }
 
 .stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-size: 2.6rem;
+    font-weight: 800;
     text-align: center;
 }
 
 .stat-card.activos .stat-value {
-    color: #28a745;
+    color: #000000;
 }
 
 .stat-card.proximos .stat-value {
-    color: #ff9800;
+    color: #000000;
 }
 
 .stat-card.vencidos .stat-value {
-    color: #dc3545;
+    color: #000000;
 }
 
 .stat-card.proceso .stat-value {
-    color: #17a2b8;
+    color: #000000;
 }
+
+/* Icon box inside stat cards */
+.stat-value-with-icon { display:flex; align-items:center; justify-content:center; gap:18px; }
+.icon-box { width:56px; height:56px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 -6px 12px rgba(255,255,255,0.25); }
+.stat-card.activos .icon-box { background: rgba(16,185,129,0.12); border: 2px solid rgba(16,185,129,0.18); color: #059669; }
+.stat-card.proximos .icon-box { background: rgba(221,200,81,0.12); border: 2px solid rgba(221,200,81,0.18); color: #b88600; }
+.stat-card.vencidos .icon-box { background: rgba(220,53,69,0.08); border: 2px solid rgba(220,53,69,0.14); color: #b91c1c; }
+.stat-card.proceso .icon-box { background: rgba(23,162,184,0.08); border: 2px solid rgba(23,162,184,0.14); color: #0e7490; }
+
+.stat-label { text-align:center; font-size:0.85rem; letter-spacing: 0.6px; }
+.stat-value { display:flex; align-items:center; justify-content:center; gap:12px; }
+.stat-value .num { font-size: 2.6rem; }
 
 /* Destacados Header */
 .destacados-header {
     background-color: white;
     border-radius: 12px;
     padding: 1.5rem;
-    margin: 0 2rem 1.5rem 2rem;
+    margin: 0 2rem 1rem 2rem;
     text-align: center;
 }
 
@@ -416,11 +573,11 @@ const registrarIncidencia = () => {
 .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 120px;
-    padding: 1rem;
+    padding: 1rem 1rem 1rem 2.5rem;
     background-color: #f0f0f0;
     font-weight: 700;
-    color: #555;
-    font-size: 0.85rem;
+    color: #000000;
+    font-size: 0.9rem;
     text-transform: uppercase;
 }
 
@@ -441,7 +598,7 @@ const registrarIncidencia = () => {
 }
 
 .empleado-row {
-    border: 2px solid #28a745;
+    border: 2px solid #e2e2e2;
     background-color: #f8fff9;
 }
 
@@ -451,7 +608,7 @@ const registrarIncidencia = () => {
 }
 
 .aspirante-row {
-    border: 2px solid #00bcd4;
+    border: 2px solid #e2e2e2;
     background-color: #f0fbff;
 }
 
@@ -471,6 +628,15 @@ const registrarIncidencia = () => {
     height: 50px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d4e9ff;
+    font-size: 24px;
+    color: #666;
 }
 
 .datos-info {
@@ -527,8 +693,8 @@ const registrarIncidencia = () => {
 }
 
 .btn-revisar.empleado {
-    color: #28a745;
-    border-color: #28a745;
+    color: #669571;
+    border-color: #669571;
 }
 
 .btn-revisar.empleado:hover {
@@ -537,8 +703,8 @@ const registrarIncidencia = () => {
 }
 
 .btn-revisar.aspirante {
-    color: #00bcd4;
-    border-color: #00bcd4;
+    color: #75a1a7;
+    border-color: #abcace;
 }
 
 .btn-revisar.aspirante:hover {
@@ -598,4 +764,37 @@ const registrarIncidencia = () => {
         grid-column: 1 / -1;
     }
 }
+
+.stat-value-with-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 10px;
+    margin-top: 0px; 
+}
+
+.contract-icon.activo {
+    font-size: 50px;
+    color: #10b981; 
+}
+
+.contract-icon.vencido {
+    font-size: 50px;
+    color: #dc3545; 
+}
+
+.contract-icon.por-vencer {
+    font-size: 50px;
+    color: #ddc851; 
+}
+
+.contract-icon.proceso {
+    font-size: 50px;
+    color: #17a2b8; 
+}
+
+/* Small enhancements: animated numbers and row action menu */
+.header-sub { color: #6b7280; font-size: 0.95rem; margin-top: 6px; }
+.num { transition: all 0.2s ease; font-variant-numeric: tabular-nums; }
+.row-actions { display:flex; gap:0.5rem; align-items:center; }
 </style>

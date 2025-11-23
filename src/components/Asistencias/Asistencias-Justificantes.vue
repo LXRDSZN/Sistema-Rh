@@ -3,40 +3,6 @@
     <div class="content-inner">
       <h2 class="page-title">Gestión de Justificaciones</h2>
       
-      <!-- Filtros superiores -->
-      <div class="filtros-superiores">
-        <v-select
-          v-model="filtroEstado"
-          :items="estadosItems"
-          placeholder="Todos los estados"
-          class="filter-select input-white"
-          variant="outlined"
-          density="compact"
-          hide-details
-        />
-
-        <!-- Filtro de área superior CORREGIDO -->
-        <v-select
-          v-model="filtroArea"
-          :items="areasItems"
-          item-title="title"
-          item-value="value"
-          placeholder="Todas las áreas"
-          class="filter-select input-white"
-          variant="outlined"
-          density="compact"
-          hide-details
-        />
-
-        <v-btn
-          color="#5E47FF"
-          class="filter-btn"
-          @click="aplicarFiltrosSuperior"
-        >
-          Aplicar Filtro
-        </v-btn>
-      </div>
-
       <!-- Formulario: Nueva Justificación -->
       <v-card class="card-formulario" elevation="0">
         <h2 class="card-titulo">Registrar Nueva Justificación</h2>
@@ -197,16 +163,16 @@
         <v-card-text>
           <div class="filtros-monitoreo">
             <v-select
-              v-model="monitoreo.periodo"
-              :items="periodosItems"
-              placeholder="Mes pasado"
+              v-model="monitoreo.mes"
+              :items="monthsItems"
+              placeholder="Seleccionar mes"
               class="filter-select-monitor input-white"
               variant="outlined"
               density="compact"
               hide-details
             />
 
-            <!-- Filtro de área monitoreo CORREGIDO -->
+            <!-- Filtro de área monitoreo -->
             <v-select
               v-model="monitoreo.area_id"
               :items="areasMonitoreoItems"
@@ -282,6 +248,59 @@
         <h2 class="card-titulo">Registro de Justificaciones</h2>
 
         <v-card-text>
+          <!-- Filtros para la tabla de registro (iguales a monitoreo) -->
+          <div class="filtros-registro">
+            <v-select
+              v-model="registro.mes"
+              :items="monthsItems"
+              placeholder="Seleccionar mes"
+              class="filter-select-registro input-white"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+
+            <v-select
+              v-model="registro.area_id"
+              :items="areasRegistroItems"
+              item-title="title"
+              item-value="value"
+              placeholder="Todas las áreas"
+              class="filter-select-registro input-white"
+              variant="outlined"
+              density="compact"
+              hide-details
+              :menu-props="{ 
+                location: 'bottom',
+                offsetY: true,
+                maxHeight: 170
+              }"
+            />
+
+            <v-text-field
+              v-model="registro.busqueda"
+              placeholder="Buscar Empleado"
+              class="search-input-registro input-white"
+              variant="outlined"
+              density="compact"
+              hide-details
+              @input="validarBusquedaRegistro"
+              :class="{ 'input-error': busquedaRegistroError }"
+            >
+              <template v-slot:append-inner>
+                <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
+              </template>
+            </v-text-field>
+
+            <v-btn
+              color="#5E47FF"
+              class="filter-btn"
+              @click="aplicarFiltrosRegistro"
+            >
+              Aplicar Filtro
+            </v-btn>
+          </div>
+
           <v-table class="tabla-registro">
             <thead>
               <tr>
@@ -300,19 +319,19 @@
                   <p class="mt-2">Cargando registros...</p>
                 </td>
               </tr>
-              <tr v-else-if="registroJustificaciones.length === 0">
+              <tr v-else-if="registroJustificacionesFiltradas.length === 0">
                 <td colspan="6" class="text-center py-4 text-grey">
                   No hay justificaciones registradas
                 </td>
               </tr>
-              <tr v-for="(item, index) in registroJustificaciones" :key="item.id || index" v-else>
+              <tr v-for="(item, index) in registroJustificacionesFiltradas" :key="item.id || index" v-else>
                 <td class="text-center">{{ item.empleado || 'N/A' }}</td>
                 <td class="text-center">{{ item.area || 'N/A' }}</td>
                 <td class="text-center">{{ formatearFecha(item.fecha_creacion) }}</td>
                 <td class="text-center">{{ item.motivo }}</td>
                 <td class="text-center">
                   <div class="archivo-tabla" v-if="item.archivo_justificante">
-                    <span class="archivo-texto-tabla">{{ item.archivo_justificante }}</span>
+                    <span class="archivo-texto-tabla">{{ obtenerNombreArchivoTabla(item) }}</span>
                     <v-btn
                       icon
                       size="small"
@@ -373,7 +392,7 @@
             <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
               <strong>Archivo:</strong> 
               <div class="archivo-detalle">
-                <span class="archivo-texto-detalle">{{ justificacionSeleccionada.archivo_justificante }}</span>
+                <span class="archivo-texto-detalle">{{ obtenerNombreArchivoTabla(justificacionSeleccionada) }}</span>
                 <v-btn
                   icon
                   size="small"
@@ -411,7 +430,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAsistencias } from '@/composables/useAsistencias'
 import axios from 'axios'
 
@@ -438,6 +457,9 @@ const ESTADOS_JUSTIFICACION = {
 const empleados = ref([])
 const areas = ref([])
 
+// Mapa idArchivo -> nombreArchivo
+const archivoNombres = ref({})
+
 // Snackbar
 const snackbar = ref({
   show: false,
@@ -450,11 +472,16 @@ const dialogDetalle = ref(false)
 const justificacionSeleccionada = ref(null)
 const guardando = ref(false)
 const busquedaError = ref(false)
+const busquedaRegistroError = ref(false)
 
 // Archivo
 const fileInput = ref(null)
 const nombreArchivo = ref('Ningún archivo seleccionado')
 const archivoPrevisualizacion = ref(null)
+
+// Año actual para los meses
+const currentDate = new Date()
+const selectedYear = ref(currentDate.getFullYear())
 
 // Datos del formulario
 const formulario = ref({
@@ -465,11 +492,16 @@ const formulario = ref({
   motivo: ''
 })
 
-// Filtros
-const filtroEstado = ref('todos')
-const filtroArea = ref('todas')
+// Filtros con mes específico
 const monitoreo = ref({
-  periodo: 'mes-pasado',
+  mes: currentDate.getMonth() + 1,
+  area_id: null,
+  busqueda: ''
+})
+
+// Nuevos filtros para registro
+const registro = ref({
+  mes: currentDate.getMonth() + 1,
   area_id: null,
   busqueda: ''
 })
@@ -481,6 +513,7 @@ onMounted(async () => {
     await cargarTiposIncidencia()
     console.log('Tipos de incidencia cargados:', tiposIncidencia.value)
     await cargarJustificantes()
+    await cargarNombresArchivos()
   } catch (error) {
     console.error('Error al cargar datos iniciales:', error)
   }
@@ -494,12 +527,9 @@ const cargarDatosIniciales = async () => {
       withCredentials: true 
     })
     
-    // Transformar los datos de empleados al formato esperado
     const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
     empleados.value = empleadosData.map(emp => {
-      // Si ya tiene el formato correcto (con nombre completo)
       if (emp.nombre && !emp.apellido_paterno) {
-        // Extraer nombre, apellido_paterno del nombre completo
         const partes = emp.nombre.split(' ')
         return {
           id: emp.id,
@@ -510,7 +540,6 @@ const cargarDatosIniciales = async () => {
           area_id: emp.area_id
         }
       }
-      // Si tiene la estructura con campos separados
       return {
         ...emp,
         nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
@@ -528,25 +557,24 @@ const cargarDatosIniciales = async () => {
   }
 }
 
-const estadosItems = [
-  { title: 'Todos los estados', value: 'todos' },
-  { title: 'Pendiente', value: ESTADOS_JUSTIFICACION.PENDIENTE },
-  { title: 'Aprobado', value: ESTADOS_JUSTIFICACION.APROBADO },
-  { title: 'Rechazado', value: ESTADOS_JUSTIFICACION.RECHAZADO }
-]
+// Items para selector de meses
+const monthsItems = computed(() => {
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+  return meses.map((mes, index) => ({
+    title: `${mes} ${selectedYear.value}`,
+    value: index + 1
+  }))
+})
 
-const areasItems = computed(() => [
-  { title: 'Todas las áreas', value: 'todas' },
+const areasMonitoreoItems = computed(() => [
+  { title: 'Todas las áreas', value: null },
   ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
 ])
 
-const periodosItems = [
-  { title: 'Mes pasado', value: 'mes-pasado' },
-  { title: 'Este mes', value: 'este-mes' },
-  { title: 'Último trimestre', value: 'trimestre' }
-]
-
-const areasMonitoreoItems = computed(() => [
+const areasRegistroItems = computed(() => [
   { title: 'Todas las áreas', value: null },
   ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
 ])
@@ -561,9 +589,6 @@ const empleadosConPlaceholder = computed(() => {
 
 const tiposIncidenciaConPlaceholder = computed(() => {
   const tipos = tiposIncidencia.value || []
-  console.log('📋 Tipos de incidencia RECIBIDOS:', tipos)
-  console.log('📊 Cantidad de tipos:', tipos.length)
-  console.log('🔍 Estructura primer tipo:', tipos[0])
   
   if (tipos.length === 0) {
     return [{ id: null, nombre: 'Cargando tipos...', disabled: true }]
@@ -577,6 +602,16 @@ const tiposIncidenciaConPlaceholder = computed(() => {
 
 const justificacionesFiltradas = computed(() => {
   let resultado = [...(justificantes.value || [])]
+  
+  // Filtro por mes
+  if (monitoreo.value.mes) {
+    resultado = resultado.filter(item => {
+      if (!item.fecha_inicio) return false
+      const fechaItem = new Date(item.fecha_inicio)
+      return fechaItem.getMonth() + 1 === monitoreo.value.mes && 
+             fechaItem.getFullYear() === selectedYear.value
+    })
+  }
   
   // Filtro por búsqueda de empleado
   if (monitoreo.value.busqueda) {
@@ -596,29 +631,65 @@ const justificacionesFiltradas = computed(() => {
   return resultado
 })
 
-const registroJustificaciones = computed(() => {
-  return justificantes.value || []
+const registroJustificacionesFiltradas = computed(() => {
+  let resultado = [...(justificantes.value || [])]
+  
+  // Filtro por mes
+  if (registro.value.mes) {
+    resultado = resultado.filter(item => {
+      if (!item.fecha_inicio) return false
+      const fechaItem = new Date(item.fecha_inicio)
+      return fechaItem.getMonth() + 1 === registro.value.mes && 
+             fechaItem.getFullYear() === selectedYear.value
+    })
+  }
+  
+  // Filtro por búsqueda de empleado
+  if (registro.value.busqueda) {
+    const busqueda = registro.value.busqueda.toLowerCase().trim()
+    resultado = resultado.filter(item => {
+      return item.empleado && item.empleado.toLowerCase().includes(busqueda)
+    })
+  }
+  
+  // Filtro por área
+  if (registro.value.area_id) {
+    resultado = resultado.filter(item => 
+      item.area && item.area.toLowerCase() === registro.value.area_id.toLowerCase()
+    )
+  }
+  
+  return resultado
 })
 
+// Cargar nombres de archivos
+const cargarNombresArchivos = async () => {
+  try {
+    const items = justificantes.value || []
+    const ids = [...new Set(items.map(i => i.archivo_justificante).filter(Boolean))]
+
+    for (const id of ids) {
+      if (!archivoNombres.value[id]) {
+        const resp = await axios.get(`${API_URL}/archivo/${id}`, {
+          withCredentials: true
+        })
+        const info = resp.data.archivo || resp.data.data || resp.data
+        archivoNombres.value[id] = info.nombre || info.filename || id
+      }
+    }
+  } catch (error) {
+    console.error('Error al cargar nombres de archivos:', error)
+  }
+}
+
+// Función para que la tabla muestre el nombre del archivo
+const obtenerNombreArchivoTabla = (item) => {
+  const id = item.archivo_justificante || item.archivo_id
+  if (!id) return ''
+  return archivoNombres.value[id] || id
+}
+
 // Funciones de utilidad
-const obtenerNombreEmpleado = (empleadoId) => {
-  if (!empleadoId) return 'N/A'
-  const empleado = empleados.value.find(emp => emp.id === empleadoId)
-  return empleado ? `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim() : 'N/A'
-}
-
-const obtenerNombreArea = (areaId) => {
-  if (!areaId) return 'N/A'
-  const area = areas.value.find(a => a.id === areaId)
-  return area ? area.nombre : 'N/A'
-}
-
-const obtenerNombreTipoIncidencia = (tipoId) => {
-  if (!tipoId) return 'N/A'
-  const tipo = (tiposIncidencia.value || []).find(t => t.id === tipoId)
-  return tipo ? tipo.nombre : 'N/A'
-}
-
 const obtenerClaseEstado = (estado) => {
   const clases = {
     [ESTADOS_JUSTIFICACION.PENDIENTE]: 'estado-pendiente',
@@ -647,10 +718,19 @@ const validarBusqueda = () => {
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
   if (monitoreo.value.busqueda && !soloLetrasRegex.test(monitoreo.value.busqueda)) {
     busquedaError.value = true
-    // Remover caracteres no válidos
     monitoreo.value.busqueda = monitoreo.value.busqueda.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
   } else {
     busquedaError.value = false
+  }
+}
+
+const validarBusquedaRegistro = () => {
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
+  if (registro.value.busqueda && !soloLetrasRegex.test(registro.value.busqueda)) {
+    busquedaRegistroError.value = true
+    registro.value.busqueda = registro.value.busqueda.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+  } else {
+    busquedaRegistroError.value = false
   }
 }
 
@@ -668,25 +748,22 @@ const quitarArchivo = () => {
   mostrarMensaje('Archivo removido correctamente')
 }
 
-const aplicarFiltrosSuperior = async () => {
+const aplicarFiltrosMonitoreo = async () => {
   try {
-    const filtros = {}
-    if (filtroEstado.value !== 'todos') {
-      filtros.estado = filtroEstado.value
-    }
-    if (filtroArea.value !== 'todas') {
-      filtros.area = filtroArea.value
-    }
-    
-    await cargarJustificantes(filtros)
-    mostrarMensaje('Filtros aplicados correctamente')
+    await cargarJustificantes()
+    mostrarMensaje('Filtros de monitoreo aplicados')
   } catch (error) {
-    mostrarMensaje('Error al aplicar filtros', 'error')
+    console.error('Error al aplicar filtros:', error)
   }
 }
 
-const aplicarFiltrosMonitoreo = () => {
-  mostrarMensaje('Filtros de monitoreo aplicados')
+const aplicarFiltrosRegistro = async () => {
+  try {
+    await cargarJustificantes()
+    mostrarMensaje('Filtros de registro aplicados')
+  } catch (error) {
+    console.error('Error al aplicar filtros:', error)
+  }
 }
 
 const abrirSelectorArchivo = () => {
@@ -742,7 +819,6 @@ const guardarJustificacion = async () => {
       return
     }
 
-    // Validar que la fecha fin no sea menor que la fecha inicio
     if (formulario.value.fecha_fin && formulario.value.fecha_fin < formulario.value.fecha_inicio) {
       mostrarMensaje('La fecha de fin no puede ser anterior a la fecha de inicio', 'error')
       return
@@ -750,24 +826,38 @@ const guardarJustificacion = async () => {
 
     guardando.value = true
 
-    // Preparar datos para enviar al backend
+    let archivoId = null
+
+    if (archivoPrevisualizacion.value) {
+      const formData = new FormData()
+      formData.append('archivo', archivoPrevisualizacion.value)
+
+      const respUpload = await axios.post(`${API_URL}/upload`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      console.log('Respuesta de /upload:', respUpload.data)
+
+      const archivoResp = respUpload.data.archivo || respUpload.data.data || respUpload.data
+      archivoId = archivoResp.id
+    }
+
     const datosJustificante = {
       empleado_id: formulario.value.empleado_id,
       tipo_incidencia_id: formulario.value.tipo_incidencia_id,
       fecha_inicio: formulario.value.fecha_inicio,
       fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
       motivo: formulario.value.motivo,
-      archivo_justificante: archivoPrevisualizacion.value ? archivoPrevisualizacion.value.name : null
+      archivo_justificante: archivoId
     }
 
-    // Llamar al composable para crear el justificante
     await crearJustificante(datosJustificante)
-    
+
     mostrarMensaje('Justificación guardada correctamente')
     limpiarFormulario()
-    
-    // Recargar justificantes para mostrar el nuevo
     await cargarJustificantes()
+    await cargarNombresArchivos()
     
   } catch (error) {
     console.error('Error al guardar justificante:', error)
@@ -795,19 +885,49 @@ const verDetalle = (item) => {
 
 const verArchivo = () => {
   if (archivoPrevisualizacion.value) {
-    // Simular vista de archivo
     const url = URL.createObjectURL(archivoPrevisualizacion.value)
     window.open(url, '_blank')
   }
 }
 
-const verArchivoRegistro = (item) => {
-  // Simular vista de archivo desde BD
-  const nombreArchivo = item.archivo_justificante || item.archivo_nombre
-  if (nombreArchivo) {
-    mostrarMensaje(`Visualizando archivo: ${nombreArchivo}`, 'info')
+const verArchivoRegistro = async (item) => {
+  const archivoId = item.archivo_justificante || item.archivo_id
+
+  if (!archivoId) {
+    mostrarMensaje('Este registro no tiene archivo para visualizar', 'warning')
+    return
+  }
+
+  try {
+    const resp = await axios.get(`${API_URL}/archivo/${archivoId}`, {
+      withCredentials: true
+    })
+
+    console.log('Info archivo:', resp.data)
+
+    const info = resp.data.archivo || resp.data.data || resp.data
+    let url = info.storage_url || info.url || info.location
+
+    if (!url) {
+      mostrarMensaje('No se encontró la URL del archivo', 'error')
+      return
+    }
+
+    if (!url.startsWith('http')) {
+      url = `${API_URL.replace('/api', '')}${url}`
+    }
+
+    window.open(url, '_blank')
+  } catch (error) {
+    console.error('Error al obtener archivo:', error)
+    mostrarMensaje('No se pudo abrir el archivo', 'error')
   }
 }
+
+// Cuando cambien los justificantes, volver a buscar nombres de archivos nuevos
+watch(justificantes, () => {
+  cargarNombresArchivos()
+})
 </script>
 
 <style scoped>
@@ -940,29 +1060,6 @@ const verArchivoRegistro = (item) => {
   background-color: #FAFAFA;
 }
 
-/* Filtros superiores */
-.filtros-superiores {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 1rem;
-  width: 100%;
-  max-width: 700px;
-  padding: 1;
-  box-sizing: border-box;
-  margin-bottom: 2rem;
-}
-
-.filter-select {
-  width: 200px;
-}
-
-.filter-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
 /* Cards */
 .card-formulario,
 .card-monitoreo,
@@ -1051,7 +1148,6 @@ const verArchivoRegistro = (item) => {
 
 .btn-action :deep(.v-icon) {
   margin-right: 0.5rem;
-
 }
 
 /* Filtros de monitoreo */
@@ -1071,6 +1167,31 @@ const verArchivoRegistro = (item) => {
 
 .search-input-monitor {
   width: 350px;
+}
+
+/* Filtros de registro */
+.filtros-registro {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  width: 1100px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.filter-select-registro {
+  width: 200px;
+}
+
+.search-input-registro {
+  width: 350px;
+}
+
+.filter-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 /* Tablas con filas alternadas */
@@ -1149,15 +1270,16 @@ const verArchivoRegistro = (item) => {
     padding: 1rem;
   }
 
-  .filtros-superiores,
-  .filtros-monitoreo {
+  .filtros-monitoreo,
+  .filtros-registro {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filter-select,
   .filter-select-monitor,
-  .search-input-monitor {
+  .filter-select-registro,
+  .search-input-monitor,
+  .search-input-registro {
     width: 100%;
   }
 

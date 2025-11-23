@@ -135,24 +135,47 @@ onMounted(async () => {
   await cargarDashboard()
 })
 
-// Estadísticas semanales procesadas
+// Estadísticas semanales procesadas dinámicamente
 const estadisticasSemanales = computed(() => {
-  if (!dashboardData.value?.estadisticasSemanales) {
-    return [
-      { dia: 'Lunes', retardos: 0, ausencias: 0 },
-      { dia: 'Martes', retardos: 0, ausencias: 0 },
-      { dia: 'Miércoles', retardos: 0, ausencias: 0 },
-      { dia: 'Jueves', retardos: 0, ausencias: 0 },
-      { dia: 'Viernes', retardos: 0, ausencias: 0 }
-    ]
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  
+  if (!dashboardData.value?.estadisticasSemanales || dashboardData.value.estadisticasSemanales.length === 0) {
+    // Generar últimos 5 días laborales dinámicamente
+    const resultado = []
+    const hoy = new Date()
+    let contadorDias = 0
+    
+    for (let i = 0; i < 7 && contadorDias < 5; i++) {
+      const fecha = new Date(hoy)
+      fecha.setDate(hoy.getDate() - i)
+      const diaSemana = fecha.getDay()
+      
+      // Saltar fines de semana (0 = Domingo, 6 = Sábado)
+      if (diaSemana !== 0 && diaSemana !== 6) {
+        resultado.unshift({
+          dia: diasSemana[diaSemana],
+          retardos: 0,
+          ausencias: 0,
+          fecha: fecha.toISOString().split('T')[0]
+        })
+        contadorDias++
+      }
+    }
+    return resultado
   }
   
-  // Mapear días de la BD
-  return dashboardData.value.estadisticasSemanales.map(d => ({
-    dia: d.dia?.trim() || 'N/A',
-    retardos: parseInt(d.retardos) || 0,
-    ausencias: parseInt(d.ausencias) || 0
-  }))
+  // Mapear días de la BD con nombre correcto
+  return dashboardData.value.estadisticasSemanales.map(d => {
+    // Limpiar nombre del día (puede venir con espacios extras de PostgreSQL)
+    const diaTexto = d.dia?.trim() || 'N/A'
+    
+    return {
+      dia: diaTexto,
+      retardos: parseInt(d.retardos) || 0,
+      ausencias: parseInt(d.ausencias) || 0,
+      fecha: d.fecha || null
+    }
+  })
 })
 
 // Calcular ancho de barra (máximo 10 = 100%)
@@ -176,7 +199,7 @@ const calcularAncho = (valor) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin: 0 0rem 2rem 1rem;
 }
 
 h1 {

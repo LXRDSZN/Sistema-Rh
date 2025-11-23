@@ -5,65 +5,32 @@
             <button class="btn-back" @click="volverInicio">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <h1>Contratos - Estadísticas</h1>
+            <h1>Contratos/Estadísticas</h1>
         </div>
 
         <!-- Contenido blanco -->
         <div class="content-card">
-            <!-- Barra de búsqueda y notificaciones -->
-            <div class="search-notifications">
-                <div class="search-box">
-                    <input type="text" placeholder="Buscar" v-model="searchQuery">
-                    <span class="material-symbols-rounded">search</span>
-                </div>
-                <button class="icon-btn">
-                    <span class="material-symbols-rounded">notifications</span>
-                </button>
-            </div>
 
-            <!-- Filtros superiores -->
-            <div class="filters-container">
-                <div class="filter-group">
-                    <label>Departamento</label>
-                    <select v-model="filters.area" class="filter-select">
-                        <option value="">Todos</option>
-                        <option value="Contratos">Contratos</option>
-                        <option value="Asistencias">Asistencias</option>
-                        <option value="Incidencias">Incidencias</option>
-                        <option value="Vacaciones">Vacaciones</option>
-                        <option value="Areas">Areas</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Tipo de contrato</label>
-                    <select v-model="filters.tipoContrato" class="filter-select">
-                        <option value="">Todos</option>
-                        <option value="Indefinidos">Indefinidos</option>
-                        <option value="Temporales">Temporales</option>
-                        <option value="Por Obra">Por Obra</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Período</label>
-                    <select v-model="filters.periodo" class="filter-select">
-                        <option value="indefinido">Indefinido</option>
-                        <option value="mensual">Mensual</option>
-                        <option value="trimestral">Trimestral</option>
-                        <option value="anual">Anual</option>
-                    </select>
-                </div>
-            </div> <!-- Tarjetas de resumen -->
+            <!-- Tarjetas de resumen -->
             <div class="summary-cards">
                 <div class="summary-card green">
-                    <p class="card-title">CONTRATOS ACTIVOS</p>
-                    <p class="card-number">{{ stats.activos }}</p>
+                    <div class="card-icon">
+                        <span class="material-symbols-rounded">badge</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-title">CONTRATOS ACTIVOS</p>
+                        <p class="card-number">{{ stats.activos }}</p>
+                    </div>
                 </div>
 
                 <div class="summary-card blue">
-                    <p class="card-title">SOLICITUDES DE VACANTES</p>
-                    <p class="card-number">{{ stats.vacantes }}</p>
+                    <div class="card-icon">
+                        <span class="material-symbols-rounded">person_search</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-title">SOLICITUDES VACANTES</p>
+                        <p class="card-number">{{ stats.vacantes }}</p>
+                    </div>
                 </div>
             </div>
 
@@ -72,30 +39,77 @@
                 <!-- Gráfico de dona: Distribución por tipo de contrato -->
                 <div class="chart-card">
                     <h3 class="chart-title">Distribución por tipo de contrato</h3>
-                    <div class="chart-content">
-                        <canvas ref="donutChart" width="400" height="300"></canvas>
+                    <div class="chart-content donut-container">
+                        <div class="donut-chart-wrapper">
+                            <canvas ref="donutChart" width="300" height="300"></canvas>
+                            <div class="donut-center-text">
+                                <div class="center-number">{{ totalContratos }}</div>
+                                <div class="center-label">Total</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            <div v-for="(item, index) in distribucionContratos" :key="index" 
+                                class="legend-item"
+                                @mouseenter="highlightSlice(index)"
+                                @mouseleave="unhighlightSlice()">
+                                <div class="legend-color" :style="{ backgroundColor: item.color }"></div>
+                                <div class="legend-info">
+                                    <span class="legend-label">{{ item.tipo }}</span>
+                                    <span class="legend-value">{{ item.total }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Gráfico de barras: Contratos por área -->
                 <div class="chart-card">
                     <h3 class="chart-title">Contratos por área</h3>
-                    <div class="chart-content">
-                        <canvas ref="barChart" width="400" height="300"></canvas>
+                    <div class="chart-content modern-bars">
+                        <div v-for="(item, index) in areasData" :key="index" class="bar-group">
+                            <div class="bar-wrapper">
+                                <div class="bar-fill" 
+                                    :style="{ 
+                                        height: calcularPorcentaje(item.total_contratos, areasMax) + '%',
+                                        background: `linear-gradient(180deg, ${getColorArea(index)}, ${getColorArea(index)}dd)`
+                                    }">
+                                    <span class="bar-value-top">{{ item.total_contratos }}</span>
+                                </div>
+                            </div>
+                            <span class="bar-label-bottom">{{ item.area }}</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Estado del proceso de contratación -->
                 <div class="chart-card">
                     <h3 class="chart-title">Estado del proceso de contratación</h3>
-                    <div class="chart-content empty-state">
-                        <p>No hay datos disponibles</p>
+                    <div class="chart-content horizontal-bars">
+                        <div v-for="(item, index) in procesoData" :key="index" class="bar-item">
+                            <span class="bar-label">{{ item.label }}</span>
+                            <div class="bar-container">
+                                <div class="bar"
+                                    :style="{ width: calcularPorcentaje(item.value, procesoMax) + '%', backgroundColor: getColorProceso(index) }">
+                                </div>
+                            </div>
+                            <span class="bar-value">{{ item.value }}</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Calendario -->
                 <div class="chart-card">
-                    <h3 class="chart-title">Mes {{ currentMonth }} {{ currentYear }}</h3>
+                    <div class="calendar-header-wrapper">
+                        <h3 class="chart-title">Mes {{ months[currentMonthNum] }} {{ currentYear }}</h3>
+                        <div class="calendar-nav">
+                            <span style="display:inline-block;cursor:pointer" @click="prevMonth">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                            <span style="display:inline-block;cursor:pointer" @click="nextMonth">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                        </div>
+                    </div>
                     <div class="chart-content">
                         <div class="calendar">
                             <div class="calendar-header">
@@ -104,12 +118,32 @@
                                 </div>
                             </div>
                             <div class="calendar-body">
-                                <div v-for="day in calendarDays" :key="day.date" :class="['calendar-day', {
-                                    'other-month': day.otherMonth,
-                                    'today': day.isToday
-                                }]">
-                                    {{ day.day }}
+                                <div v-for="day in calendarDays" :key="day.date"
+                                    :class="['calendar-day', { 'other-month': day.otherMonth, 'today': day.isToday }]"
+                                    @click="selectDay(day)">
+                                    <span>{{ day.day }}</span>
+                                    <span v-if="day.events.length" class="event-dot" :title="day.events.map(e=>e.title).join(', ')"></span>
                                 </div>
+                                        <!-- Modal para día seleccionado -->
+                                        <div v-if="showDayModal" class="day-modal-overlay" @click.self="closeDayModal">
+                                            <div class="day-modal">
+                                                <h3>Eventos para {{ selectedDay?.date }}</h3>
+                                                <ul v-if="selectedDay?.events.length">
+                                                    <li v-for="(ev, idx) in selectedDay.events" :key="idx">
+                                                        <strong>{{ ev.title }}</strong>
+                                                        <span v-if="ev.type === 'vencimiento'" class="event-type vencimiento">Vencimiento</span>
+                                                        <span v-if="ev.type === 'personal'" class="event-type personal">Personal</span>
+                                                        <span v-if="ev.note"> · {{ ev.note }}</span>
+                                                    </li>
+                                                </ul>
+                                                <div v-else><em>No hay eventos para este día.</em></div>
+                                                <form @submit.prevent="addCustomEvent" class="add-event-form">
+                                                    <input v-model="customEventText" type="text" placeholder="Agregar evento personalizado..." maxlength="60" />
+                                                    <button type="submit">Agregar</button>
+                                                </form>
+                                                <button class="close-modal-btn" @click="closeDayModal">Cerrar</button>
+                                            </div>
+                                        </div>
                             </div>
                         </div>
                     </div>
@@ -119,28 +153,27 @@
             <!-- Tooltip para el gráfico de dona -->
             <div v-if="tooltip.show" class="chart-tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
                 <strong>{{ tooltip.label }}</strong><br>
-                {{ tooltip.value }} empleados
+                {{ tooltip.value }} contratos
             </div>
-        </div> <!-- Cierre de content-card -->
-    </div> <!-- Cierre de enlace-estadisticas -->
+        </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useContratos } from '@/composables/useContratos';
 
+const { obtenerDistribucionTipo, obtenerContratosPorArea, obtenerEstadoProceso } = useContratos();
 const router = useRouter();
 
-// Función para volver al inicio
 const volverInicio = () => {
     router.push('/Contratos');
 };
 
-// Referencias de canvas para los gráficos
 const donutChart = ref(null);
 const barChart = ref(null);
 
-// Estado del tooltip
 const tooltip = ref({
     show: false,
     x: 0,
@@ -149,104 +182,182 @@ const tooltip = ref({
     value: 0
 });
 
-// Props
 const props = defineProps({
     stats: {
         type: Object,
         default: () => ({
-            activos: 456,
-            vacantes: 18
+            activos: 0,
+            vacantes: 0
         })
-    },
-    departamentos: {
-        type: Array,
-        default: () => ['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']
     }
 });
 
-// Estado de búsqueda
-const searchQuery = ref('');
+// ✅ NUEVOS: Datos dinámicos de los gráficos
+const distribucionContratos = ref([]);
+const areasData = ref([]);
+const procesoData = ref([]);
+const highlightedSlice = ref(null);
 
-// Filtros
-const filters = ref({
-    area: '',
-    tipoContrato: '',
-    periodo: 'indefinido'
+// Calcular máximo para el gráfico de proceso
+const procesoMax = computed(() => {
+    if (procesoData.value.length === 0) return 1;
+    return Math.max(...procesoData.value.map(d => d.value));
 });
 
-// Calendario dinámico
-const today = new Date();
-const currentMonth = computed(() => {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return months[today.getMonth()];
+// Calcular total de contratos
+const totalContratos = computed(() => {
+    return distribucionContratos.value.reduce((sum, item) => sum + item.total, 0);
 });
-const currentYear = today.getFullYear();
-const diaActual = today.getDate(); // Día actual
-const mesActual = today.getMonth();
-const añoActual = today.getFullYear();
+
+// Calcular máximo para el gráfico de áreas
+const areasMax = computed(() => {
+    if (areasData.value.length === 0) return 1;
+    return Math.max(...areasData.value.map(d => d.total_contratos));
+});
+
+// Función para calcular porcentaje
+const calcularPorcentaje = (valor, maximo) => {
+    if (maximo === 0) return 0;
+    return (valor / maximo) * 100;
+};
+
+// Colores para las barras de áreas
+const coloresAreas = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const getColorArea = (index) => {
+    return coloresAreas[index % coloresAreas.length];
+};
+
+// Colores para las barras de proceso
+const coloresProceso = ['#0c4a7a', '#0c5a8a', '#0c6a9a', '#0c7aaa', '#0c8aba'];
+const getColorProceso = (index) => {
+    return coloresProceso[index] || '#0c4a7a';
+};
+
+const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const diasSemana = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const today = new Date();
+const currentMonthNum = ref(today.getMonth());
+const currentYear = ref(today.getFullYear());
+const selectedDay = ref(null); // { date, day, events }
+const showDayModal = ref(false);
+const customEventText = ref('');
 
-// Generar días del calendario dinámicamente
+// Example events: { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 }
+const calendarEvents = ref([
+    { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 },
+    { date: '2025-11-25', type: 'personal', title: 'Reunión RH', note: 'Revisar documentos' }
+]);
+
+function prevMonth() {
+    if (currentMonthNum.value === 0) {
+        currentMonthNum.value = 11;
+        currentYear.value--;
+    } else {
+        currentMonthNum.value--;
+    }
+}
+function nextMonth() {
+    if (currentMonthNum.value === 11) {
+        currentMonthNum.value = 0;
+        currentYear.value++;
+    } else {
+        currentMonthNum.value++;
+    }
+}
+
 const calendarDays = computed(() => {
     const days = [];
-    const firstDay = new Date(añoActual, mesActual, 1).getDay();
-    const daysInMonth = new Date(añoActual, mesActual + 1, 0).getDate();
+    const firstDay = new Date(currentYear.value, currentMonthNum.value, 1).getDay();
+    const daysInMonth = new Date(currentYear.value, currentMonthNum.value + 1, 0).getDate();
+    const diaActual = today.getDate();
+    const mesActual = today.getMonth();
+    const añoActual = today.getFullYear();
 
-    // Días vacíos al inicio
     for (let i = 0; i < firstDay; i++) {
-        days.push({ day: null, otherMonth: true, isToday: false, date: null });
+        days.push({ day: null, otherMonth: true, isToday: false, date: null, events: [] });
     }
-
-    // Días del mes
     for (let i = 1; i <= daysInMonth; i++) {
+        const dateStr = `${currentYear.value}-${(currentMonthNum.value + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+        const events = calendarEvents.value.filter(ev => ev.date === dateStr);
         days.push({
             day: i,
             otherMonth: false,
-            isToday: i === diaActual && mesActual === today.getMonth() && añoActual === today.getFullYear(),
-            date: `${añoActual}-${(mesActual + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`
+            isToday: i === diaActual && currentMonthNum.value === mesActual && currentYear.value === añoActual,
+            date: dateStr,
+            events
         });
     }
-
     return days;
 });
 
-// Datos del gráfico de dona (reactivos para poder actualizarse)
-const distribucionContratos = ref([
-    { label: 'Indefinidos', value: 156, color: '#4caf50' },
-    { label: 'Temporales', value: 180, color: '#ff9800' },
-    { label: 'Por Obra', value: 100, color: '#2196f3' }
-]);
+function selectDay(dayObj) {
+    if (!dayObj.otherMonth && dayObj.day) {
+        selectedDay.value = dayObj;
+        showDayModal.value = true;
+        customEventText.value = '';
+    }
+}
 
-// Guardar las áreas del gráfico para detección de hover
+function addCustomEvent() {
+    if (selectedDay.value && customEventText.value.trim()) {
+        calendarEvents.value.push({
+            date: selectedDay.value.date,
+            type: 'personal',
+            title: customEventText.value.trim(),
+            note: ''
+        });
+        customEventText.value = '';
+    }
+}
+
+function closeDayModal() {
+    showDayModal.value = false;
+    selectedDay.value = null;
+    customEventText.value = '';
+}
+
 const chartAreas = ref([]);
 
-// Renderizar gráficos
 const renderDonutChart = () => {
-    if (!donutChart.value) return;
+    if (!donutChart.value || distribucionContratos.value.length === 0) {
+        console.warn('Canvas o datos no disponibles');
+        return;
+    }
 
     const canvas = donutChart.value;
     const ctx = canvas.getContext('2d');
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = 90;
-    const innerRadius = 60;
 
     // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const total = distribucionContratos.value.reduce((sum, item) => sum + item.value, 0);
-    let currentAngle = -Math.PI / 2;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 100;
+    const innerRadius = 65;
 
-    // Resetear áreas del gráfico
+    // Calcular total
+    const total = distribucionContratos.value.reduce((sum, item) => sum + item.total, 0);
+    if (total === 0) return;
+
+    let currentAngle = -Math.PI / 2;
     chartAreas.value = [];
 
-    // Dibujar segmentos y etiquetas
-    distribucionContratos.value.forEach(item => {
-        const sliceAngle = (item.value / total) * 2 * Math.PI;
-        const middleAngle = currentAngle + sliceAngle / 2;
+    // Añadir sombra al canvas
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
 
-        // Guardar información del área para detección de hover
+    // Dibujar cada slice
+    distribucionContratos.value.forEach((item, index) => {
+        const sliceAngle = (item.total / total) * 2 * Math.PI;
+        const isHighlighted = highlightedSlice.value === index;
+        
+        // Ajustar radio si está resaltado
+        const currentRadius = isHighlighted ? radius + 5 : radius;
+        const currentInnerRadius = isHighlighted ? innerRadius - 2 : innerRadius;
+
+        // Guardar área para hover
         chartAreas.value.push({
             startAngle: currentAngle,
             endAngle: currentAngle + sliceAngle,
@@ -254,47 +365,45 @@ const renderDonutChart = () => {
             outerRadius: radius,
             centerX: centerX,
             centerY: centerY,
-            label: item.label,
-            value: item.value,
+            label: item.tipo,
+            value: item.total,
             color: item.color
         });
 
-        // Dibujar segmento
+        // Dibujar el slice
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-        ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
+        ctx.arc(centerX, centerY, currentRadius, currentAngle, currentAngle + sliceAngle);
+        ctx.arc(centerX, centerY, currentInnerRadius, currentAngle + sliceAngle, currentAngle, true);
         ctx.closePath();
-        ctx.fillStyle = item.color;
+        
+        // Aplicar gradiente si está resaltado
+        if (isHighlighted) {
+            const gradient = ctx.createRadialGradient(centerX, centerY, currentInnerRadius, centerX, centerY, currentRadius);
+            gradient.addColorStop(0, item.color);
+            gradient.addColorStop(1, item.color + 'dd');
+            ctx.fillStyle = gradient;
+        } else {
+            ctx.fillStyle = item.color;
+        }
+        
         ctx.fill();
-
-        // Calcular posición de la etiqueta (fuera del círculo)
-        const labelDistance = radius + 40;
-        const labelX = centerX + Math.cos(middleAngle) * labelDistance;
-        const labelY = centerY + Math.sin(middleAngle) * labelDistance;
-
-        // Dibujar línea desde el segmento hasta la etiqueta
-        const lineStartX = centerX + Math.cos(middleAngle) * (radius + 5);
-        const lineStartY = centerY + Math.sin(middleAngle) * (radius + 5);
-
-        ctx.beginPath();
-        ctx.moveTo(lineStartX, lineStartY);
-        ctx.lineTo(labelX - (labelX > centerX ? 10 : -10), labelY);
-        ctx.strokeStyle = item.color;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
         ctx.stroke();
-
-        // Dibujar texto de la etiqueta
-        ctx.fillStyle = item.color;
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = labelX > centerX ? 'left' : 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(item.label, labelX, labelY);
 
         currentAngle += sliceAngle;
     });
+
+    // Resetear sombra
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    console.log('Gráfico de dona renderizado correctamente');
 };
 
-// Detectar hover en el gráfico de dona
+
 const handleDonutHover = (event) => {
     if (!donutChart.value) return;
 
@@ -310,13 +419,10 @@ const handleDonutHover = (event) => {
         const dy = y - area.centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Verificar si está dentro del anillo
         if (distance >= area.innerRadius && distance <= area.outerRadius) {
             let angle = Math.atan2(dy, dx);
-            // Normalizar ángulo
             if (angle < -Math.PI / 2) angle += 2 * Math.PI;
 
-            // Verificar si está dentro del segmento
             if (angle >= area.startAngle && angle <= area.endAngle) {
                 tooltip.value = {
                     show: true,
@@ -338,7 +444,6 @@ const handleDonutHover = (event) => {
     }
 };
 
-// Ocultar tooltip al salir del canvas
 const handleDonutLeave = () => {
     tooltip.value.show = false;
     if (donutChart.value) {
@@ -346,74 +451,126 @@ const handleDonutLeave = () => {
     }
 };
 
+const highlightSlice = (index) => {
+    highlightedSlice.value = index;
+    renderDonutChart();
+};
+
+const unhighlightSlice = () => {
+    highlightedSlice.value = null;
+    renderDonutChart();
+};
+
 const renderBarChart = () => {
-    if (!barChart.value) return;
+    if (!barChart.value || areasData.value.length === 0) return;
 
     const ctx = barChart.value.getContext('2d');
     const width = barChart.value.width;
     const height = barChart.value.height;
 
-    // Datos del gráfico - Áreas del sistema
-    const data = [
-        { label: 'Contratos', value: 87 },
-        { label: 'Asistencias', value: 65 },
-        { label: 'Incidencias', value: 92 },
-        { label: 'Vacaciones', value: 73 },
-        { label: 'Areas', value: 104 }
-    ];
-
-    const maxValue = Math.max(...data.map(d => d.value));
+    const data = areasData.value;
+    const maxValue = Math.max(...data.map(d => d.total_contratos), 1);
     const barWidth = 50;
     const spacing = (width - (data.length * barWidth)) / (data.length + 1);
     const chartHeight = height - 60;
 
-    // Limpiar canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Dibujar barras
     data.forEach((item, index) => {
-        const barHeight = (item.value / maxValue) * chartHeight;
+        const barHeight = (item.total_contratos / maxValue) * chartHeight;
         const x = spacing + (index * (barWidth + spacing));
         const y = height - 40 - barHeight;
 
-        // Barra
         ctx.fillStyle = '#4caf50';
         ctx.fillRect(x, y, barWidth, barHeight);
 
-        // Etiqueta
         ctx.fillStyle = '#666';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(item.label, x + barWidth / 2, height - 20);
+        ctx.fillText(item.area, x + barWidth / 2, height - 20);
 
-        // Valor
         ctx.fillStyle = '#2c3e50';
         ctx.font = 'bold 14px Arial';
-        ctx.fillText(item.value, x + barWidth / 2, y - 10);
+        ctx.fillText(item.total_contratos, x + barWidth / 2, y - 10);
     });
 };
 
-// Lifecycle
-onMounted(() => {
-    renderDonutChart();
-    renderBarChart();
+// ✅ Cargar todos los datos del API
+const cargarDatos = async () => {
+    try {
+        console.log('Iniciando carga de datos...');
 
-    // Agregar event listeners para el hover en el gráfico de dona
+        // Cargar distribución por tipo
+        const distribucion = await obtenerDistribucionTipo();
+        console.log('Distribución:', distribucion);
+
+        if (distribucion && distribucion.length > 0) {
+            // Paleta de colores moderna y vibrante
+            const modernColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+            distribucionContratos.value = distribucion.map((item, index) => ({
+                tipo: item.tipo,
+                total: parseInt(item.total),
+                color: modernColors[index] || '#6b7280'
+            }));
+            console.log('distribucionContratos actualizado:', distribucionContratos.value);
+        } else {
+            console.warn('No hay datos de distribución');
+        }
+
+        // Cargar contratos por área
+        const areas = await obtenerContratosPorArea();
+        console.log('Áreas:', areas);
+
+        if (areas && areas.length > 0) {
+            areasData.value = areas;
+            console.log('areasData actualizado:', areasData.value);
+        } else {
+            console.warn('No hay datos de áreas');
+        }
+
+        // Cargar estado del proceso
+        const proceso = await obtenerEstadoProceso();
+        console.log('Proceso:', proceso);
+
+        if (proceso && proceso.length > 0) {
+            procesoData.value = proceso.map(item => ({
+                label: item.etapa,
+                value: parseInt(item.total)
+            }));
+            console.log('procesoData actualizado:', procesoData.value);
+        } else {
+            console.warn('No hay datos de proceso');
+        }
+
+        // Renderizar gráficos
+        setTimeout(() => {
+            console.log('Renderizando gráficos...');
+            renderDonutChart();
+            renderBarChart();
+        }, 500);
+
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+    }
+};
+
+onMounted(async () => {
+    // Cargar datos del API
+    await cargarDatos();
+
     if (donutChart.value) {
         donutChart.value.addEventListener('mousemove', handleDonutHover);
         donutChart.value.addEventListener('mouseleave', handleDonutLeave);
     }
 });
 
-// Watch para re-renderizar cuando cambien los datos
 watch(() => distribucionContratos.value, () => {
     renderDonutChart();
 }, { deep: true });
 
-// Función para actualizar datos (ejemplo de uso)
-const actualizarDistribucion = (nuevosdatos) => {
-    distribucionContratos.value = nuevosdatos;
-};
+watch(() => areasData.value, () => {
+    renderBarChart();
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -421,10 +578,15 @@ const actualizarDistribucion = (nuevosdatos) => {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background-color: #f5f5f5;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+    animation: fadeIn 0.5s ease-in;
 }
 
-/* Header sin fondo */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .top-header {
     background-color: transparent;
     padding: 1rem 2rem;
@@ -460,127 +622,12 @@ const actualizarDistribucion = (nuevosdatos) => {
     margin: 0;
 }
 
-/* Contenido blanco */
 .content-card {
     background-color: transparent;
-    padding: 2rem;
+    padding: 0rem;
     margin: 1.5rem;
 }
 
-/* Barra de búsqueda y notificaciones */
-.search-notifications {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.search-box {
-    position: relative;
-    flex: 1;
-}
-
-.search-box input {
-    width: 100%;
-    padding: 0.75rem 3rem 0.75rem 1rem;
-    border: none;
-    border-radius: 25px;
-    font-size: 0.9rem;
-    background-color: #f0ebf8;
-    color: #666;
-}
-
-.search-box input::placeholder {
-    color: #999;
-}
-
-.search-box input:focus {
-    outline: none;
-    background-color: #e8e0f5;
-}
-
-.search-box .material-symbols-rounded {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #999;
-    font-size: 20px;
-    pointer-events: none;
-}
-
-.icon-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background-color: transparent;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.icon-btn:hover {
-    background-color: #f5f5f5;
-}
-
-.icon-btn .material-symbols-rounded {
-    font-size: 24px;
-    color: #333;
-}
-
-/* Filtros */
-.filters-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.filter-group label {
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-}
-
-.filter-select {
-    padding: 0.75rem;
-    border: 2px solid #17a2b8;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    background-color: white;
-    cursor: pointer;
-    transition: border-color 0.3s ease;
-    color: #333;
-}
-
-.filter-select:focus {
-    outline: none;
-    border-color: #0d8ca0;
-}
-
-/* Tarjetas de resumen */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -590,48 +637,124 @@ const actualizarDistribucion = (nuevosdatos) => {
 
 .summary-card {
     padding: 2rem;
-    border-radius: 12px;
-    text-align: center;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideUp 0.6s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.08);
+}
+
+.summary-card:hover::before {
+    opacity: 0.1;
 }
 
 .summary-card.green {
-    background-color: #d4edda;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.summary-card.green::before {
+    background: linear-gradient(135deg, #28a745, #20c997);
 }
 
 .summary-card.blue {
-    background-color: #d1ecf1;
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+}
+
+.summary-card.blue::before {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+}
+
+.card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.summary-card:hover .card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.summary-card.green .card-icon {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.summary-card.blue .card-icon {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.card-icon .material-symbols-rounded {
+    font-size: 32px;
+    color: white;
+}
+
+.card-content {
+    flex: 1;
 }
 
 .card-title {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     margin: 0 0 0.5rem 0;
     line-height: 1.4;
+    letter-spacing: 0.5px;
 }
 
 .summary-card.green .card-title {
-    color: #4caf50;
+    color: #155724;
 }
 
 .summary-card.blue .card-title {
-    color: #17a2b8;
+    color: #0c5460;
 }
 
 .card-number {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
+    line-height: 1;
 }
 
 .summary-card.green .card-number {
-    color: #4caf50;
+    color: #28a745;
 }
 
 .summary-card.blue .card-number {
     color: #17a2b8;
 }
 
-/* Grid de gráficos */
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -639,17 +762,27 @@ const actualizarDistribucion = (nuevosdatos) => {
 }
 
 .chart-card {
-    background-color: white;
-    border-radius: 8px;
+    background: white;
+    border-radius: 16px;
     padding: 1.5rem;
-    border: 2px solid #b3e5fc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    animation: slideUp 0.6s ease-out;
+    animation-delay: 0.2s;
+    animation-fill-mode: both;
+}
+
+.chart-card:hover {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.08);
 }
 
 .chart-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: #333;
+    color: #1f2937;
     margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f3f4f6;
 }
 
 .chart-content {
@@ -659,32 +792,279 @@ const actualizarDistribucion = (nuevosdatos) => {
     min-height: 250px;
 }
 
-.chart-content.empty-state {
-    color: #999;
-    font-style: italic;
+.modern-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 1rem;
+    min-height: 250px;
+    padding: 1rem 0.5rem;
 }
 
-.chart-content.empty-state p {
-    margin: 0;
+.bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    max-width: 80px;
 }
 
-/* Calendario */
+.bar-wrapper {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.bar-fill {
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: barGrow 0.8s ease-out;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.5rem;
+}
+
+@keyframes barGrow {
+    from { height: 0; opacity: 0; }
+    to { opacity: 1; }
+}
+
+.bar-fill:hover {
+    transform: scaleY(1.05);
+    filter: brightness(1.1);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bar-value-top {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.bar-label-bottom {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4b5563;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.donut-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1rem;
+}
+
+.donut-chart-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.center-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+}
+
+.center-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 180px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.legend-item:hover {
+    background-color: #f3f4f6;
+    transform: translateX(4px);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.legend-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    flex: 1;
+}
+
+.legend-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.legend-value {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.horizontal-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: auto !important;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 1rem 0;
+}
+
+.bar-item {
+    display: grid;
+    grid-template-columns: 100px 1fr 40px;
+    gap: 1rem;
+    align-items: center;
+}
+
+.bar-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    text-align: right;
+}
+
+.bar-container {
+    height: 32px;
+    background: linear-gradient(90deg, #f3f4f6, #e5e7eb);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.bar {
+    height: 100%;
+    border-radius: 16px;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: barSlide 0.8s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes barSlide {
+    from { width: 0 !important; }
+}
+
+.bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.bar-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
 .calendar {
     width: 100%;
+}
+
+.calendar-header-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.calendar-header-wrapper .chart-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.calendar-nav span {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.calendar-nav span:hover {
+    background: #f3f4f6;
 }
 
 .calendar-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .day-name {
     text-align: center;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #666;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .calendar-body {
@@ -699,14 +1079,17 @@ const actualizarDistribucion = (nuevosdatos) => {
     align-items: center;
     justify-content: center;
     font-size: 0.9rem;
-    color: #2c3e50;
-    border-radius: 6px;
+    color: #374151;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    font-weight: 500;
 }
 
-.calendar-day:hover:not(.other-month) {
-    background-color: #f0f0f5;
+.calendar-day:hover:not(.other-month):not(.today) {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    transform: scale(1.05);
 }
 
 .calendar-day.other-month {
@@ -714,32 +1097,73 @@ const actualizarDistribucion = (nuevosdatos) => {
 }
 
 .calendar-day.today {
-    background-color: #4fc3f7;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
     font-weight: 700;
-    border-radius: 50%;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    transform: scale(1.05);
 }
 
-/* Tooltip para gráfico */
+.event-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    margin-left: 4px;
+    vertical-align: middle;
+    box-shadow: 0 1px 4px rgba(16,185,129,0.18);
+}
+
+.day-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17,24,39,0.18);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.day-modal {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 2rem 2.5rem;
+    min-width: 320px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+.day-modal h3 { margin-top: 0; font-size: 1.1rem; }
+.event-type { font-size: 0.85em; font-weight: 600; margin-left: 8px; padding: 2px 8px; border-radius: 8px; }
+.event-type.vencimiento { background: #f8d7da; color: #c82333; }
+.event-type.personal { background: #d1ecf1; color: #138496; }
+.add-event-form { display: flex; gap: 0.5rem; margin-top: 1.2rem; }
+.add-event-form input { flex: 1; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; }
+.add-event-form button { padding: 0.5rem 1.2rem; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: 600; cursor: pointer; }
+.close-modal-btn { margin-top: 1.2rem; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; padding: 0.5rem 1.2rem; cursor: pointer; font-weight: 600; }
+
 .chart-tooltip {
     position: fixed;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(17, 24, 39, 0.9);
     color: white;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
     pointer-events: none;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     white-space: nowrap;
+    backdrop-filter: blur(4px);
 }
 
 .chart-tooltip strong {
     display: block;
     margin-bottom: 4px;
+    font-weight: 600;
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
     .charts-grid {
         grid-template-columns: 1fr;
@@ -751,22 +1175,24 @@ const actualizarDistribucion = (nuevosdatos) => {
         padding: 1rem;
     }
 
-    .stats-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .search-box {
-        width: 100%;
-    }
-
-    .filters-container {
-        grid-template-columns: 1fr;
-    }
-
     .summary-cards {
         grid-template-columns: 1fr;
+    }
+
+    .bar-item {
+        grid-template-columns: 80px 1fr 30px;
+    }
+    
+    .donut-container {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .donut-legend {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
 </style>

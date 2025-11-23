@@ -32,7 +32,6 @@
             <th>Dept</th>
             <th>Título de trabajo</th>
             <th>Fecha de inicio</th>
-            <th>Categoría</th>
             <th>Género</th>
             <th>Acciones</th>
           </tr>
@@ -43,13 +42,26 @@
             <td>{{ empleado.departamento }}</td>
             <td>{{ empleado.titulo }}</td>
             <td>{{ empleado.fechaInicio }}</td>
-            <td>{{ empleado.categoria }}</td>
             <td>{{ empleado.genero }}</td>
             <td>
-              <button class="action-btn" @click="editar(empleado)">
+              <button 
+                v-if="mostrarBotonAcciones(empleado)"
+                class="action-btn" 
+                @click="editar(empleado)"
+              >
                 Acciones
                 <span class="material-symbols-rounded">settings</span>
               </button>
+              <button
+                v-else-if="esJefeModulo()"
+                class="action-btn disabled"
+                disabled
+                title="No tienes permisos para usar esto"
+              >
+                Acciones
+                <span class="material-symbols-rounded">settings</span>
+              </button>
+              <span v-else class="no-action">—</span>
             </td>
           </tr>
         </tbody>
@@ -62,10 +74,18 @@
 // ============================================
 // PROPS
 // ============================================
-defineProps({
+const props = defineProps({
   empleados: {
     type: Array,
     required: true
+  },
+  userRole: {
+    type: [String, Object],
+    required: true
+  },
+  userData: {
+    type: [Object, null],
+    default: null
   }
 });
 
@@ -83,6 +103,82 @@ const editar = (empleado) => {
 
 const exportar = () => {
   emit('exportar');
+};
+
+// ============================================
+// PERMISOS - Visibilidad del botón de acciones
+// ============================================
+const obtenerRol = () => {
+  return typeof props.userRole === 'object' ? props.userRole.value : props.userRole;
+};
+
+const obtenerArea = () => {
+  if (!props.userData) return null;
+  return typeof props.userData === 'object' && props.userData.value ? props.userData.value.area : props.userData?.area;
+};
+
+const esJefeModulo = () => {
+  const rol = obtenerRol();
+  if (!rol) return false;
+  const rolesJefesModulo = ['JEFE_ASISTENCIAS', 'JEFE_CONTRATOS', 'JEFE_VACACIONES', 'JEFE_INCIDENCIAS'];
+  return rolesJefesModulo.includes(rol);
+};
+
+const obtenerAreaJefeModulo = (rol) => {
+  // Mapear rol del jefe a nombre del área que gestiona
+  const mapaAreas = {
+    'JEFE_CONTRATOS': 'Contratos',
+    'JEFE_ASISTENCIAS': 'Asistencias',
+    'JEFE_VACACIONES': 'Vacaciones',
+    'JEFE_INCIDENCIAS': 'Incidencias'
+  };
+  return mapaAreas[rol];
+};
+
+const esEmpleadoRegular = (empleado) => {
+  // Permitir el botón de acciones para todos los títulos excepto los que incluyan 'JEFE'
+  // Puedes ajustar la lógica si tienes una lista específica de títulos a excluir
+  return !/JEFE/i.test(empleado.titulo);
+};
+
+const mostrarBotonAcciones = (empleado) => {
+  const rol = obtenerRol();
+  const area = obtenerArea();
+  
+  // Si no hay usuario autenticado o userData es null, no mostrar botones
+  if (!rol || !props.userData) return false;
+  
+  // Debug: Ver qué valores estamos comparando (solo primera vez)
+  if (props.empleados.length > 0 && empleado === props.empleados[0]) {
+    console.log('🔍 Debug AreasTable:', {
+      rol: rol,
+      area: area,
+      userData: props.userData,
+      userRole: props.userRole,
+      primerEmpleado: empleado.nombre,
+      primerEmpleadoDept: empleado.departamento
+    });
+  }
+  
+  // EMPLEADO: No puede usar el botón de acciones
+  if (rol === 'EMPLEADO') return false;
+  
+  // ADMIN o JEFE_RH: Pueden usar el botón para todos
+  if (rol === 'ADMIN' || rol === 'JEFE_RH') return true;
+  
+  // JEFE_AREA: Solo puede usar el botón para empleados (no jefes) de su área
+  if (rol === 'JEFE_AREA') {
+    return empleado.departamento === area && esEmpleadoRegular(empleado);
+  }
+  
+  // Jefes de módulos: Solo pueden usar el botón para empleados de su módulo específico
+  if (esJefeModulo()) {
+    const areaDelJefe = obtenerAreaJefeModulo(rol);
+    return empleado.departamento === areaDelJefe && esEmpleadoRegular(empleado);
+  }
+  
+  // Otros roles: No mostrar
+  return false;
 };
 </script>
 
@@ -229,6 +325,24 @@ const exportar = () => {
 
 .action-btn .material-symbols-rounded {
   font-size: 1.125rem;
+}
+
+.action-btn.disabled {
+  background: #D1D5DB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-btn.disabled:hover {
+  background: #D1D5DB;
+}
+
+.no-action {
+  color: #D1D5DB;
+  font-size: 1rem;
+  text-align: center;
+  display: block;
 }
 
 /* ============================================

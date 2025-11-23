@@ -14,6 +14,10 @@ import s3Routes from './routes/s3.js'; // s3.js
 import contratosRoutes from './routes/contratos.js';
 import vacacionesRoutes from './routes/vacaciones.js';
 import asistenciasRoutes from './routes/asistencias.js';
+import solicitudesRoutes from './routes/solicitudes.js';
+import aspirantesContratosRoutes from './routes/AspirantesContratos.js'
+import catalogoContratosRoutes from './routes/CatalogoContratos.js'
+import empleadoContratosRoutes from './routes/EmpleadoContratos.js';
 
 /**
  * SERVIDOR PRINCIPAL - Sistema de Recursos Humanos
@@ -29,6 +33,11 @@ await connectDB();
 
 // ========== MIDDLEWARES ==========
 
+// Parsear JSON en el body de las peticiones - con límite aumentado para archivos
+// IMPORTANTE: Debe ir PRIMERO, ANTES de CORS
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
 // CORS - Habilitar peticiones desde el frontend
 app.use(cors({
   origin: config.server.frontendUrl,
@@ -39,10 +48,7 @@ app.use(cors({
   maxAge: 86400
 }));
 
-// Parsear JSON en el body de las peticiones
-app.use(express.json());
-
-// Parsear cookies - DEBE IR DESPUÉS DE CORS
+// Parsear cookies - DEBE IR DESPUÉS de los body parsers
 app.use(cookieParser());
 
 // Servir archivos estáticos
@@ -81,11 +87,23 @@ app.use('/api', s3Routes);
 // Rutas de contratos
 app.use('/api', contratosRoutes);
 
+// Rutas Aspirantes contratos
+app.use('/api', aspirantesContratosRoutes);
+
+// Rutas Catalogo contratos
+app.use('/api', catalogoContratosRoutes);
+
+// Rutas Empleado contratos
+app.use('/api', empleadoContratosRoutes);
+
 // Rutas de vacaciones 
 app.use('/api/vacaciones', vacacionesRoutes);
 
 // Rutas de asistencias
 app.use('/api', asistenciasRoutes);
+
+// Rutas de solicitudes de empleo
+app.use('/api/solicitudes', solicitudesRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {

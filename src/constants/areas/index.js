@@ -22,6 +22,10 @@ export const DEPARTAMENTOS = [
  */
 export const TITULOS = [
   'Jefe de área',
+  'Jefe de Asistencias',
+  'Jefe de Contratos',
+  'Jefe de Vacaciones',
+  'Jefe de Incidencias',
   'Empleado',
   'Supervisor',
   'Gerente'

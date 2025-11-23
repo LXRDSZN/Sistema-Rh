@@ -21,15 +21,14 @@
             </div>
             <div class="info-item">
                 <span class="label">Horario:</span>
-                <span class="value">{{ contrato.estadoFirma }}</span>
+                <span class="value">8:00 a.m. - 4:00 p.m.</span>
             </div>
             <div class="info-item">
-                <span class="label">Estado de firma:</span>
+                <span class="label">Estado de Contrato:</span>
                 <span class="value">{{ contrato.estadoFirma }}</span>
             </div>
         </div>
 
-        <button class="btn-renovar" @click="$emit('renovar')">Renovar</button>
     </div>
 </template>
 
@@ -41,10 +40,11 @@ defineProps({
     }
 });
 
-defineEmits(['renovar']);
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
+
 .contrato-actual-content h3 {
     font-size: 1.2rem;
     font-weight: 600;

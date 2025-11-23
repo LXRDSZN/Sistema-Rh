@@ -128,6 +128,54 @@ export const getSolicitudesVacaciones = async (empleadoId) => {
 };
 
 /**
+ * Obtener TODAS las solicitudes de vacaciones (Admin/Jefe RH)
+ */
+export const getAllSolicitudesVacaciones = async () => {
+  try {
+    const response = await fetch(`${API_URL}/vacaciones/solicitudes/all`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('❌ Error en getAllSolicitudesVacaciones:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener solicitudes de vacaciones por área (Jefe de Área)
+ */
+export const getSolicitudesVacacionesByArea = async (areaId) => {
+  try {
+    const response = await fetch(`${API_URL}/vacaciones/solicitudes/area/${areaId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('❌ Error en getSolicitudesVacacionesByArea:', error);
+    throw error;
+  }
+};
+
+/**
  * Obtener todos las solicitudes (para administradores/RH)
  */
 export const todasLasSolicitudes = async () => {

@@ -8,32 +8,33 @@
         <!-- Información Principal -->
         <div class="info-principal">
             <div class="info-left">
-                <img :src="aspirante.avatar" :alt="aspirante.nombre" class="avatar-grande">
+                <img :src="aspirante.avatar || defaultAvatar" :alt="aspirante.nombre" class="avatar-grande"
+                    @error="onImgError">
                 <div class="datos-principales">
                     <h3>{{ aspirante.nombre }}</h3>
                     <div class="info-item">
                         <span class="label">CURP:</span>
-                        <span class="value">{{ aspirante.curp || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.curp || '----' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="label">RFC:</span>
-                        <span class="value">{{ aspirante.rfc || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.rfc || '----' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="label">NSS:</span>
-                        <span class="value">{{ aspirante.nss || 'XXXXXXXXXXXXXXXXXXXX' }}</span>
+                        <span class="value">{{ aspirante.nss || '----' }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- Iconos de estado -->
             <div class="iconos-estado">
-                <div class="icono-card">
+                <div class="icono-card" :class="{ 'disabled': !cvUrl }" @click="abrirCV" role="button" tabindex="0">
                     <span class="material-symbols-rounded">badge</span>
                     <span class="icono-label">CV</span>
                 </div>
 
-                <div class="icono-card">
+                <div class="icono-card" @click="verContrato" role="button" tabindex="0">
                     <span class="material-symbols-rounded">description</span>
                     <span class="icono-label">Contrato</span>
                 </div>
@@ -55,17 +56,75 @@
 </template>
 
 <script setup>
+import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
+
 const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    // opcional: si el padre ya trae precargada la URL
+    cvUrl: {
+        type: String,
+        default: null
     }
 });
+
+const emit = defineEmits(['crear-contrato']);
+
+// Avatar por defecto
+const defaultAvatar = '/src/assets/default-user.png';
+
+const onImgError = (event) => {
+    event.target.onerror = null;
+    event.target.src = defaultAvatar;
+};
 
 const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2025';
     const date = new Date(fecha);
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
+const { obtenerCvAspirante } = useAspirantesContratos();
+
+const abrirCV = async () => {
+    try {
+        // 1) Si ya viene la URL por prop, úsala directo
+        let url = props.cvUrl;
+
+        // 2) Si no hay URL, la pedimos al backend
+        if (!url) {
+            const personaId = props.aspirante.persona_id || props.aspirante.id;
+
+            if (!personaId) {
+                alert('No se encontró el identificador del aspirante.');
+                return;
+            }
+
+            url = await obtenerCvAspirante(personaId);
+        }
+
+        // 3) Validar resultado
+        if (!url) {
+            alert('Este aspirante no tiene CV cargado.');
+            return;
+        }
+
+        // 4) Abrir el PDF en una pestaña nueva
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error al abrir el CV del aspirante:', error);
+        alert('Ocurrió un error al intentar abrir el CV. Intenta de nuevo más tarde.');
+    }
+};
+
+const verContrato = () => {
+    emit('crear-contrato', props.aspirante);
 };
 </script>
 
@@ -149,7 +208,20 @@ const formatearFecha = (fecha) => {
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     min-width: 70px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
+
+.icono-card:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.icono-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 .icono-card .material-symbols-rounded {
     font-size: 28px;

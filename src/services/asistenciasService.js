@@ -95,9 +95,10 @@ export const getReporteAsistencias = async (filtros = {}) => {
 export const getDetalleAsistencias = async (filtros) => {
   try {
     const params = new URLSearchParams();
+    // Forzar mes y año a número
     if (filtros.area_id) params.append('area_id', filtros.area_id);
-    if (filtros.mes) params.append('mes', filtros.mes);
-    if (filtros.anio) params.append('anio', filtros.anio);
+    if (filtros.mes) params.append('mes', Number(filtros.mes));
+    if (filtros.anio) params.append('anio', Number(filtros.anio));
 
     const response = await axios.get(`${API_URL}/asistencias/reporte/detalle?${params}`);
     return response.data;
@@ -118,7 +119,12 @@ export const getReporteAnalitico = async (filtros = {}) => {
     if (filtros.anio) params.append('anio', filtros.anio);
     if (filtros.tipo) params.append('tipo', filtros.tipo);
 
+    console.log('🌐 Llamando API:', `${API_URL}/asistencias/reporte/analitico?${params}`);
     const response = await axios.get(`${API_URL}/asistencias/reporte/analitico?${params}`);
+    console.log('📡 Respuesta completa de Axios:', response);
+    console.log('📦 response.data (stringified):', JSON.stringify(response.data, null, 2));
+    console.log('📦 response.data.empleados:', response.data?.empleados);
+    console.log('📦 response.data.estadisticas:', response.data?.estadisticas);
     return response.data;
   } catch (error) {
     console.error('Error al obtener reporte analítico:', error);
@@ -188,6 +194,35 @@ export const registrarAsistencia = async (datos) => {
   }
 };
 
+/**
+ * Registrar asistencia por huella digital
+ * @param {number} huellaId - ID de la huella detectada por el sensor
+ */
+export const registrarAsistenciaPorHuella = async (huellaId) => {
+  try {
+    const response = await axios.post(`${API_URL}/asistencias/registrar-huella`, {
+      huella_id: huellaId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar asistencia por huella:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener checadas del día (pase de lista)
+ */
+export const getChecadasHoy = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/asistencias/checadas/hoy`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener checadas de hoy:', error);
+    throw error;
+  }
+};
+
 export default {
   getDashboardAsistencias,
   getJustificantes,
@@ -199,5 +234,7 @@ export default {
   getVisitas,
   crearVisita,
   actualizarVisita,
-  registrarAsistencia
+  registrarAsistencia,
+  registrarAsistenciaPorHuella,
+  getChecadasHoy
 };

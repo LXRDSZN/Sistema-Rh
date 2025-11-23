@@ -1,7 +1,7 @@
 <template>
   <div class="reporteasistencias-content">
     <div class="content-inner">
-      <h2 class="page-title">Reporte de Asistencias</h2>
+      <h2 class="page-title">Informe de Asistencias</h2>
       
       <div class="filtros-superiores">
         <v-select
@@ -46,44 +46,19 @@
         >
           Aplicar Filtro
         </v-btn>
-      </div>
 
-      <!-- Leyenda de Estados -->
-      <v-card class="card-formulario" elevation="0">
-        <h2 class="card-titulo">Leyenda de Estados</h2>
-        <v-card-text class="card-text-custom">
-          <div class="legend-items">
-            <div class="legend-item">
-              <span class="legend-color asistencia"></span>
-              <span>Asistencia</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color retardo"></span>
-              <span>Retardo</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color falta"></span>
-              <span>Falta</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color incidencia"></span>
-              <span>Incidencia</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color falta-justificada"></span>
-              <span>Falta Justificada</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color dias-feriados"></span>
-              <span>Días Feriados</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color vacaciones"></span>
-              <span>Vacaciones</span>
-            </div>
-          </div>
-        </v-card-text>
-      </v-card>
+        <!-- Botón para generar reportes -->
+        <v-btn
+          color="#10b981"
+          class="filter-btn btn-reporte"
+          @click="generarReporteGeneral"
+          :loading="generandoReporte"
+          :disabled="generandoReporte || employeesFiltered.length === 0"
+        >
+          <v-icon left size="18">mdi-file-pdf</v-icon>
+          {{ generandoReporte ? 'Generando...' : 'Generar Reporte' }}
+        </v-btn>
+      </div>
 
       <!-- Resumen por Áreas -->
       <v-card class="card-monitoreo" elevation="0">
@@ -100,7 +75,6 @@
                 <th class="text-center">Retardos</th>
                 <th class="text-center">Falt. Justif.</th>
                 <th class="text-center">Falt. Injustif.</th>
-                <th class="text-center tabla-acciones-header">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -111,20 +85,6 @@
                 <td class="text-center">{{ item.retardos }}</td>
                 <td class="text-center">{{ item.faltJustif }}</td>
                 <td class="text-center">{{ item.faltInjustif }}</td>
-                <td class="text-center action-cell">
-                  <div class="btn-wrapper">
-                    <v-btn
-                      class="btn-generar"
-                      size="small"
-                      @click="generarReporte(item)"
-                      :loading="generandoPdf"
-                      :disabled="generandoPdf"
-                    >
-                      <v-icon left size="16">mdi-file-pdf</v-icon>
-                      {{ generandoPdf ? 'Generando...' : 'Generar Reporte' }}
-                    </v-btn>
-                  </div>
-                </td>
               </tr>
             </tbody>
           </v-table>
@@ -134,6 +94,41 @@
       <!-- Detalle de asistencias -->
       <v-card class="card-registro" elevation="0">
         <h2 class="card-titulo">Detalle: {{ areaSeleccionada }} - {{ mesSeleccionado }}</h2>
+
+        <!-- Leyenda de Estados debajo del encabezado -->
+        <div class="leyenda-container">
+          <h3 class="leyenda-titulo">Leyenda de Estados</h3>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="legend-color asistencia"></span>
+              <span>A - Asistencia</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color retardo"></span>
+              <span>R - Retardo</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color falta"></span>
+              <span>F - Falta</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color incidencia"></span>
+              <span>I - Incidencia</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color falta-justificada"></span>
+              <span>FJ - Falta Justificada</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color dias-feriados"></span>
+              <span>DF - Días Feriados</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color vacaciones"></span>
+              <span>V - Vacaciones</span>
+            </div>
+          </div>
+        </div>
 
         <v-card-text>
           <div class="table-container">
@@ -213,12 +208,12 @@ const {
 } = useAsistencias()
 
 // Estados
-const selectedMonth = ref(new Date().getMonth() + 1) // Mes actual
+const selectedMonth = ref(new Date().getMonth() + 1)
 const selectedYear = ref(new Date().getFullYear())
 const selectedArea = ref('todas')
 const searchTerm = ref('')
 const busquedaError = ref(false)
-const generandoPdf = ref(false)
+const generandoReporte = ref(false)
 const areas = ref([])
 
 const snackbar = ref({ show: false, text: '', color: 'success' })
@@ -230,6 +225,7 @@ const mostrarMensaje = (texto, color = 'success') => {
 onMounted(async () => {
   await cargarAreas()
   await cargarDatos()
+  await cargarDetalleInicial()
 })
 
 const cargarAreas = async () => {
@@ -252,6 +248,17 @@ const cargarDatos = async () => {
   } catch (error) {
     console.error('Error al cargar reporte:', error)
     mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
+const cargarDetalleInicial = async () => {
+  try {
+    await cargarDetalleAsistencias({
+      mes: Number(selectedMonth.value),
+      anio: Number(selectedYear.value)
+    })
+  } catch (error) {
+    console.error('Error al cargar detalle inicial:', error)
   }
 }
 
@@ -280,19 +287,23 @@ const summaryData = computed(() => {
     asistencia: `${item.porcentaje_asistencia || 0}%`,
     retardos: item.retardos || 0,
     faltJustif: item.faltas_justificadas || 0,
-    faltInjustif: item.faltas_injustificadas || 0,
-    area_id: item.id
+    faltInjustif: item.faltas_injustificadas || 0
   }))
 })
 
 const employeesData = computed(() => {
   if (!detalleAsistencias.value || detalleAsistencias.value.length === 0) return []
-  return detalleAsistencias.value.map(emp => ({
-    empleado: emp.empleado,
-    puesto: emp.puesto || 'Sin puesto',
-    area: selectedArea.value !== 'todas' ? selectedArea.value : emp.area,
-    attendance: emp.attendance || []
-  }))
+
+  return detalleAsistencias.value.map(emp => {
+    const areaBD = emp.area || emp.area_nombre || emp.nombre_area || emp.areaName || emp.area_name || 'Sin área'
+
+    return {
+      empleado: emp.empleado || 'Sin nombre',
+      puesto: emp.puesto || 'Sin puesto',
+      area: areaBD,
+      attendance: emp.attendance || []
+    }
+  })
 })
 
 const areaSeleccionada = computed(() => {
@@ -313,7 +324,6 @@ const diasEnMes = computed(() => {
 const employeesFiltered = computed(() => {
   let resultado = [...employeesData.value]
   
-  // Filtro por búsqueda
   if (searchTerm.value) {
     const search = searchTerm.value.toLowerCase()
     resultado = resultado.filter(emp =>
@@ -329,16 +339,20 @@ const employeesFiltered = computed(() => {
 // Watch para recargar datos cuando cambien filtros
 watch([selectedMonth, selectedYear, selectedArea], async () => {
   await cargarDatos()
-  // Cargar detalle si hay un área específica seleccionada
   if (selectedArea.value !== 'todas') {
     const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
     if (areaObj) {
       await cargarDetalleAsistencias({
-        mes: selectedMonth.value,
-        anio: selectedYear.value,
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value),
         area_id: areaObj.id
       })
     }
+  } else {
+    await cargarDetalleAsistencias({
+      mes: Number(selectedMonth.value),
+      anio: Number(selectedYear.value)
+    })
   }
 })
 
@@ -355,6 +369,323 @@ const getStatusClass = (status) => {
   return classes[status] || ''
 }
 
+// Validación de búsqueda 
+const validarBusqueda = () => {
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
+  if (searchTerm.value && !soloLetrasRegex.test(searchTerm.value)) {
+    busquedaError.value = true
+    searchTerm.value = searchTerm.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+  } else {
+    busquedaError.value = false
+  }
+}
+
+// Botón aplicar filtros
+const aplicarFiltros = async () => {
+  try {
+    if (selectedArea.value !== 'todas') {
+      const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
+      if (areaObj) {
+        await cargarDetalleAsistencias({
+          mes: Number(selectedMonth.value),
+          anio: Number(selectedYear.value),
+          area_id: areaObj.id
+        })
+      }
+    } else {
+      await cargarDetalleAsistencias({
+        mes: Number(selectedMonth.value),
+        anio: Number(selectedYear.value)
+      })
+    }
+    
+    const labelArea = selectedArea.value === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
+    mostrarMensaje(`Filtros aplicados: ${labelArea} - ${mesSeleccionado.value}. Empleados encontrados: ${employeesFiltered.value.length}`)
+  } catch (error) {
+    console.error('Error al aplicar filtros:', error)
+    mostrarMensaje('Error al aplicar filtros', 'error')
+  }
+}
+
+// Generar reporte general según filtros aplicados
+const generarReporteGeneral = async () => {
+  generandoReporte.value = true
+  try {
+    mostrarMensaje('Generando reporte PDF...', 'info')
+
+    if (employeesFiltered.value.length === 0) {
+      mostrarMensaje('No hay datos para generar el reporte', 'warning')
+      return
+    }
+
+    await generarPDFGeneral()
+
+    mostrarMensaje('Reporte PDF generado exitosamente', 'success')
+  } catch (error) {
+    console.error('Error generando PDF:', error)
+    mostrarMensaje('Error al generar el reporte PDF', 'error')
+  } finally {
+    generandoReporte.value = false
+  }
+}
+
+const generarPDFGeneral = async () => {
+  try {
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    })
+
+    const daysInMonth = new Date(selectedYear.value, selectedMonth.value, 0).getDate()
+
+    // Colores
+    const colors = {
+      primary: [34, 26, 104],
+      secondary: [94, 71, 255],
+      success: [16, 185, 129],
+      warning: [245, 158, 11],
+      error: [239, 68, 68],
+      info: [59, 130, 246],
+      gray: [107, 114, 128],
+      pink: [236, 72, 153],
+      purple: [139, 92, 246]
+    }
+
+    // Encabezado
+    pdf.setFontSize(16)
+    pdf.setTextColor(...colors.primary)
+    pdf.text(`Reporte de Asistencias - ${areaSeleccionada.value}`, 20, 20)
+
+    pdf.setFontSize(12)
+    pdf.setTextColor(...colors.gray)
+    pdf.text(`Período: ${mesSeleccionado.value}`, 20, 28)
+    pdf.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 34)
+    pdf.text(`Total de empleados: ${employeesFiltered.value.length}`, 20, 40)
+
+    let yPosition = 50
+
+    // Resumen estadístico
+    const estadisticas = calcularEstadisticas(employeesFiltered.value)
+
+    pdf.setFillColor(...colors.primary)
+    pdf.setTextColor(255, 255, 255)
+    pdf.rect(20, yPosition, 250, 8, 'F')
+    pdf.text('Resumen Estadístico', 22, yPosition + 6)
+
+    yPosition += 15
+
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(10)
+
+    const datosResumen = [
+      { label: 'Total Empleados:', valor: employeesFiltered.value.length.toString() },
+      { label: '% Asistencia Promedio:', valor: estadisticas.asistenciaPromedio },
+      { label: 'Total Retardos:', valor: estadisticas.totalRetardos.toString() },
+      { label: 'Total Faltas Justificadas:', valor: estadisticas.totalFaltasJustificadas.toString() },
+      { label: 'Total Faltas Injustificadas:', valor: estadisticas.totalFaltasInjustificadas.toString() },
+      { label: 'Total Incidencias:', valor: estadisticas.totalIncidencias.toString() },
+      { label: 'Total Días Feriados:', valor: estadisticas.totalDiasFeriados.toString() },
+      { label: 'Total Vacaciones:', valor: estadisticas.totalVacaciones.toString() }
+    ]
+
+    datosResumen.forEach((dato, index) => {
+      const y = yPosition + (index * 6)
+      pdf.setFont(undefined, 'bold')
+      pdf.text(dato.label, 22, y)
+      pdf.setFont(undefined, 'normal')
+      pdf.text(dato.valor, 85, y)
+    })
+
+    yPosition += 60
+
+    // Detalle de asistencias
+    pdf.setFillColor(...colors.primary)
+    pdf.setTextColor(255, 255, 255)
+    pdf.rect(20, yPosition, 250, 8, 'F')
+    pdf.text('Detalle de Asistencias por Empleado', 22, yPosition + 6)
+
+    yPosition += 15
+
+    const headers = [
+      'Empleado',
+      'Puesto',
+      'Área',
+      ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())
+    ]
+    const columnWidths = [45, 40, 30, ...Array(daysInMonth).fill(4.5)]
+
+    let xPosition = 20
+
+    // Encabezados
+    headers.forEach((header, index) => {
+      pdf.setFillColor(...colors.primary)
+      pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(6)
+
+      if (index < 3) {
+        pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
+      } else {
+        pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
+      }
+
+      xPosition += columnWidths[index]
+    })
+
+    yPosition += 8
+
+    // Filas
+    employeesFiltered.value.forEach((emp, empIndex) => {
+      if (yPosition > 180 && empIndex < employeesFiltered.value.length - 1) {
+        pdf.addPage()
+        yPosition = 20
+
+        // Redibujar encabezados
+        xPosition = 20
+        headers.forEach((header, index) => {
+          pdf.setFillColor(...colors.primary)
+          pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFontSize(6)
+
+          if (index < 3) {
+            pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
+          } else {
+            pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
+          }
+
+          xPosition += columnWidths[index]
+        })
+        yPosition += 8
+      }
+
+      xPosition = 20
+
+      pdf.setFillColor(empIndex % 2 === 0 ? 255 : 245, 255, 255)
+      pdf.rect(20, yPosition, 250, 6, 'F')
+
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFontSize(6)
+
+      pdf.text(emp.empleado.substring(0, 20), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[0]
+
+      pdf.text(emp.puesto.substring(0, 15), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[1]
+
+      pdf.text(emp.area.substring(0, 10), xPosition + 2, yPosition + 4)
+      xPosition += columnWidths[2]
+
+      const asistencias = emp.attendance || []
+      for (let day = 1; day <= daysInMonth; day++) {
+        const att = asistencias[day - 1]
+
+        const cellWidth = columnWidths[3]
+        const cellHeight = 6
+        const badgeWidth = cellWidth - 1.2
+        const badgeHeight = 4.2
+        const badgeX = xPosition + (cellWidth - badgeWidth) / 2
+        const badgeY = yPosition + (cellHeight - badgeHeight) / 2
+        const radius = 1.2
+
+        let fillColor
+        switch (att) {
+          case 'A': fillColor = colors.success; break
+          case 'R': fillColor = colors.warning; break
+          case 'F': fillColor = colors.error; break
+          case 'I': fillColor = colors.purple; break
+          case 'FJ': fillColor = colors.info; break
+          case 'DF': fillColor = colors.gray; break
+          case 'V': fillColor = colors.pink; break
+          default:  fillColor = [255, 255, 255]
+        }
+
+        if (!att) {
+          pdf.setFillColor(255, 255, 255)
+          pdf.setDrawColor(230, 230, 230)
+          pdf.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, radius, radius, 'S')
+        } else {
+          pdf.setFillColor(...fillColor)
+          pdf.setDrawColor(255, 255, 255)
+          pdf.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, radius, radius, 'FD')
+        }
+
+        let textoColor
+        if (['A', 'FJ', 'V', 'I'].includes(att)) {
+          textoColor = [255, 255, 255]
+        } else if (!att) {
+          textoColor = [200, 200, 200]
+        } else {
+          textoColor = [0, 0, 0]
+        }
+
+        pdf.setFontSize(5.5)
+        pdf.setTextColor(...textoColor)
+        pdf.text(att || '-', badgeX + badgeWidth / 2, badgeY + badgeHeight / 2 + 1.3, {
+          align: 'center'
+        })
+
+        xPosition += cellWidth
+      }
+      yPosition += 6
+    })
+
+    // Leyenda
+    yPosition += 10
+    pdf.setFontSize(8)
+    pdf.setTextColor(...colors.primary)
+    pdf.text('Leyenda de Estados:', 20, yPosition)
+
+    yPosition += 6
+    const leyendas = [
+      { texto: 'A - Asistencia', color: colors.success },
+      { texto: 'R - Retardo', color: colors.warning },
+      { texto: 'F - Falta', color: colors.error },
+      { texto: 'I - Incidencia', color: colors.purple },
+      { texto: 'FJ - Falta Justificada', color: colors.info },
+      { texto: 'DF - Días Feriados', color: colors.gray },
+      { texto: 'V - Vacaciones', color: colors.pink },
+    ]
+
+    let xLeyenda = 20
+    leyendas.forEach((leyenda) => {
+      if (xLeyenda > 180) {
+        xLeyenda = 20
+        yPosition += 8
+      }
+
+      pdf.setFillColor(...leyenda.color)
+      pdf.rect(xLeyenda, yPosition, 4, 4, 'F')
+      pdf.setTextColor(0, 0, 0)
+      pdf.text(leyenda.texto, xLeyenda + 6, yPosition + 3)
+
+      xLeyenda += 45
+    })
+
+    // Pie de página
+    const totalPages = pdf.internal.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i)
+      pdf.setFontSize(8)
+      pdf.setTextColor(...colors.gray)
+      pdf.text(
+        `Página ${i} de ${totalPages} - Generado el ${new Date().toLocaleDateString('es-ES')}`,
+        20,
+        200
+      )
+    }
+
+    const nombreArchivo = searchTerm.value.trim() !== '' && employeesFiltered.value.length === 1
+      ? `reporte-${employeesFiltered.value[0].empleado.toLowerCase().replace(/\s+/g, '-')}-${selectedMonth.value}.pdf`
+      : `reporte-${areaSeleccionada.value.toLowerCase().replace(/\s+/g, '-')}-${selectedMonth.value}.pdf`
+
+    pdf.save(nombreArchivo)
+  } catch (error) {
+    throw error
+  }
+}
+
 const calcularEstadisticas = (empleados) => {
   let totalAsistencias = 0
   let totalDias = 0
@@ -368,9 +699,9 @@ const calcularEstadisticas = (empleados) => {
   empleados.forEach(emp => {
     if (emp.attendance) {
       emp.attendance.forEach(dia => {
-        if (dia) { // Solo contar si hay dato
+        if (dia) {
           totalDias++
-          switch(dia) {
+          switch (dia) {
             case 'A': totalAsistencias++; break
             case 'R': totalRetardos++; break
             case 'F': totalFaltasInjustificadas++; break
@@ -384,7 +715,7 @@ const calcularEstadisticas = (empleados) => {
     }
   })
 
-  const asistenciaPromedio = totalDias > 0 
+  const asistenciaPromedio = totalDias > 0
     ? `${Math.round((totalAsistencias / totalDias) * 100)}%`
     : '0%'
 
@@ -397,280 +728,6 @@ const calcularEstadisticas = (empleados) => {
     totalDiasFeriados,
     totalVacaciones
   }
-}
-
-// Validación de búsqueda 
-const validarBusqueda = () => {
-  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
-  if (searchTerm.value && !soloLetrasRegex.test(searchTerm.value)) {
-    busquedaError.value = true
-    // Remover caracteres no válidos
-    searchTerm.value = searchTerm.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-  } else {
-    busquedaError.value = false
-  }
-}
-
-const aplicarFiltros = () => {
-  const area = selectedArea.value.toLowerCase()
-
-  // Filtrar resumen por área
-  summaryData.value = area === 'todas'
-    ? [...originalSummaryData]
-    : originalSummaryData.filter(a => a.area.toLowerCase() === area)
-
-  const labelArea = area === 'todas' ? 'Todas las Áreas' : areaSeleccionada.value
-  mostrarMensaje(`Filtros aplicados: ${labelArea} - ${mesSeleccionado.value}. Empleados encontrados: ${employeesFiltered.value.length}`)
-}
-
-const generarReporte = async (row) => {
-  generandoPdf.value = true
-  try {
-    mostrarMensaje(`Generando reporte PDF para: ${row.area}...`, 'info')
-    
-    // Crear PDF
-    await generarPDF(row)
-    
-    mostrarMensaje(`Reporte PDF generado exitosamente para: ${row.area}`, 'success')
-  } catch (error) {
-    console.error('Error generando PDF:', error)
-    mostrarMensaje('Error al generar el reporte PDF', 'error')
-  } finally {
-    generandoPdf.value = false
-  }
-}
-
-const generarPDF = async (row) => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Nuevo PDF
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      // Configuración de colores
-      const colors = {
-        primary: [34, 26, 104],
-        secondary: [94, 71, 255],
-        success: [16, 185, 129],
-        warning: [245, 158, 11],
-        error: [239, 68, 68],
-        info: [59, 130, 246],
-        gray: [107, 114, 128],
-        pink: [236, 72, 153],
-        purple: [139, 92, 246]
-      }
-
-      // Encabezado del reporte
-      pdf.setFontSize(16)
-      pdf.setTextColor(...colors.primary)
-      pdf.text(`Reporte de Asistencias - ${row.area}`, 20, 20)
-      
-      pdf.setFontSize(12)
-      pdf.setTextColor(...colors.gray)
-      pdf.text(`Período: ${mesSeleccionado.value}`, 20, 28)
-      pdf.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 34)
-      pdf.text(`Total de empleados en el área: ${employeesFiltered.value.length}`, 20, 40)
-
-      let yPosition = 50
-
-      // Resumen estadístico dinámico
-      pdf.setFillColor(...colors.primary)
-      pdf.setTextColor(255, 255, 255)
-      pdf.rect(20, yPosition, 250, 8, 'F')
-      pdf.text('Resumen Estadístico del Área', 22, yPosition + 6)
-
-      yPosition += 15
-
-      // Calcular estadísticas dinámicas desde los datos filtrados
-      const estadisticas = calcularEstadisticas(employeesFiltered.value)
-
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(10)
-      
-      // Datos del resumen - dinámicos
-      const datosResumen = [
-        { label: 'Total Empleados:', valor: employeesFiltered.value.length.toString() },
-        { label: '% Asistencia Promedio:', valor: estadisticas.asistenciaPromedio },
-        { label: 'Total Retardos:', valor: estadisticas.totalRetardos.toString() },
-        { label: 'Total Faltas Justificadas:', valor: estadisticas.totalFaltasJustificadas.toString() },
-        { label: 'Total Faltas Injustificadas:', valor: estadisticas.totalFaltasInjustificadas.toString() },
-        { label: 'Total Incidencias:', valor: estadisticas.totalIncidencias.toString() },
-        { label: 'Total Días Feriados:', valor: estadisticas.totalDiasFeriados.toString() },
-        { label: 'Total Vacaciones:', valor: estadisticas.totalVacaciones.toString() }
-      ]
-
-      datosResumen.forEach((dato, index) => {
-        const y = yPosition + (index * 6)
-        pdf.setFont(undefined, 'bold')
-        pdf.text(dato.label, 22, y)
-        pdf.setFont(undefined, 'normal')
-        pdf.text(dato.valor, 85, y)
-      })
-
-      yPosition += 60
-
-      // Detalle de asistencias
-      pdf.setFillColor(...colors.primary)
-      pdf.setTextColor(255, 255, 255)
-      pdf.rect(20, yPosition, 250, 8, 'F')
-      pdf.text('Detalle de Asistencias por Empleado', 22, yPosition + 6)
-
-      yPosition += 15
-
-      // Encabezados de la tabla adaptativos
-      const headers = ['Empleado', 'Puesto', 'Área', ...Array.from({length: diasEnMes.value}, (_, i) => (i + 1).toString())]
-      const columnWidths = [45, 40, 30, ...Array(diasEnMes.value).fill(4.5)]
-      
-      let xPosition = 20
-      
-      // Dibujar encabezados
-      headers.forEach((header, index) => {
-        pdf.setFillColor(...colors.primary)
-        pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
-        pdf.setTextColor(255, 255, 255)
-        pdf.setFontSize(6)
-        
-        if (index < 3) {
-          pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
-        } else {
-          pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
-        }
-        
-        xPosition += columnWidths[index]
-      })
-
-      yPosition += 8
-
-      // Datos de empleados
-      const empleadosParaPDF = employeesFiltered.value
-
-      empleadosParaPDF.forEach((emp, empIndex) => {
-        // Control de paginación
-        if (yPosition > 180 && empIndex < empleadosParaPDF.length - 1) {
-          pdf.addPage()
-          yPosition = 20
-          
-          // Redibujar encabezados
-          xPosition = 20
-          headers.forEach((header, index) => {
-            pdf.setFillColor(...colors.primary)
-            pdf.rect(xPosition, yPosition, columnWidths[index], 8, 'F')
-            pdf.setTextColor(255, 255, 255)
-            pdf.setFontSize(6)
-            
-            if (index < 3) {
-              pdf.text(header.substring(0, 15), xPosition + 2, yPosition + 5)
-            } else {
-              pdf.text(header, xPosition + columnWidths[index] / 2, yPosition + 5, { align: 'center' })
-            }
-            
-            xPosition += columnWidths[index]
-          })
-          yPosition += 8
-        }
-
-        xPosition = 20
-        
-        // Fondo alternado para mejor legibilidad
-        pdf.setFillColor(empIndex % 2 === 0 ? 255 : 245, 255, 255)
-        pdf.rect(20, yPosition, 250, 6, 'F')
-        
-        pdf.setTextColor(0, 0, 0)
-        pdf.setFontSize(6)
-        
-        // Información del empleado
-        pdf.text(emp.empleado.substring(0, 20), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[0]
-        
-        pdf.text(emp.puesto.substring(0, 15), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[1]
-        
-        pdf.text(emp.area.substring(0, 10), xPosition + 2, yPosition + 4)
-        xPosition += columnWidths[2]
-        
-        // Asistencias
-        const asistencias = emp.attendance || []
-        for (let day = 1; day <= diasEnMes.value; day++) {
-          const att = asistencias[day - 1]
-          let color
-          
-          switch(att) {
-            case 'A': color = colors.success; break
-            case 'R': color = colors.warning; break
-            case 'F': color = colors.error; break
-            case 'I': color = colors.purple; break
-            case 'FJ': color = colors.info; break
-            case 'DF': color = colors.gray; break
-            case 'V': color = colors.pink; break
-            default: color = [240, 240, 240] // Sin dato
-          }
-          
-          pdf.setFillColor(...color)
-          pdf.rect(xPosition, yPosition, columnWidths[3], 6, 'F')
-          
-          // Color del texto según el fondo
-          const textoColor = (att === 'A' || att === 'FJ' || att === 'V') ? [255, 255, 255] : [0, 0, 0]
-          pdf.setTextColor(...textoColor)
-          pdf.text(att || '-', xPosition + columnWidths[3] / 2, yPosition + 4, { align: 'center' })
-          
-          xPosition += columnWidths[3]
-        }
-        
-        yPosition += 6
-      })
-
-      // Leyenda de estados
-      yPosition += 10
-      pdf.setFontSize(8)
-      pdf.setTextColor(...colors.primary)
-      pdf.text('Leyenda de Estados:', 20, yPosition)
-      
-      yPosition += 6
-      const leyendas = [
-        { texto: 'A - Asistencia', color: colors.success },
-        { texto: 'R - Retardo', color: colors.warning },
-        { texto: 'F - Falta', color: colors.error },
-        { texto: 'I - Incidencia', color: colors.purple },
-        { texto: 'FJ - Falta Justificada', color: colors.info },
-        { texto: 'DF - Días Feriados', color: colors.gray },
-        { texto: 'V - Vacaciones', color: colors.pink },
-        { texto: '- - Sin registro', color: [240, 240, 240] }
-      ]
-      
-      let xLeyenda = 20
-      leyendas.forEach((leyenda, index) => {
-        if (xLeyenda > 180) {
-          xLeyenda = 20
-          yPosition += 8
-        }
-        
-        pdf.setFillColor(...leyenda.color)
-        pdf.rect(xLeyenda, yPosition, 4, 4, 'F')
-        pdf.setTextColor(0, 0, 0)
-        pdf.text(leyenda.texto, xLeyenda + 6, yPosition + 3)
-        
-        xLeyenda += 45
-      })
-
-      // Pie de página
-      const totalPages = pdf.internal.getNumberOfPages()
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i)
-        pdf.setFontSize(8)
-        pdf.setTextColor(...colors.gray)
-        pdf.text(`Página ${i} de ${totalPages} - Generado el ${new Date().toLocaleDateString('es-ES')}`, 20, 200)
-      }
-
-      // Guardar PDF
-      pdf.save(`reporte-asistencias-${row.area.toLowerCase().replace(/\s+/g, '-')}-${selectedMonth.value}.pdf`)
-      resolve()
-    } catch (error) {
-      reject(error)
-    }
-  })
 }
 </script>
 
@@ -714,17 +771,16 @@ const generarPDF = async (row) => {
 .filtros-superiores {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 1rem;
-  width: 100%;
-  max-width: 1000px;
+  width: 85%;
   padding: 0;
   box-sizing: border-box;
   margin-bottom: 1rem;
 }
 
 .filter-select {
-  width: 200px;
+  width: 100px;
 }
 
 .filter-btn {
@@ -733,8 +789,20 @@ const generarPDF = async (row) => {
   letter-spacing: 0;
 }
 
+.btn-reporte {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.btn-reporte:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
 /* Cards */
-.card-formulario,
 .card-monitoreo,
 .card-registro {
   padding: 0.2rem;
@@ -753,18 +821,27 @@ const generarPDF = async (row) => {
   background-color: #FAFAFA;
 }
 
-.card-text-custom {
-  padding-bottom: 0;
+/* Leyenda Container */
+.leyenda-container {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin: 0 1.5rem 1rem;
+  border: 1px solid #e5e7eb;
 }
 
-/* Leyenda */
+.leyenda-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #544F65;
+  margin-bottom: 0.75rem;
+}
+
 .legend-items {
-  margin-top: 0.1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
   align-items: center;
-  padding: 0.5rem 0;
 }
 
 .legend-item {
@@ -787,6 +864,10 @@ const generarPDF = async (row) => {
 .falta-justificada { background-color: #3b82f6; }
 .dias-feriados { background-color: #6b7280; }
 .vacaciones { background-color: #ec4899; }
+.sin-registro { 
+  background-color: #f3f4f6; 
+  border: 1px solid #d1d5db;
+}
 
 /* Tablas con filas alternadas */
 .tabla-monitoreo,
@@ -806,10 +887,6 @@ const generarPDF = async (row) => {
   font-weight: 600 !important;
   font-size: 0.875rem;
   padding: 0.75rem;
-}
-
-.tabla-acciones-header {
-  width: 180px;
 }
 
 /* Filas alternadas para tabla de monitoreo */
@@ -965,70 +1042,6 @@ const generarPDF = async (row) => {
   color: white;
 }
 
-/* BOTÓN GENERAR REPORTE */
-.action-cell {
-  width: 180px !important;
-  padding: 8px 4px !important;
-}
-
-.btn-wrapper {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  width: 100% !important;
-}
-
-.btn-generar {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  color: white !important;
-  text-transform: none !important;
-  font-size: 0.875rem !important;
-  font-weight: 600 !important;
-  height: 36px !important;
-  border-radius: 8px !important;
-  transition: all 0.3s ease !important;
-  margin: 0 auto !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 16px !important;
-  min-width: 160px !important;
-  box-shadow: none !important;
-  letter-spacing: normal !important;
-}
-
-.btn-generar :deep(.v-btn__content) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-  gap: 6px !important;
-}
-
-.btn-generar :deep(.v-icon) {
-  margin: 0 !important;
-  margin-right: 6px !important;
-  font-size: 16px !important;
-}
-
-.btn-generar:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
-  transform: translateY(-1px) !important;
-}
-
-.btn-generar:active {
-  transform: translateY(0) !important;
-  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.3) !important;
-}
-
-.btn-generar:disabled {
-  background: #9ca3af !important;
-  box-shadow: none !important;
-  transform: none !important;
-  cursor: not-allowed !important;
-}
-
 .custom-snackbar {
   border-radius: 8px;
   bottom: 20px !important;
@@ -1049,8 +1062,8 @@ const generarPDF = async (row) => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: center;
-  width: 100%;
-  flex-wrap: wrap;
+  width: 80%;
+  flex-wrap: nowrap;
   justify-content: flex-start;
 }
 
@@ -1060,7 +1073,7 @@ const generarPDF = async (row) => {
 }
 
 .search-input-monitor {
-  min-width: 400px;
+  min-width: 300px;
   flex: 2;
 }
 
@@ -1093,7 +1106,7 @@ const generarPDF = async (row) => {
     gap: 1rem;
   }
 
-  .btn-generar {
+  .btn-reporte {
     width: 100%;
   }
 

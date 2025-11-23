@@ -9,93 +9,119 @@
       </div>
 
       <form @submit.prevent="$emit('submit')" class="register-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="nombre">Nombre*</label>
-            <input
-              type="text"
-              id="nombre"
-              v-model="modelValue.nombre"
-              placeholder="Nombre(s)"
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
-              title="Solo se permiten letras y espacios"
-              @keypress="onlyLetters"
-              required
-            />
-            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
+        <!-- Selector de Empleado -->
+        <div class="form-group full-width">
+          <label for="empleado">Seleccionar Empleado*</label>
+          <select 
+            id="empleado" 
+            v-model="props.modelValue.persona_id" 
+            required
+            :disabled="isLoadingEmpleados"
+          >
+            <option value="">{{ isLoadingEmpleados ? 'Cargando empleados...' : 'Seleccionar empleado...' }}</option>
+            <option 
+              v-for="empleado in props.empleadosSinCorreo" 
+              :key="empleado.id" 
+              :value="empleado.id"
+            >
+              {{ empleado.apellido_paterno }} {{ empleado.apellido_materno }} {{ empleado.nombre }}
+              {{ empleado.area ? ` - ${empleado.area}` : '' }}
+              {{ empleado.puesto ? ` (${empleado.puesto})` : '' }}
+            </option>
+          </select>
+          <small class="field-hint">Selecciona un empleado con contrato activo que aún no tiene correo registrado</small>
+        </div>
+
+        <!-- Información del empleado y contrato (solo lectura) -->
+        <div v-if="props.modelValue.persona_id" class="employee-info">
+          <h3 class="info-title">Datos del Empleado</h3>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Nombre completo:</span>
+              <span class="info-value">{{ props.modelValue.nombre }} {{ props.modelValue.apellido_paterno }} {{ props.modelValue.apellido_materno }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Sexo:</span>
+              <span class="info-value">{{ props.modelValue.sexo }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Fecha de nacimiento:</span>
+              <span class="info-value">{{ formatDate(props.modelValue.fecha_nacimiento) }}</span>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label for="apellido_paterno">Apellido Paterno*</label>
-            <input
-              type="text"
-              id="apellido_paterno"
-              v-model="modelValue.apellido_paterno"
-              placeholder="Apellido paterno"
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
-              title="Solo se permiten letras y espacios"
-              @keypress="onlyLetters"
-              required
-            />
-            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
+          <h3 class="info-title">Datos del Contrato</h3>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Área:</span>
+              <span class="info-value">{{ props.modelValue.area || 'Sin área' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Puesto:</span>
+              <span class="info-value">{{ props.modelValue.puesto || 'Sin puesto' }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Tipo de contrato:</span>
+              <span class="info-value">{{ props.modelValue.tipo_contrato || 'No especificado' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Modalidad:</span>
+              <span class="info-value">{{ props.modelValue.modalidad || 'No especificada' }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Salario mensual:</span>
+              <span class="info-value">{{ formatCurrency(props.modelValue.salario_mensual) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Estado:</span>
+              <span class="info-value">{{ props.modelValue.estado_contrato || 'Activo' }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Fecha inicio:</span>
+              <span class="info-value">{{ formatDate(props.modelValue.fecha_inicio) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Fecha fin:</span>
+              <span class="info-value">{{ formatDate(props.modelValue.fecha_fin) }}</span>
+            </div>
+          </div>
+          <div v-if="props.modelValue.observaciones" class="info-row">
+            <div class="info-item full-width">
+              <span class="info-label">Observaciones:</span>
+              <span class="info-value">{{ props.modelValue.observaciones }}</span>
+            </div>
           </div>
         </div>
 
+        <!-- Campos de credenciales -->
         <div class="form-row">
-          <div class="form-group">
-            <label for="apellido_materno">Apellido Materno</label>
-            <input
-              type="text"
-              id="apellido_materno"
-              v-model="modelValue.apellido_materno"
-              placeholder="Apellido materno (opcional)"
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*"
-              title="Solo se permiten letras y espacios"
-              @keypress="onlyLetters"
-            />
-            <small class="field-hint">Solo letras, sin números ni caracteres especiales</small>
-          </div>
-          
-          <div class="form-group">
-            <label for="fecha_nacimiento">Fecha de Nacimiento*</label>
-            <input
-              type="date"
-              id="fecha_nacimiento"
-              v-model="modelValue.fecha_nacimiento"
-              required
-            />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="sexo">Sexo*</label>
-            <select id="sexo" v-model="modelValue.sexo" required>
-              <option value="">Seleccionar...</option>
-              <option value="Hombre">Hombre</option>
-              <option value="Mujer">Mujer</option>
-            </select>
-          </div>
-          
           <div class="form-group">
             <label for="email">Email*</label>
             <input
               type="email"
               id="email"
-              v-model="modelValue.email"
+              v-model="props.modelValue.email"
               placeholder="correo@ejemplo.com"
               required
+              @input="$forceUpdate()"
             />
+            <small v-if="emailError" class="field-error">{{ emailError }}</small>
           </div>
-        </div>
 
-        <div class="form-row">
           <div class="form-group">
             <label for="password">Contraseña Temporal*</label>
             <input
               type="password"
               id="password"
-              v-model="modelValue.password"
+              v-model="props.modelValue.password"
               placeholder="Contraseña temporal"
               required
             />
@@ -103,10 +129,14 @@
           
           <div class="form-group">
             <label for="rol">Rol*</label>
-            <select id="rol" v-model="modelValue.rol" required>
+            <select id="rol" v-model="props.modelValue.rol" required>
               <option value="">Seleccionar rol...</option>
               <option v-if="userRole === 'ADMIN'" value="JEFE_RH">Jefe de Recursos Humanos</option>
               <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_AREA">Jefe de Área</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_ASISTENCIAS">Jefe de Asistencias</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_CONTRATOS">Jefe de Contratos</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
               <option value="EMPLEADO">Empleado</option>
             </select>
           </div>
@@ -122,15 +152,18 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import { useTextValidation } from '@/composables/useTextValidation';
 
 const { onlyLetters } = useTextValidation();
 
-defineProps({
+const props = defineProps({
   show: Boolean,
   modelValue: Object,
   userRole: String,
-  isRegistering: Boolean
+  isRegistering: Boolean,
+  empleadosSinCorreo: Array,
+  isLoadingEmpleados: Boolean
 });
 
 const emit = defineEmits(['update:show', 'submit']);
@@ -138,6 +171,38 @@ const emit = defineEmits(['update:show', 'submit']);
 const closeModal = () => {
   emit('update:show', false);
 };
+
+const emailError = ref('');
+
+// Formatear fecha
+const formatDate = (dateString) => {
+  if (!dateString) return 'No especificada';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-MX', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
+// Formatear moneda
+const formatCurrency = (amount) => {
+  if (!amount) return '$0.00';
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN'
+  }).format(amount);
+};
+
+watch(() => props.modelValue.email, (val) => {
+  if (!val) {
+    emailError.value = '';
+  } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val)) {
+    emailError.value = 'Ingresa un correo electrónico válido (ejemplo@dominio.com)';
+  } else {
+    emailError.value = '';
+  }
+});
 </script>
 
 <style scoped>
@@ -221,6 +286,65 @@ const closeModal = () => {
   margin-bottom: 0.5rem;
 }
 
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.employee-info {
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.info-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  margin-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.info-title:first-child {
+  margin-top: 0;
+}
+
+.info-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-item {
+  flex: 1;
+}
+
+.info-item.full-width {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-size: 0.875rem;
+  color: #111827;
+  font-weight: 600;
+}
+
 .field-hint {
   font-size: 0.75rem;
   color: #6B7280;
@@ -268,6 +392,12 @@ const closeModal = () => {
   background: #9CA3AF;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.field-error {
+  color: #e53e3e;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 768px) {

@@ -44,23 +44,23 @@
                 <div class="info-rows">
                     <div class="info-row">
                         <span class="label">CURP:</span>
-                        <span class="value">{{ aspirante.curp || 'XXXX' }}</span>
+                        <span class="value">{{ aspirante.curp || '----' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="label">RFC:</span>
-                        <span class="value">{{ aspirante.rfc || 'XXXX' }}</span>
+                        <span class="value">{{ aspirante.rfc || '----' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="label">NSS:</span>
-                        <span class="value">{{ aspirante.nss || 'XXXX' }}</span>
+                        <span class="value">{{ aspirante.nss || '----' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="label">Teléfono:</span>
-                        <span class="value">{{ aspirante.telefono || 'XXXX' }}</span>
+                        <span class="value">{{ aspirante.telefono || '----' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="label">Domicilio:</span>
-                        <span class="value">{{ aspirante.domicilio || 'XXXX' }}</span>
+                        <span class="value">{{ aspirante.domicilio || '----' }}</span>
                     </div>
                 </div>
             </div>
@@ -99,21 +99,15 @@ const props = defineProps({
 });
 
 const getNombre = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[0] || 'XXXX';
+    return props.aspirante.nombreSolo || '----';
 };
 
 const getApellidoPaterno = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[1] || 'XXXX';
+    return props.aspirante.apellidoPaterno || '----';
 };
 
 const getApellidoMaterno = () => {
-    if (!props.aspirante.nombre) return 'XXXX';
-    const partes = props.aspirante.nombre.split(' ');
-    return partes[2] || 'XXXX';
+    return props.aspirante.apellidoMaterno || '----';
 };
 </script>
 

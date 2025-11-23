@@ -1,7 +1,7 @@
 <template>
   <div class="reportevisitas-content">
     <div class="content-inner">
-      <h2 class="page-title">Reporte de Visitas</h2>
+      <h2 class="page-title">Informe de Visitas</h2>
       <br>
 
       <!-- Filtros Superiores -->

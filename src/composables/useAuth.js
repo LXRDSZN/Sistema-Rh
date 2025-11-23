@@ -177,7 +177,7 @@ export function useAuth() {
    */
   const hasRole = (roleName) => {
     if (!user.value) return false;
-    return user.value.rol === roleName;
+    return user.value.rol?.toLowerCase() === roleName.toLowerCase();
   };
 
   /**
