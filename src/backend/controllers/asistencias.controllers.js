@@ -812,16 +812,22 @@ export const crearVisita = async (req, res) => {
       });
     }
 
+    // Separar el nombre completo en partes
+    const nombreParts = nombre_visitante.trim().split(' ');
+    const nombre = nombreParts[0] || '';
+    const apellido_paterno = nombreParts[1] || '';
+    const apellido_materno = nombreParts.slice(2).join(' ') || null;
+
     const fechaVisita = fecha || new Date().toISOString().split('T')[0];
     const horaIngreso = hora_ingreso || new Date().toTimeString().split(' ')[0];
 
     const result = await db.query(
       `INSERT INTO visitas 
-       (nombre_visitante, cargo_rol, area_visitada_id, persona_visitada_id, 
-        empresa_pertenece, motivo_visita, fecha, hora_ingreso)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (nombre, apellido_paterno, apellido_materno, cargo_rol, area_visitada_id, persona_visitada_id, 
+        empresa, motivo_visita, fecha, hora_ingreso)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
-      [nombre_visitante, cargo_rol, area_visitada_id, persona_visitada_id, 
+      [nombre, apellido_paterno, apellido_materno, cargo_rol, area_visitada_id, persona_visitada_id, 
        empresa_pertenece, motivo_visita, fechaVisita, horaIngreso]
     );
 
@@ -858,7 +864,7 @@ export const actualizarVisita = async (req, res) => {
 
     const result = await db.query(
       `UPDATE visitas
-       SET hora_salida = $1, updated_at = NOW()
+       SET hora_salida = $1
        WHERE id = $2
        RETURNING id`,
       [hora_salida, id]
