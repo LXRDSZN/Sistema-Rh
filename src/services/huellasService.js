@@ -95,22 +95,6 @@ export const deleteFingerprint = async (esp32Ip, fingerprintId) => {
 };
 
 /**
- * Alternar escaneo automático del sensor
- */
-export const toggleScan = async (esp32Ip) => {
-  try {
-    const response = await axios.post(`http://${esp32Ip}/api/scan`, {}, {
-      timeout: 5000,
-      withCredentials: false
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error al alternar escaneo:', error);
-    throw error;
-  }
-};
-
-/**
  * Limpiar todas las huellas del sensor
  */
 export const clearAllFingerprints = async (esp32Ip) => {
