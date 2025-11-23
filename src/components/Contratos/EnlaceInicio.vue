@@ -2,14 +2,20 @@
     <div class="inicio-view">
         <!-- Encabezado simplificado -->
         <div class="header">
-            <h1>Contratos/Inicio</h1>
+            <div>
+                <h1>Contratos/Inicio</h1>
+                <div class="header-sub">Resumen y accesos rápidos</div>
+            </div>
         </div>
 
         <!-- Barra de búsqueda con botón de incidencia (todo en una línea) -->
         <div class="search-container">
             <div class="search-box">
                 <input type="text" placeholder="Buscar" v-model="searchQuery">
-                <span class="material-symbols-rounded search-icon">search</span>
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21l-4.35-4.35" stroke="#666" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="11" cy="11" r="6" stroke="#666" stroke-width="1.6" fill="none"/>
+                </svg>
             </div>
             <button class="btn-incidencia" @click="registrarIncidencia">
                 + Registrar Incidencia
@@ -30,37 +36,49 @@
             <div class="stat-card activos" @click="cambiarVista('activos')">
                 <div class="stat-label">TOTAL DE<br>CONTRATOS ACTIVOS</div>
                 <div class="stat-value-with-icon">                     
-                    <span class="material-symbols-rounded contract-icon activo">
-                        article
-                    </span>
-                    <div class="stat-value">{{ stats.activos }}</div>
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 7a2 2 0 012-2h6l4 4v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+                            <path d="M13 7v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ activosDisplay }}</span></div>
                 </div>
             </div>
             <div class="stat-card proximos" @click="cambiarVista('avencer')">
                 <div class="stat-label">CONTRATOS<br>PRÓXIMOS A VENCER</div>
                 <div class="stat-value-with-icon">                     
-                    <span class="material-symbols-rounded contract-icon por-vencer">
-                        article
-                    </span>
-                    <div class="stat-value">{{ stats.proximosVencer }}</div>
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                            <path d="M7 8h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ proximosDisplay }}</span></div>
                 </div>
             </div>
             <div class="stat-card vencidos" @click="cambiarVista('vencidos')">
                 <div class="stat-label">CONTRATOS<br>VENCIDOS</div>
                 <div class="stat-value-with-icon">                     
-                    <span class="material-symbols-rounded contract-icon vencido">
-                        article
-                    </span>
-                    <div class="stat-value">{{ stats.vencidos }}</div>
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                            <path d="M6 8h12v10a2 2 0 01-2 2H8a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value"><span class="num">{{ vencidosDisplay }}</span></div>
                 </div>
             </div>
             <div class="stat-card proceso" @click="cambiarVista('proceso')">
                 <div class="stat-label">CONTRATOS<br>EN PROCESO</div>
-                <div class="stat-value-with-icon">                     
-                    <span class="material-symbols-rounded contract-icon proceso">
-                        article
-                    </span>
-                <div class="stat-value">{{ stats.enProceso }}</div>
+                <div class="stat-value-with-icon">                      
+                    <div class="icon-box">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                        </svg>
+                    </div>
+                <div class="stat-value"><span class="num">{{ enProcesoDisplay }}</span></div>
                 </div>
             </div>
         </div>
@@ -97,9 +115,18 @@
                             <div class="col-puesto">{{ formatRoleName(empleado.puesto) }}</div>
                             <div class="col-area">{{ empleado.area }}</div>
                             <div class="col-action">
-                                <button class="btn-revisar empleado" @click="revisarContrato(empleado)">
-                                    REVISAR
-                                </button>
+                                <div class="row-actions">
+                                    <button class="btn-revisar empleado" @click="revisarContrato(empleado)">REVISAR</button>
+                                    <div class="actions-menu">
+                                        <button class="menu-btn" @click.stop="toggleActions(empleado.id)" :aria-expanded="!!openActions[empleado.id]" title="Más">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#374151"/><circle cx="12" cy="12" r="1.5" fill="#374151"/><circle cx="19" cy="12" r="1.5" fill="#374151"/></svg>
+                                        </button>
+                                        <div v-if="openActions[empleado.id]" class="action-menu">
+                                            <button class="action-item" @click="revisarContrato(empleado); closeActions(empleado.id)">Revisar</button>
+                                            <button class="action-item" @click="revisarContrato(empleado); closeActions(empleado.id)">Ver perfil</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -132,9 +159,18 @@
                             <div class="col-puesto">{{ formatRoleName(aspirante.puesto) }}</div>
                             <div class="col-area">{{ aspirante.area }}</div>
                             <div class="col-action">
-                                <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">
-                                    REVISAR
-                                </button>
+                                <div class="row-actions">
+                                    <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">REVISAR</button>
+                                    <div class="actions-menu">
+                                        <button class="menu-btn" @click.stop="toggleActions(aspirante.id)" :aria-expanded="!!openActions[aspirante.id]" title="Más">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#374151"/><circle cx="12" cy="12" r="1.5" fill="#374151"/><circle cx="19" cy="12" r="1.5" fill="#374151"/></svg>
+                                        </button>
+                                        <div v-if="openActions[aspirante.id]" class="action-menu">
+                                            <button class="action-item" @click="revisarContrato(aspirante); closeActions(aspirante.id)">Revisar</button>
+                                            <button class="action-item" @click="revisarContrato(aspirante); closeActions(aspirante.id)">Ver perfil</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -145,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 
 // Props - recibe datos del componente raíz
@@ -164,6 +200,32 @@ const props = defineProps({
 const emit = defineEmits(['crear-contrato', 'revisar-contrato', 'cambiar-vista', 'registrar-incidencia']);
 
 const defaultAvatar = '/src/assets/default-user.png';
+
+// Animated stats display
+const activosDisplay = ref(0);
+const proximosDisplay = ref(0);
+const vencidosDisplay = ref(0);
+const enProcesoDisplay = ref(0);
+
+const animateCount = (targetRef, to, duration = 700) => {
+    const start = performance.now();
+    const from = Number(targetRef.value) || 0;
+    const diff = to - from;
+    if (diff === 0) { targetRef.value = to; return; }
+    const step = (now) => {
+        const t = Math.min((now - start) / duration, 1);
+        targetRef.value = Math.floor(from + diff * t);
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+};
+
+// Per-row actions state
+const openActions = ref({});
+const toggleActions = (id) => {
+    openActions.value[id] = !openActions.value[id];
+};
+const closeActions = (id) => { openActions.value[id] = false; };
 
 const onImgError = (event) => {
     event.target.onerror = null;
@@ -205,6 +267,24 @@ const aspirantesFiltrados = computed(() => {
         c.area.toLowerCase().includes(query)
     );
 });
+
+// animate stats on mount and when props.stats changes
+onMounted(() => {
+    if (props.stats) {
+        animateCount(activosDisplay, props.stats.activos || 0);
+        animateCount(proximosDisplay, props.stats.proximosVencer || 0);
+        animateCount(vencidosDisplay, props.stats.vencidos || 0);
+        animateCount(enProcesoDisplay, props.stats.enProceso || 0);
+    }
+});
+
+watch(() => props.stats, (ns) => {
+    if (!ns) return;
+    animateCount(activosDisplay, ns.activos || 0);
+    animateCount(proximosDisplay, ns.proximosVencer || 0);
+    animateCount(vencidosDisplay, ns.vencidos || 0);
+    animateCount(enProcesoDisplay, ns.enProceso || 0);
+}, { deep: true });
 
 // Métodos
 const crearContrato = () => {
@@ -375,8 +455,8 @@ function formatRoleName(role) {
 
 .stat-card {
     background: white;
-    padding: 2rem;
-    border-radius: 12px;
+    padding: 2.2rem 2.4rem;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -432,8 +512,8 @@ function formatRoleName(role) {
 }
 
 .stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-size: 2.6rem;
+    font-weight: 800;
     text-align: center;
 }
 
@@ -452,6 +532,18 @@ function formatRoleName(role) {
 .stat-card.proceso .stat-value {
     color: #000000;
 }
+
+/* Icon box inside stat cards */
+.stat-value-with-icon { display:flex; align-items:center; justify-content:center; gap:18px; }
+.icon-box { width:56px; height:56px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 -6px 12px rgba(255,255,255,0.25); }
+.stat-card.activos .icon-box { background: rgba(16,185,129,0.12); border: 2px solid rgba(16,185,129,0.18); color: #059669; }
+.stat-card.proximos .icon-box { background: rgba(221,200,81,0.12); border: 2px solid rgba(221,200,81,0.18); color: #b88600; }
+.stat-card.vencidos .icon-box { background: rgba(220,53,69,0.08); border: 2px solid rgba(220,53,69,0.14); color: #b91c1c; }
+.stat-card.proceso .icon-box { background: rgba(23,162,184,0.08); border: 2px solid rgba(23,162,184,0.14); color: #0e7490; }
+
+.stat-label { text-align:center; font-size:0.85rem; letter-spacing: 0.6px; }
+.stat-value { display:flex; align-items:center; justify-content:center; gap:12px; }
+.stat-value .num { font-size: 2.6rem; }
 
 /* Destacados Header */
 .destacados-header {
@@ -722,5 +814,19 @@ function formatRoleName(role) {
 .contract-icon.proceso {
     font-size: 50px;
     color: #17a2b8; 
+}
+
+/* Small enhancements: animated numbers and row action menu */
+.header-sub { color: #6b7280; font-size: 0.95rem; margin-top: 6px; }
+.num { transition: all 0.2s ease; font-variant-numeric: tabular-nums; }
+.row-actions { display:flex; gap:0.5rem; align-items:center; }
+.actions-menu { position: relative; }
+.menu-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; }
+.action-menu { position: absolute; right: 0; top: 36px; background: white; box-shadow: 0 6px 18px rgba(2,6,23,0.12); border-radius: 8px; overflow: hidden; z-index: 40; }
+.action-item { display:block; padding: 0.6rem 1rem; width: 140px; text-align:left; background: transparent; border: none; cursor: pointer; font-weight:600; }
+.action-item:hover { background: #f3f4f6; }
+
+@media (max-width: 768px) {
+    .action-menu { top: 44px; right: 4px; }
 }
 </style>
