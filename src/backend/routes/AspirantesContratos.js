@@ -270,4 +270,65 @@ router.put('/aspirantes/:personaId/etapa', async (req, res) => {
   }
 });
 
+// ========================================
+// ACTUALIZAR COMENTARIO DE ASPIRACIÓN LABORAL
+// ========================================
+router.put('/aspirantes/:personaId/aspiracion-laboral/comentario', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+    const { comentario } = req.body;
+
+    const comentarioLimpio = (comentario || '').trim();
+
+    if (!comentarioLimpio) {
+      return res.status(400).json({
+        ok: false,
+        error: 'El comentario es obligatorio'
+      });
+    }
+
+    // Primero intentamos actualizar si ya existe aspiración_laboral
+    const updateSql = `
+      UPDATE aspiracion_laboral
+      SET comentario = $1
+      WHERE persona_id = $2
+      RETURNING id, persona_id, comentario, creado_en;
+    `;
+
+    const values = [comentarioLimpio, personaId];
+
+    let { rows } = await pool.query(updateSql, values);
+
+    // Si no existe registro, lo creamos con este comentario
+    if (!rows.length) {
+      const insertSql = `
+        INSERT INTO aspiracion_laboral (persona_id, comentario)
+        VALUES ($1, $2)
+        RETURNING id, persona_id, comentario, creado_en;
+      `;
+      const insertValues = [personaId, comentarioLimpio];
+      const insertResult = await pool.query(insertSql, insertValues);
+      rows = insertResult.rows;
+    }
+
+    console.log('Actualizar comentario aspiracion:', {
+      personaId,
+      comentario: comentarioLimpio,
+      rows
+    });
+
+    res.json({
+      ok: true,
+      mensaje: 'Comentario actualizado correctamente',
+      aspiracion: rows[0]
+    });
+  } catch (error) {
+    console.error('Error al actualizar comentario de aspiración laboral:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;

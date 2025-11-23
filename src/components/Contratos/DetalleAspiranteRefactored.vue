@@ -36,6 +36,7 @@
                 v-if="tabActual === 'proceso'"
                 :aspirante="aspirante"
                 @etapa-actualizada="actualizarEtapaLocal"
+                @comentario-enviado="guardarComentarioAspiracion"
             />
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" />
         </template>
@@ -71,7 +72,8 @@ const {
     obtenerDatosPersonalesAspirante,
     obtenerCvAspirante,
     obtenerAspiracionLaboralAspirante,
-    actualizarEtapaAspirante
+    actualizarEtapaAspirante,
+    actualizarComentarioAspiracion
 } = useAspirantesContratos();
 
 // Estado
@@ -174,6 +176,15 @@ const actualizarEtapaLocal = async (nuevaEtapa) => {
         await cargarDatos();
     } catch (error) {
         console.error('Error al actualizar etapa desde detalle aspirante:', error);
+    }
+};
+
+const guardarComentarioAspiracion = async (comentarioTexto) => {
+    if (!aspirante.value) return;
+    try {
+        await actualizarComentarioAspiracion(aspirante.value.id, comentarioTexto);
+    } catch (error) {
+        console.error('Error al guardar comentario de aspiración laboral:', error);
     }
 };
 

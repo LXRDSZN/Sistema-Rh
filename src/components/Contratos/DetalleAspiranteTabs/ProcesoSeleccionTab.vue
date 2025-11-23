@@ -72,8 +72,11 @@
                 <!-- Comentarios -->
                 <div class="comentarios-box">
                     <h4>Comentarios</h4>
-                    <textarea placeholder="Agregar un Comentario..."></textarea>
-                    <button class="btn-comentar">COMENTAR</button>
+                    <textarea
+                        v-model="comentario"
+                        placeholder="Agregar un Comentario..."
+                    ></textarea>
+                    <button class="btn-comentar" @click="enviarComentario">COMENTAR</button>
                 </div>
 
                 <!-- Historial -->
@@ -101,7 +104,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 
-const emit = defineEmits(['etapa-actualizada']);
+const emit = defineEmits(['etapa-actualizada', 'comentario-enviado']);
 
 const props = defineProps({
     aspirante: {
@@ -113,6 +116,7 @@ const props = defineProps({
 const etapasOrdenadas = ['Registro', 'Revisión', 'Entrevista', 'Evaluación', 'Contratación'];
 
 const etapaLocal = ref(props.aspirante.estadoProceso || 'Registro');
+const comentario = ref('');
 
 watch(
     () => props.aspirante.estadoProceso,
@@ -151,6 +155,14 @@ const moverSiguienteEtapa = () => {
     const siguienteEtapa = etapasOrdenadas[actualIndex + 1];
     etapaLocal.value = siguienteEtapa;
     emit('etapa-actualizada', siguienteEtapa);
+};
+
+const enviarComentario = () => {
+    if (!comentario.value.trim()) {
+        return;
+    }
+    emit('comentario-enviado', comentario.value.trim());
+    comentario.value = '';
 };
 </script>
 

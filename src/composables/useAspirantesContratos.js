@@ -69,10 +69,27 @@ export const useAspirantesContratos = () => {
     }
   };
 
+  /**
+   * Actualiza el comentario de la aspiración laboral del aspirante
+   */
+  const actualizarComentarioAspiracion = async (personaId, comentario) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/aspirantes/${personaId}/aspiracion-laboral/comentario`,
+        { comentario }
+      );
+      return response.data.aspiracion;
+    } catch (error) {
+      console.error('Error al actualizar comentario de aspiración laboral:', error);
+      throw error;
+    }
+  };
+
   return {
     obtenerDatosPersonalesAspirante,
     obtenerCvAspirante,
     obtenerAspiracionLaboralAspirante,
-    actualizarEtapaAspirante
+    actualizarEtapaAspirante,
+    actualizarComentarioAspiracion
   };
 };
