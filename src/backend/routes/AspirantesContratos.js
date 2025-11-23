@@ -222,8 +222,52 @@ router.put('/aspirantes/:personaId/nombre', async (req, res) => {
   }
 });
 
+// ========================================
+// ACTUALIZAR ETAPA DEL PROCESO DE SELECCIÓN
+// ========================================
+router.put('/aspirantes/:personaId/etapa', async (req, res) => {
+  try {
+    const { personaId } = req.params;
+    const { etapa } = req.body;
 
+    if (!etapa) {
+      return res.status(400).json({
+        ok: false,
+        error: 'La etapa es obligatoria'
+      });
+    }
 
+    const updateSql = `
+      UPDATE persona
+      SET etapa = $1
+      WHERE id = $2
+      RETURNING id, etapa, fecha_registro;
+    `;
 
+    const values = [etapa, personaId];
+
+    const { rows } = await pool.query(updateSql, values);
+    //console.log('Actualizar etapa persona:', { personaId, etapa, rows });
+
+    if (!rows.length) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Aspirante no encontrado o ya no es aspirante'
+      });
+    }
+
+    res.json({
+      ok: true,
+      mensaje: 'Etapa del proceso actualizada correctamente',
+      proceso: rows[0]
+    });
+  } catch (error) {
+    console.error('Error al actualizar etapa del aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
 
 export default router;

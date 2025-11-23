@@ -53,9 +53,26 @@ export const useAspirantesContratos = () => {
     }
   };
 
+  /**
+   * Actualiza la etapa del proceso de selección del aspirante
+   */
+  const actualizarEtapaAspirante = async (personaId, etapa) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/aspirantes/${personaId}/etapa`,
+        { etapa }
+      );
+      return response.data.proceso;
+    } catch (error) {
+      console.error('Error al actualizar etapa del aspirante:', error);
+      throw error;
+    }
+  };
+
   return {
     obtenerDatosPersonalesAspirante,
     obtenerCvAspirante,
-    obtenerAspiracionLaboralAspirante
+    obtenerAspiracionLaboralAspirante,
+    actualizarEtapaAspirante
   };
 };

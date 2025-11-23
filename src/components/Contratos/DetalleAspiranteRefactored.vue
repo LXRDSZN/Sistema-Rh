@@ -32,7 +32,11 @@
                 :aspirante="aspirante"
                 :aspiracion-laboral="aspiracionLaboral"
             />
-            <ProcesoSeleccionTab v-if="tabActual === 'proceso'" :aspirante="aspirante" />
+            <ProcesoSeleccionTab
+                v-if="tabActual === 'proceso'"
+                :aspirante="aspirante"
+                @etapa-actualizada="actualizarEtapaLocal"
+            />
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" />
         </template>
     </div>
@@ -63,7 +67,12 @@ const emit = defineEmits(['cerrar', 'crear-contrato']);
 
 
 // Composable
-const { obtenerDatosPersonalesAspirante, obtenerCvAspirante, obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
+const {
+    obtenerDatosPersonalesAspirante,
+    obtenerCvAspirante,
+    obtenerAspiracionLaboralAspirante,
+    actualizarEtapaAspirante
+} = useAspirantesContratos();
 
 // Estado
 const aspirante = ref(null);
@@ -131,7 +140,7 @@ const cargarDatos = async () => {
             domicilio: datosPersonales.domicilio,
 
             // Estado del proceso
-            estadoProceso: datosPersonales.etapa || 'EN REVISIÓN',
+            estadoProceso: datosPersonales.etapa || 'Registro',
             fechaRegistro: datosPersonales.fecha_registro
         };
 
@@ -153,6 +162,19 @@ const cargarDatos = async () => {
 
 const cerrar = () => {
     emit('cerrar');
+};
+
+const actualizarEtapaLocal = async (nuevaEtapa) => {
+    if (!aspirante.value) return;
+    try {
+        const proceso = await actualizarEtapaAspirante(aspirante.value.id, nuevaEtapa);
+        // Actualiza estado local rápidamente
+        aspirante.value.estadoProceso = proceso.etapa;
+        // Refresca todos los datos desde el backend para asegurarse
+        await cargarDatos();
+    } catch (error) {
+        console.error('Error al actualizar etapa desde detalle aspirante:', error);
+    }
 };
 
 // Cargar datos al montar
