@@ -83,7 +83,7 @@
 
               <div class="stat-card">
                 <div class="stat-value">{{ estadisticas.totalFaltas }}</div>
-                <div class="stat-label">Total Faltas</div>
+                <div class="stat-label">Total Faltas Injustificadas</div>
               </div>
 
               <div class="stat-card">
