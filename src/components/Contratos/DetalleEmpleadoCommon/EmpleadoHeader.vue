@@ -42,6 +42,15 @@
 </template>
 
 <script setup>
+const props = defineProps({
+    empleado: {
+        type: Object,
+        required: true
+    }
+});
+
+const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
+
 // Formatea el nombre del rol del sistema
 const formatRoleName = (role) => {
     const map = {
@@ -56,16 +65,8 @@ const formatRoleName = (role) => {
     };
     return map[role] || role;
 };
-import { computed } from 'vue';
 
-const props = defineProps({
-    empleado: {
-        type: Object,
-        required: true
-    }
-});
 
-const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
 
 // Avatar por defecto
 const defaultAvatar = '/src/assets/default-user.png';
@@ -229,6 +230,7 @@ const formatearFecha = (fecha) => {
 .status-value.vencido {
     color: #ef4444;
 }
+
 .status-value.indefinido {
     color: #7c3aed;
 }
