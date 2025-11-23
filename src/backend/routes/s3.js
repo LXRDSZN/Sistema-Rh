@@ -19,7 +19,7 @@ const router = express.Router();
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 10 * 1024 * 1024 // Límite de 10MB
+        fileSize: 20 * 1024 * 1024 // 20 MB
     }
 });
 
@@ -388,5 +388,85 @@ router.put('/update-file/:id', upload.single('archivo'), async (req, res) => {
         });
     }
 });
+
+// ===============================
+//  FOTO DEL EMPLEADO EN BASE64
+// ===============================
+router.get('/empleados/:personaId/foto-base64', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { personaId } = req.params;
+
+    // 1) Leer foto_url de la tabla persona (como en tu SELECT)
+    const result = await client.query(
+      `
+      SELECT foto_url
+      FROM persona
+      WHERE id = $1
+        AND tipo = 'Empleado'
+      `,
+      [personaId]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].foto_url) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Empleado sin foto registrada'
+      });
+    }
+
+    const fotoUrl = result.rows[0].foto_url;
+
+    // 2) Sacar la KEY de S3 a partir de la foto_url
+    //    ejemplo: https://bucket.s3.amazonaws.com/solicitudes/foto/xxx.jpg
+    let key;
+    try {
+      const urlObj = new URL(fotoUrl);
+      key = urlObj.pathname.slice(1); // quita el "/" inicial
+    } catch (e) {
+      // fallback muy simple si por alguna razón no es URL válida
+      key = fotoUrl.split('/').pop();
+    }
+
+    if (!key) {
+      throw new Error(`No se pudo determinar key de S3 para foto_url=${fotoUrl}`);
+    }
+
+    // 3) Descargar objeto de S3
+    const s3Resp = await s3.send(
+      new GetObjectCommand({
+        Bucket: config.aws.bucket,
+        Key: key
+      })
+    );
+
+    const chunks = [];
+    for await (const chunk of s3Resp.Body) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    // 4) Armar data URL en base64
+    //    si tienes guardado el mime real en BD, úsalo; aquí asumo JPEG
+    const mime = 'image/jpeg';
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    return res.json({
+      ok: true,
+      fotoDataUrl: dataUrl
+    });
+  } catch (error) {
+    console.error('Error en /empleados/:personaId/foto-base64:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
 
 export default router;
