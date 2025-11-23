@@ -8,7 +8,8 @@
             <h1>Contrato/Creación</h1>
         </div>
 
-        <div class="content-box">
+        <!-- TODO lo que quieres que aparezca en el PDF -->
+        <div class="content-box" id="contrato-preview">
             <h2 class="section-title">{{ tituloContrato }}</h2>
 
             <!-- Datos Personales -->
@@ -201,24 +202,25 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Botones de acción -->
-            <div class="form-actions">
-                <button class="btn-guardar" @click="guardarContrato">
-                    <span class="material-symbols-rounded">save</span>
-                    Guardar
-                </button>
-                <button class="btn-limpiar" @click="enviarLimpiar">
-                    <span class="material-symbols-rounded">edit</span>
-                    Limpiar
-                </button>
-            </div>
+        </div>
+        <!-- Botones de acción -->
+        <div class="form-actions">
+            <button class="btn-guardar" @click="guardarContrato">
+                <span class="material-symbols-rounded">save</span>
+                Guardar
+            </button>
+            <button class="btn-limpiar" @click="enviarLimpiar">
+                <span class="material-symbols-rounded">edit</span>
+                Limpiar
+            </button>
         </div>
     </div>
 </template>
 
 
 <script setup>
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { ref, watch, onMounted, computed } from 'vue';
 import axios from 'axios';
 
@@ -226,6 +228,8 @@ import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useCatalogosContratos } from '@/composables/useCatalogoContratos';
 import { useS3Files } from '@/composables/useS3Files';
 import { useEmpleadoContratos } from '@/composables/useEmpleadoContratos';
+import { useDocumentosPersona } from '@/composables/useDocumentosPersona';
+
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -266,9 +270,9 @@ const {
     obtenerEstadosContrato,
     obtenerTiposDocumento
 } = useCatalogosContratos();
-const { subirArchivo } = useS3Files();
+const { subirArchivo, obtenerUrlFirmada } = useS3Files();
 const { obtenerDatosRenovacionEmpleado, renovarContratoEmpleado } = useEmpleadoContratos();
-
+const { asociarDocumentoPersona } = useDocumentosPersona();
 // Modo renovación
 const esRenovacionEmpleado = computed(() => props.modo === 'empleado-renovar');
 
@@ -417,14 +421,26 @@ const cargarDatosAspirante = async () => {
 
 // ===== CARGA DATOS DEL EMPLEADO =====
 const cargarDatosEmpleadoRenovacion = async () => {
-    const personaId = props.datosEmpleado?.persona_id;
-    if (!personaId) return;
+    // personaId una sola vez
+    const personaId =
+        props.datosEmpleado?.persona_id ||
+        props.datosEmpleado?.id ||
+        null;
+
+    if (!personaId) {
+        console.warn('No hay personaId para renovar contrato');
+        fotoUrl.value = defaultAvatar;
+        return;
+    }
 
     try {
+        // 1) Obtener datos de renovación (lo que ya tenías)
         const datos = await obtenerDatosRenovacionEmpleado(personaId);
 
-        // Foto y nombre
+        // Foto (si tu endpoint de datos ya manda alguna URL, opcional)
         fotoUrl.value = datos.foto_url || fotoUrl.value;
+
+        // Nombre y apellidos
         formData.value.nombre = datos.nombre || '';
         formData.value.apellidoPaterno = datos.apellido_paterno || '';
         formData.value.apellidoMaterno = datos.apellido_materno || '';
@@ -445,16 +461,36 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
-        // Fecha de generación = hoy
+        // Fecha de generación = hoy si no tiene
         if (!formData.value.fechaGeneracion) {
             formData.value.fechaGeneracion = hoyISO;
         }
 
+        // 2) Obtener FOTO en base64 desde backend
+        try {
+            const { data } = await axios.get(
+                `${API_URL}/empleados/${personaId}/foto-base64`,
+                { withCredentials: true }
+            );
+
+            if (data.ok && data.fotoDataUrl) {
+                // data:image/...;base64,...
+                fotoUrl.value = data.fotoDataUrl;
+            } else {
+                fotoUrl.value = defaultAvatar;
+            }
+        } catch (err) {
+            console.error('Error al obtener foto base64:', err);
+            fotoUrl.value = defaultAvatar;
+        }
+
+        // 3) Guardar snapshot inicial para detectar cambios
         actualizarEstadoInicial();
     } catch (error) {
         console.error('Error al cargar datos de renovación del empleado:', error);
     }
 };
+
 
 // ===== CARGA CATÁLOGOS =====
 const cargarCatalogos = async () => {
@@ -671,7 +707,7 @@ const confirmarSalida = () => {
 
 // ===== GUARDAR CONTRATO =====
 const guardarContrato = async () => {
-    // Validaciones de formulario
+    // 1) Validaciones de formulario
     const errores = obtenerErroresValidacion();
 
     if (errores.length > 0) {
@@ -682,7 +718,7 @@ const guardarContrato = async () => {
         return;
     }
 
-    // Id de persona según de dónde venga
+    // 2) Id de persona según de dónde venga
     const personaId =
         props.datosAspirante?.persona_id ||
         props.datosAspirante?.id ||
@@ -696,15 +732,107 @@ const guardarContrato = async () => {
         return;
     }
 
-    try {
-        // 1) Subir archivo a S3
-        const respS3 = await subirArchivo(archivoPdf.value);
-        if (!respS3?.ok || !respS3.archivo) {
-            throw new Error(respS3?.error || 'No se recibió información del archivo subido');
-        }
-        const archivoId = respS3.archivo.id;
+    // 3) Helper: generar captura del contrato en PDF
+    const generarPdfContrato = async () => {
+        const elemento = document.getElementById('contrato-preview'); // <-- ajusta el id si usas otro
 
-        // 2) Modo RENOVACIÓN EMPLEADO
+        if (!elemento) {
+            throw new Error('No se encontró el contenedor #contrato-preview para generar el PDF');
+        }
+
+        const canvas = await html2canvas(elemento, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgRatio = imgProps.height / imgProps.width;
+
+        let imgWidth = pdfWidth;
+        let imgHeight = imgWidth * imgRatio;
+
+        if (imgHeight > pdfHeight) {
+            imgHeight = pdfHeight;
+            imgWidth = imgHeight / imgRatio;
+        }
+
+        const x = (pdfWidth - imgWidth) / 2;
+        const y = 10;
+
+        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+        const blob = pdf.output('blob');
+        const nombreArchivo = `Contrato-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+        return new File([blob], nombreArchivo, { type: 'application/pdf' });
+    };
+
+    // 4) Helper: abrir PDF desde S3 con URL firmada (7 días)
+    const abrirPdfDesdeS3 = async (archivo) => {
+        if (!archivo || !archivo.storage_url) return;
+
+        let fileName = null;
+
+        try {
+            const urlObj = new URL(archivo.storage_url);
+            fileName = urlObj.pathname.slice(1); // quitar "/"
+        } catch (e) {
+            fileName = archivo.storage_url.split('/').pop();
+        }
+
+        if (!fileName) {
+            console.warn('No se pudo determinar la key de S3 para el archivo:', archivo);
+            return;
+        }
+
+        const url = await obtenerUrlFirmada(fileName); // /get-file/:fileName (7 días)
+        window.open(url, '_blank');
+    };
+
+    try {
+        // 5) Subir DOCUMENTO ASOCIADO (si hay archivo en el input)
+        let archivoDocumentoId = null;
+
+        if (archivoPdf.value) {
+            const respDoc = await subirArchivo(archivoPdf.value);
+            if (!respDoc?.ok || !respDoc.archivo) {
+
+                console.log('📄 Respuesta de subirArchivo (DOCUMENTO ASOCIADO):', respDoc);
+
+                throw new Error(respDoc?.error || 'No se recibió información del documento asociado');
+            }
+
+            const archivoDocumento = respDoc.archivo;
+            archivoDocumentoId = archivoDocumento.id;
+
+            console.log('✅ Registro en tabla archivo para DOCUMENTO:', archivoDocumento);
+            console.log('➡️ archivoDocumentoId:', archivoDocumentoId);
+            console.log('➡️ personaId:', personaId);
+            console.log('➡️ tipoDocumento (formData):', formData.value.tipoDocumento);
+
+            // Asociar el documento a la persona en documento_persona
+            if (formData.value.tipoDocumento && archivoDocumentoId) {
+                await asociarDocumentoPersona({
+                    personaId,
+                    documentoTipoId: formData.value.tipoDocumento,
+                    archivoId: archivoDocumentoId
+                });
+            }
+        }
+
+        // 6) Generar PDF del CONTRATO (captura) y subirlo a S3
+        const archivoContratoFile = await generarPdfContrato();
+        const respContrato = await subirArchivo(archivoContratoFile);
+        if (!respContrato?.ok || !respContrato.archivo) {
+            throw new Error(respContrato?.error || 'No se recibió información del PDF de contrato');
+        }
+
+        const archivoContrato = respContrato.archivo;  // registro en tabla archivo
+        const archivoContratoId = archivoContrato.id;  // este va al contrato (archivoId)
+
+        // 7) MODO RENOVACIÓN EMPLEADO
         if (esRenovacionEmpleado.value) {
             const payloadRenovacion = {
                 personaId,
@@ -717,12 +845,15 @@ const guardarContrato = async () => {
                 tipoContrato: formData.value.tipoContrato,
                 modalidad: formData.value.modalidad || null,
                 observaciones: formData.value.observaciones || null,
-                archivoId
+                archivoId: archivoContratoId   // PDF del contrato generado
             };
 
             console.log('Payload renovación empleado:', payloadRenovacion);
 
             await renovarContratoEmpleado(payloadRenovacion);
+
+            // Mostrar el PDF generado (URL firmada 7 días)
+            await abrirPdfDesdeS3(archivoContrato);
 
             alert('Contrato renovado correctamente.');
             actualizarEstadoInicial();
@@ -730,8 +861,7 @@ const guardarContrato = async () => {
             return;
         }
 
-        // 3) Modo ASPIRANTE (CONTRATO NUEVO)
-        //    Primero, si cambió el nombre/apellidos, actualizamos persona
+        // 8) MODO ASPIRANTE (CONTRATO NUEVO)
         const nombreCambiado =
             formData.value.nombre !== initialFormData.value.nombre ||
             formData.value.apellidoPaterno !== initialFormData.value.apellidoPaterno ||
@@ -763,9 +893,12 @@ const guardarContrato = async () => {
             jornadaId: formData.value.jornadaLaboral || null,
             horaEntrada: formData.value.entrada || null,
             horaSalida: formData.value.salida || null,
-            tipoDocumentoId: formData.value.tipoDocumento,
-            archivoId,
-            fechaGeneracion: formData.value.fechaGeneracion || hoyISO
+            tipoDocumentoId: formData.value.tipoDocumento, // lo sigues mandando por si luego lo usas en backend
+            archivoId: archivoContratoId,                  // PDF del contrato generado
+            fechaGeneracion: formData.value.fechaGeneracion || hoyISO,
+            // opcional: también podrías mandar archivoDocumentoId si luego
+            // decides que el backend cree documento_persona desde aquí.
+            archivoDocumentoId
         };
 
         console.log('Payload contrato aspirante:', payloadContrato);
@@ -773,6 +906,9 @@ const guardarContrato = async () => {
         await axios.post(`${API_URL}/contratos/aspirante`, payloadContrato, {
             withCredentials: true
         });
+
+        // Mostrar el PDF generado (URL firmada 7 días)
+        await abrirPdfDesdeS3(archivoContrato);
 
         alert('Contrato guardado correctamente. El aspirante ahora es empleado.');
         actualizarEstadoInicial();
@@ -785,6 +921,7 @@ const guardarContrato = async () => {
         );
     }
 };
+
 
 // ===== LIMPIAR =====
 const enviarLimpiar = () => {
