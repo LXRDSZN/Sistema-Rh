@@ -117,15 +117,6 @@
                             <div class="col-action">
                                 <div class="row-actions">
                                     <button class="btn-revisar empleado" @click="revisarContrato(empleado)">REVISAR</button>
-                                    <div class="actions-menu">
-                                        <button class="menu-btn" @click.stop="toggleActions(empleado.id)" :aria-expanded="!!openActions[empleado.id]" title="Más">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#374151"/><circle cx="12" cy="12" r="1.5" fill="#374151"/><circle cx="19" cy="12" r="1.5" fill="#374151"/></svg>
-                                        </button>
-                                        <div v-if="openActions[empleado.id]" class="action-menu">
-                                            <button class="action-item" @click="revisarContrato(empleado); closeActions(empleado.id)">Revisar</button>
-                                            <button class="action-item" @click="revisarContrato(empleado); closeActions(empleado.id)">Ver perfil</button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -161,15 +152,6 @@
                             <div class="col-action">
                                 <div class="row-actions">
                                     <button class="btn-revisar aspirante" @click="revisarContrato(aspirante)">REVISAR</button>
-                                    <div class="actions-menu">
-                                        <button class="menu-btn" @click.stop="toggleActions(aspirante.id)" :aria-expanded="!!openActions[aspirante.id]" title="Más">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#374151"/><circle cx="12" cy="12" r="1.5" fill="#374151"/><circle cx="19" cy="12" r="1.5" fill="#374151"/></svg>
-                                        </button>
-                                        <div v-if="openActions[aspirante.id]" class="action-menu">
-                                            <button class="action-item" @click="revisarContrato(aspirante); closeActions(aspirante.id)">Revisar</button>
-                                            <button class="action-item" @click="revisarContrato(aspirante); closeActions(aspirante.id)">Ver perfil</button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -220,12 +202,7 @@ const animateCount = (targetRef, to, duration = 700) => {
     requestAnimationFrame(step);
 };
 
-// Per-row actions state
-const openActions = ref({});
-const toggleActions = (id) => {
-    openActions.value[id] = !openActions.value[id];
-};
-const closeActions = (id) => { openActions.value[id] = false; };
+// Per-row actions state (three-dot menus removed)
 
 const onImgError = (event) => {
     event.target.onerror = null;
@@ -820,13 +797,4 @@ function formatRoleName(role) {
 .header-sub { color: #6b7280; font-size: 0.95rem; margin-top: 6px; }
 .num { transition: all 0.2s ease; font-variant-numeric: tabular-nums; }
 .row-actions { display:flex; gap:0.5rem; align-items:center; }
-.actions-menu { position: relative; }
-.menu-btn { background: transparent; border: none; padding: 6px; border-radius: 6px; cursor: pointer; }
-.action-menu { position: absolute; right: 0; top: 36px; background: white; box-shadow: 0 6px 18px rgba(2,6,23,0.12); border-radius: 8px; overflow: hidden; z-index: 40; }
-.action-item { display:block; padding: 0.6rem 1rem; width: 140px; text-align:left; background: transparent; border: none; cursor: pointer; font-weight:600; }
-.action-item:hover { background: #f3f4f6; }
-
-@media (max-width: 768px) {
-    .action-menu { top: 44px; right: 4px; }
-}
 </style>
