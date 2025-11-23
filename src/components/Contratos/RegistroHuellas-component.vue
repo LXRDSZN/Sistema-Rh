@@ -1,8 +1,7 @@
 <template>
   <div class="registro-huellas-container">
     <div class="header">
-      <h1>🔐 Registro de Huellas Dactilares</h1>
-      <p class="subtitle">Registra las huellas de los empleados con el sensor AS608</p>
+      <h1>Registro de Huellas Dactilares</h1>
     </div>
 
     <div class="content-wrapper">
@@ -59,11 +58,6 @@
         placeholder="Buscar por nombre, área o puesto..."
         class="search-input"
       />
-      <select v-model="filterTipo" class="filter-select">
-        <option value="">Todos los tipos</option>
-        <option value="Empleado">Empleados</option>
-        <option value="Aspirante">Aspirantes</option>
-      </select>
       <select v-model="filterHuella" class="filter-select">
         <option value="">Todas las huellas</option>
         <option value="sin-huella">Sin huella registrada</option>
@@ -73,12 +67,18 @@
 
     <!-- Tabla de contratos -->
     <div class="contratos-table-container">
+      <div class="table-header-info">
+        <span class="table-count">📋 Empleados disponibles: <strong>{{ filteredContratos.length }}</strong></span>
+        <button @click="limpiarTodasHuellas" class="btn-clear-small" :disabled="clearing || contratoConHuella === 0">
+          {{ clearing ? '⏳ Limpiando...' : '🗑️ Limpiar todas' }}
+        </button>
+      </div>
       <table class="contratos-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Foto</th>
             <th>Nombre Completo</th>
-            <th>Tipo</th>
             <th>Puesto</th>
             <th>Área</th>
             <th>Estado</th>
@@ -97,7 +97,8 @@
               No se encontraron contratos
             </td>
           </tr>
-          <tr v-else v-for="contrato in filteredContratos" :key="contrato.contrato_id">
+          <tr v-else v-for="(contrato, index) in filteredContratos" :key="contrato.contrato_id">
+            <td class="number-cell">{{ index + 1 }}</td>
             <td>
               <img 
                 :src="contrato.avatar || '/default-avatar.png'" 
@@ -106,11 +107,6 @@
               />
             </td>
             <td class="nombre-cell">{{ contrato.nombre_completo }}</td>
-            <td>
-              <span :class="['badge', `badge-${contrato.tipo_persona.toLowerCase()}`]">
-                {{ contrato.tipo_persona }}
-              </span>
-            </td>
             <td>{{ contrato.puesto }}</td>
             <td>{{ contrato.area }}</td>
             <td>
@@ -124,22 +120,26 @@
             </td>
             <td class="actions-cell">
               <button 
+                v-if="!contrato.huella_id"
                 @click="registrarHuella(contrato)" 
                 class="btn-registrar"
                 :disabled="enrolling || !esp32Ip || connectionStatus !== 'connected'"
               >
                 {{ enrolling && selectedContrato?.contrato_id === contrato.contrato_id 
                   ? '⏳ Registrando...' 
-                  : contrato.huella_id ? 'Re-registrar' : 'Registrar' }}
+                  : 'Registrar' }}
               </button>
-              <button 
-                v-if="contrato.huella_id"
-                @click="eliminarHuella(contrato)" 
-                class="btn-eliminar"
-                :disabled="deleting"
-              >
-                🗑️
-              </button>
+              <div v-else class="acciones-huella">
+                <span class="huella-registrada">✅ Huella registrada</span>
+                <button 
+                  @click="eliminarHuella(contrato)" 
+                  class="btn-eliminar"
+                  :disabled="deleting"
+                  title="Eliminar esta huella"
+                >
+                  🗑️
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -192,7 +192,8 @@ import {
   updateHuellaId, 
   getESP32Status,
   enrollFingerprint,
-  deleteFingerprint
+  deleteFingerprint,
+  clearAllFingerprints
 } from '@/services/huellasService.js';
 
 const { isSidebarOpen } = useSidebar();
@@ -201,7 +202,6 @@ const { isSidebarOpen } = useSidebar();
 const contratos = ref([]);
 const loading = ref(false);
 const searchQuery = ref('');
-const filterTipo = ref('');
 const filterHuella = ref('');
 
 // ESP32
@@ -211,6 +211,7 @@ const sensorStatus = ref(null);
 
 // Enrolado
 const enrolling = ref(false);
+const clearing = ref(false);
 const deleting = ref(false);
 const selectedContrato = ref(null);
 const showModal = ref(false);
@@ -225,6 +226,11 @@ let statusInterval = null;
 const contentMarginLeft = computed(() => isSidebarOpen.value ? '260px' : '60px');
 const contentWidth = computed(() => isSidebarOpen.value ? 'calc(100vw - 260px)' : 'calc(100vw - 60px)');
 
+// Computed para contar contratos con huella
+const contratoConHuella = computed(() => {
+  return contratos.value.filter(c => c.huella_id).length;
+});
+
 // Computed
 const filteredContratos = computed(() => {
   let result = contratos.value;
@@ -237,11 +243,6 @@ const filteredContratos = computed(() => {
       c.puesto.toLowerCase().includes(query) ||
       c.area.toLowerCase().includes(query)
     );
-  }
-
-  // Filtro por tipo
-  if (filterTipo.value) {
-    result = result.filter(c => c.tipo_persona === filterTipo.value);
   }
 
   // Filtro por huella
@@ -384,8 +385,54 @@ const registrarHuella = async (contrato) => {
   }
 };
 
+const limpiarTodasHuellas = async () => {
+  if (!confirm(`¿Estás seguro de que deseas eliminar TODAS las ${contratoConHuella.value} huellas registradas? Esta acción no se puede deshacer.`)) {
+    return;
+  }
+
+  if (connectionStatus.value !== 'connected') {
+    alert('Primero conecta con el ESP32');
+    return;
+  }
+
+  clearing.value = true;
+  try {
+    // Limpiar el sensor
+    const response = await clearAllFingerprints(esp32Ip.value);
+    
+    if (response.ok) {
+      // Actualizar todas las huellas a NULL en la base de datos
+      for (const contrato of contratos.value) {
+        if (contrato.huella_id) {
+          await updateHuellaId(contrato.contrato_id, null);
+        }
+      }
+      
+      // Actualizar lista local
+      contratos.value.forEach(c => {
+        c.huella_id = null;
+      });
+      
+      await updateSensorStatus();
+      alert(`✅ Se eliminaron exitosamente ${contratoConHuella.value} huellas`);
+    } else {
+      throw new Error(response.msg || 'Error al limpiar huellas');
+    }
+  } catch (error) {
+    alert(`❌ Error al limpiar huellas: ${error.message}`);
+    console.error('Error al limpiar huellas:', error);
+  } finally {
+    clearing.value = false;
+  }
+};
+
 const eliminarHuella = async (contrato) => {
   if (!confirm(`¿Eliminar la huella ID ${contrato.huella_id} de ${contrato.nombre_completo}?`)) {
+    return;
+  }
+
+  if (connectionStatus.value !== 'connected') {
+    alert('Primero conecta con el ESP32');
     return;
   }
 
@@ -405,12 +452,12 @@ const eliminarHuella = async (contrato) => {
       }
       
       await updateSensorStatus();
-      alert('Huella eliminada exitosamente');
+      alert('✅ Huella eliminada exitosamente');
     } else {
       throw new Error(response.msg || 'Error al eliminar huella');
     }
   } catch (error) {
-    alert(`Error al eliminar huella: ${error.message}`);
+    alert(`❌ Error al eliminar huella: ${error.message}`);
     console.error('Error al eliminar huella:', error);
   } finally {
     deleting.value = false;
@@ -546,6 +593,56 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
+/* Employees Summary */
+.employees-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.summary-info {
+  font-size: 14px;
+}
+
+.summary-text {
+  color: #666;
+  font-weight: 600;
+}
+
+.summary-count {
+  color: #845EF7;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.btn-clear-all-table {
+  padding: 10px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.btn-clear-all-table:hover:not(:disabled) {
+  background: #c0392b;
+  transform: translateY(-1px);
+}
+
+.btn-clear-all-table:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
 .sensor-status {
   background: #f8f9fa;
   padding: 15px;
@@ -585,6 +682,10 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 12px;
   margin-bottom: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
 }
 
 .search-input {
@@ -625,6 +726,49 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
 }
 
+.table-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.table-count {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+.table-count strong {
+  color: #845EF7;
+  font-size: 16px;
+}
+
+.btn-clear-small {
+  padding: 8px 14px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.btn-clear-small:hover:not(:disabled) {
+  background: #c0392b;
+  transform: translateY(-1px);
+}
+
+.btn-clear-small:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
 .contratos-table {
   width: 100%;
   border-collapse: collapse;
@@ -641,9 +785,41 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
+.contratos-table th:first-child {
+  text-align: center;
+}
+
+.contratos-table th:nth-child(7) {
+  text-align: center;
+}
+
+.contratos-table th:last-child {
+  text-align: center;
+}
+
+.number-cell {
+  text-align: center;
+  font-weight: 700;
+  color: #845EF7;
+  min-width: 40px;
+}
+
 .contratos-table td {
-  padding: 12px 15px;
+  padding: 15px;
   border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.contratos-table td:first-child {
+  text-align: center;
+}
+
+.contratos-table td:nth-child(7) {
+  text-align: center;
+}
+
+.contratos-table td:last-child {
+  text-align: center;
 }
 
 .contratos-table tbody tr:hover {
@@ -655,6 +831,7 @@ onBeforeUnmount(() => {
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .nombre-cell {
@@ -704,13 +881,20 @@ onBeforeUnmount(() => {
 }
 
 .actions-cell {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
+  display: table-cell;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.huella-registrada {
+  color: #27ae60;
+  font-weight: 600;
+  font-size: 14px;
+  display: block;
 }
 
 .btn-registrar {
-  padding: 8px 16px;
+  padding: 10px 20px;
   background: #845EF7;
   color: white;
   border: none;
@@ -719,6 +903,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-registrar:hover:not(:disabled) {
@@ -744,6 +929,24 @@ onBeforeUnmount(() => {
 
 .btn-eliminar:hover:not(:disabled) {
   background: #c0392b;
+}
+
+.btn-eliminar:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.acciones-huella {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.huella-registrada {
+  color: #27ae60;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .loading-row,

@@ -901,13 +901,16 @@ export const getChecadasHoy = async (req, res) => {
          p.nombre,
          p.apellido_paterno,
          p.apellido_materno,
-         pu.nombre AS puesto,
-         a.nombre AS area
+         COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+         COALESCE(a.nombre, 'Sin área') AS area,
+         COALESCE(je.hora_entrada, '06:00:00') as hora_entrada,
+         COALESCE(je.hora_salida, '18:00:00') as hora_salida
        FROM checada ch
        INNER JOIN persona p ON ch.persona_id = p.id
-       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
-       LEFT JOIN area a ON ap.area_id = a.id
+       LEFT JOIN contrato c ON p.id = c.persona_id AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+       LEFT JOIN puesto pu ON c.puesto_id = pu.id
+       LEFT JOIN area a ON c.area_id = a.id
+       LEFT JOIN jornada_empleado je ON p.id = je.persona_id
        WHERE ch.fecha = CURRENT_DATE
        ORDER BY ch.hora DESC`
     );
@@ -916,9 +919,9 @@ export const getChecadasHoy = async (req, res) => {
       registro_id: row.registro_id,
       empleado: {
         nombre_completo: `${row.nombre} ${row.apellido_paterno} ${row.apellido_materno || ''}`.trim(),
-        area: row.area || 'Sin área',
-        puesto: row.puesto || 'Sin puesto',
-        turno: 'No especificado'
+        area: row.area,
+        puesto: row.puesto,
+        turno: `${row.hora_entrada} - ${row.hora_salida}`
       },
       registro: {
         tipo: row.tipo,
@@ -959,14 +962,23 @@ export const registrarAsistenciaPorHuella = async (req, res) => {
 
     // 1. Buscar el contrato con ese huella_id para obtener persona_id
     const contratoResult = await db.query(
-      `SELECT c.persona_id, p.nombre, p.apellido_paterno, p.apellido_materno,
-              pu.nombre as puesto, a.nombre as area
+      `SELECT 
+              c.id as contrato_id,
+              c.persona_id, 
+              p.nombre, 
+              p.apellido_paterno, 
+              p.apellido_materno,
+              COALESCE(pu.nombre, 'Sin puesto') as puesto, 
+              COALESCE(a.nombre, 'Sin área') as area,
+              COALESCE(je.hora_entrada, '06:00:00') as hora_entrada,
+              COALESCE(je.hora_salida, '18:00:00') as hora_salida
        FROM contrato c
        INNER JOIN persona p ON c.persona_id = p.id
-       LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-       LEFT JOIN puesto pu ON ap.puesto_id = pu.id
-       LEFT JOIN area a ON ap.area_id = a.id
-       WHERE c.huella_id = $1
+       LEFT JOIN puesto pu ON c.puesto_id = pu.id
+       LEFT JOIN area a ON c.area_id = a.id
+       LEFT JOIN jornada_empleado je ON p.id = je.persona_id
+       WHERE c.huella_id = $1 AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+       ORDER BY c.fecha_inicio DESC
        LIMIT 1`,
       [huella_id]
     );
@@ -1023,7 +1035,7 @@ export const registrarAsistenciaPorHuella = async (req, res) => {
             nombre_completo: `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim(),
             area: empleado.area,
             puesto: empleado.puesto,
-            turno: empleado.turno
+            turno: `${empleado.hora_entrada} - ${empleado.hora_salida}`
           },
           registros: registrosHoy.rows
         }
@@ -1054,7 +1066,7 @@ export const registrarAsistenciaPorHuella = async (req, res) => {
           nombre_completo: `${empleado.nombre} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim(),
           area: empleado.area || 'Sin área',
           puesto: empleado.puesto || 'Sin puesto',
-          turno: empleado.turno || 'No especificado'
+          turno: `${empleado.hora_entrada} - ${empleado.hora_salida}`
         },
         registro: {
           tipo: tipo,

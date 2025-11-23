@@ -2,8 +2,7 @@
   <div class="pase-lista-container">
     <!-- Header -->
     <div class="header">
-      <h1>🔐 Pase de Lista por Huella Digital</h1>
-      <p class="subtitle">Sistema de registro de asistencias con sensor AS608</p>
+      <h1>Pase de Lista por Huella Digital</h1>
     </div>
 
     <!-- Configuración ESP32 solo para roles distintos a EMPLEADO -->
@@ -99,6 +98,7 @@
         <div class="registro-tipo">
           {{ ultimoRegistro.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' }}
         </div>
+        <button @click="cerrarRegistro" class="btn-cerrar-registro">✖</button>
       </div>
       
       <div class="registro-body">
@@ -142,28 +142,39 @@
     <!-- Historial de registros del día -->
     <div class="historial-section">
       <h3>Registros de hoy</h3>
+      
+      <!-- Búsqueda en historial -->
+      <div class="historial-search">
+        <input 
+          v-model="searchRegistros" 
+          type="text" 
+          placeholder="Buscar por nombre, área o puesto..."
+          class="search-input"
+        />
+      </div>
+
       <div class="historial-stats">
         <div class="stat-card">
-          <div class="stat-value">{{ registrosHoy.length }}</div>
-          <div class="stat-label">Total registros</div>
+          <div class="stat-value">{{ registrosFiltrados.length }}</div>
+          <div class="stat-label">Registros encontrados</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ contarRegistros('entrada') }}</div>
+          <div class="stat-value">{{ contarRegistrosFiltrados('entrada') }}</div>
           <div class="stat-label">Entradas</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ contarRegistros('salida') }}</div>
+          <div class="stat-value">{{ contarRegistrosFiltrados('salida') }}</div>
           <div class="stat-label">Salidas</div>
         </div>
       </div>
 
       <div class="historial-list">
-        <div v-if="registrosHoy.length === 0" class="empty-historial">
-          No hay registros para hoy
+        <div v-if="registrosFiltrados.length === 0" class="empty-historial">
+          No hay registros que coincidan con la búsqueda
         </div>
         <div 
           v-else 
-          v-for="registro in registrosHoy" 
+          v-for="registro in registrosFiltrados" 
           :key="registro.registro_id"
           class="historial-item"
           :class="registro.tipo"
@@ -219,6 +230,7 @@ const checking = ref(false);
 const sensorStatus = ref(null);
 const ultimoRegistro = ref(null);
 const registrosHoy = ref([]);
+const searchRegistros = ref('');
 const showError = ref(false);
 const errorMessage = ref('');
 const limpiando = ref(false);
@@ -343,7 +355,7 @@ const procesarHuella = async (huellaId) => {
         tipo: tipoRegistro
       });
       
-      // Auto-ocultar después de 5 segundos
+      // Auto-ocultar después de 5 segundos (sin persistencia en localStorage)
       setTimeout(() => {
         if (ultimoRegistro.value?.registro_id === response.data.registro_id) {
           ultimoRegistro.value = null;
@@ -408,6 +420,11 @@ const mostrarError = (mensaje) => {
   showError.value = true;
 };
 
+const cerrarRegistro = () => {
+  ultimoRegistro.value = null;
+  localStorage.removeItem('ultimoRegistro');
+};
+
 const closeError = () => {
   showError.value = false;
   errorMessage.value = '';
@@ -425,6 +442,24 @@ const formatearFecha = (fecha) => {
 
 const contarRegistros = (tipo) => {
   return registrosHoy.value.filter(r => (r.tipo || r.registro?.tipo) === tipo).length;
+};
+
+// Computed para filtrar registros por búsqueda
+const registrosFiltrados = computed(() => {
+  if (!searchRegistros.value) {
+    return registrosHoy.value;
+  }
+  
+  const query = searchRegistros.value.toLowerCase();
+  return registrosHoy.value.filter(r => 
+    r.empleado.nombre_completo.toLowerCase().includes(query) ||
+    r.empleado.area.toLowerCase().includes(query) ||
+    r.empleado.puesto.toLowerCase().includes(query)
+  );
+});
+
+const contarRegistrosFiltrados = (tipo) => {
+  return registrosFiltrados.value.filter(r => (r.tipo || r.registro?.tipo) === tipo).length;
 };
 
 // Lifecycle
@@ -621,6 +656,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 15px;
+  justify-content: space-between;
 }
 
 .registro-header.entrada {
@@ -639,6 +675,23 @@ onBeforeUnmount(() => {
   font-size: 2rem;
   font-weight: 700;
   color: white;
+  flex: 1;
+}
+
+.btn-cerrar-registro {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-cerrar-registro:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
 }
 
 .registro-body {

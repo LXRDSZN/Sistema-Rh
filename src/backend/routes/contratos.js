@@ -272,6 +272,7 @@ router.get('/contratos/listado', async (req, res) => {
             INNER JOIN estado_contrato ec ON ec.id = c.estado_id
             LEFT JOIN puesto pu ON pu.id = c.puesto_id
             LEFT JOIN area a ON a.id = c.area_id
+            WHERE ec.nombre ILIKE 'ACTIVO'
             ORDER BY c.fecha_inicio DESC
         `;
 
