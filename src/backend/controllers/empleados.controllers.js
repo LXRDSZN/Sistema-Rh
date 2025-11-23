@@ -18,6 +18,7 @@ export const getAllEmpleados = async (req, res) => {
         p.apellido_paterno,
         p.apellido_materno,
         p.fecha_nacimiento,
+        p.foto_url,
         s.nombre as sexo,
         a.nombre as area,
         a.id as area_id,
@@ -49,7 +50,8 @@ export const getAllEmpleados = async (req, res) => {
       fechaInicio: row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString('es-MX') : 'N/A',
       genero: row.sexo || 'No especificado',
       area_id: row.area_id,
-      puesto_id: row.puesto_id
+      puesto_id: row.puesto_id,
+      avatar: row.foto_url
     }));
 
     return res.json({

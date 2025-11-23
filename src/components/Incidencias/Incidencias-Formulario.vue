@@ -23,6 +23,36 @@
   const areas = ref([])
   const empleados = ref([])
 
+  // Imagen por defecto (SVG inline)
+  const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23ddd"/%3E%3Cpath d="M50 45a15 15 0 1 0 0-30 15 15 0 0 0 0 30zm0 5c-13.8 0-25 8.5-25 19h50c0-10.5-11.2-19-25-19z" fill="%23999"/%3E%3C/svg%3E'
+
+  // Empleado seleccionado
+  const empleadoSeleccionado = computed(() => {
+    if (!usuario.value) return null
+    const empleado = empleados.value.find(emp => emp.id === usuario.value)
+    if (empleado) {
+      console.log('Empleado seleccionado:', empleado)
+    }
+    return empleado
+  })
+
+  // Obtener URL de la foto
+  const getFotoUrl = (empleado) => {
+    if (!empleado) return defaultAvatar
+    
+    console.log('getFotoUrl - empleado completo:', empleado)
+    console.log('Campo avatar:', empleado.avatar)
+    
+    // Si tiene avatar y es una URL válida, usarla
+    if (empleado.avatar) {
+      console.log('Usando avatar:', empleado.avatar)
+      return empleado.avatar
+    }
+    
+    console.log('Usando imagen por defecto')
+    return defaultAvatar
+  }
+
   // Cargar datos iniciales
   const cargarDatos = async () => {
     try {
@@ -184,12 +214,25 @@
       <form v-else class="form" @submit="handleSubmit">
         <div class="form-group">
           <label>Usuario (Empleado) *</label>
-          <select v-model="usuario" class="input" required>
-            <option value="" disabled>Selecciona un empleado</option>
-            <option v-for="emp in empleados" :key="emp.id" :value="emp.id">
-              {{ emp.nombre }} {{ emp.apellido_paterno }} {{ emp.apellido_materno }}
-            </option>
-          </select>
+          <div class="empleado-selector-wrapper">
+            <!-- Foto del empleado seleccionado -->
+            <div v-if="empleadoSeleccionado" class="empleado-avatar-select">
+              <img 
+                :src="getFotoUrl(empleadoSeleccionado)" 
+                :alt="empleadoSeleccionado.nombre"
+                @error="(e) => { 
+                  console.log('Error cargando imagen:', e.target.src); 
+                  e.target.src = defaultAvatar;
+                }"
+              />
+            </div>
+            <select v-model="usuario" class="input empleado-select" :class="{ 'with-avatar': empleadoSeleccionado }" required>
+              <option value="" disabled>Selecciona un empleado</option>
+              <option v-for="emp in empleados" :key="emp.id" :value="emp.id">
+                {{ emp.nombre }} {{ emp.apellido_paterno }} {{ emp.apellido_materno }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
@@ -309,6 +352,51 @@
 
 .form-group {
   margin-bottom: 14px;
+}
+
+/* Contenedor del selector de empleado con avatar */
+.empleado-selector-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.empleado-avatar-select {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #6c47ff;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  box-shadow: 0 2px 8px rgba(108, 71, 255, 0.2);
+  animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.empleado-avatar-select img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empleado-select {
+  flex: 1;
+}
+
+.empleado-select.with-avatar {
+  padding-left: 14px;
 }
 
 label {

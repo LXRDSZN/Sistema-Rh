@@ -145,12 +145,23 @@
       
       <!-- Búsqueda en historial -->
       <div class="historial-search">
-        <input 
-          v-model="searchRegistros" 
-          type="text" 
-          placeholder="Buscar por nombre, área o puesto..."
-          class="search-input"
-        />
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            v-model="searchRegistros" 
+            type="text" 
+            placeholder="Buscar por nombre, área o puesto..."
+            class="search-input"
+          />
+          <button 
+            v-if="searchRegistros" 
+            @click="searchRegistros = ''" 
+            class="clear-search"
+            title="Limpiar búsqueda"
+          >
+            ✖
+          </button>
+        </div>
       </div>
 
       <div class="historial-stats">
@@ -863,6 +874,80 @@ onBeforeUnmount(() => {
   color: #232327;
   font-size: 1.3rem;
   font-weight: 600;
+}
+
+.historial-search {
+  margin-bottom: 20px;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-box:focus-within {
+  border-color: #845EF7;
+  box-shadow: 0 4px 16px rgba(132, 94, 247, 0.15);
+  transform: translateY(-2px);
+}
+
+.search-icon {
+  font-size: 1.3rem;
+  padding: 0 14px;
+  color: #845EF7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 8px;
+  font-size: 1rem;
+  color: #232327;
+  outline: none;
+  font-weight: 500;
+}
+
+.search-input::placeholder {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+.clear-search {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-search:hover {
+  background: #fa5252;
+  transform: scale(1.1);
+}
+
+.clear-search:active {
+  transform: scale(0.95);
 }
 
 .historial-stats {
