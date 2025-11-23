@@ -586,44 +586,53 @@ router.get('/contratos/estadisticas/resumen', async (req, res) => {
         });
     }
 });
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Endpoint para obtener historial de contratos
 router.get('/contratos/historial', async (req, res) => {
-    try {
-        const query = `
-            SELECT 
-                c.id,
-                p.nombre,
-                p.apellido_paterno,
-                p.apellido_materno,
-                CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', p.apellido_materno) AS nombre_empleado,
-                c.tipo_contrato,
-                c.fecha_inicio,
-                a.nombre AS area_nombre,
-                a.id AS area_id
-            FROM contrato c
-            JOIN persona p ON p.id = c.persona_id
-            JOIN area a ON a.id = c.area_id
-            WHERE c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'Activo')
-            ORDER BY c.fecha_inicio DESC
-        `;
+  try {
+    const query = `
+      SELECT 
+          c.id,
+          p.nombre,
+          p.apellido_paterno,
+          p.apellido_materno,
+          CONCAT(
+            p.nombre, ' ', 
+            p.apellido_paterno, ' ', 
+            COALESCE(p.apellido_materno, '')
+          ) AS nombre_empleado,
+          c.tipo_contrato,
+          c.fecha_inicio,
+          a.nombre AS area_nombre,
+          a.id    AS area_id,
+          c.archivo_id,
+          ar.storage_url AS url_almacenamiento
+      FROM contrato c
+      JOIN persona p ON p.id = c.persona_id
+      JOIN area    a ON a.id = c.area_id
+      LEFT JOIN archivo ar ON ar.id = c.archivo_id
+      WHERE c.estado_id = (
+        SELECT id FROM estado_contrato WHERE nombre ILIKE 'Activo'
+      )
+      ORDER BY c.fecha_inicio DESC;
+    `;
 
-        const result = await pool.query(query);
+    const result = await pool.query(query);
 
-        res.json({
-            ok: true,
-            data: result.rows
-        });
-
-    } catch (error) {
-        console.error('Error al obtener historial:', error);
-        res.status(500).json({
-            ok: false,
-            error: error.message
-        });
-    }
+    res.json({
+      ok: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Error al obtener historial:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7
+
 
 // ========================================
 // ENDPOINT: Obtener tipos de contratos (para filtro)
@@ -679,7 +688,7 @@ router.get('/contratos/areas', async (req, res) => {
         });
     }
 });
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Crear contrato de aspirante (pasos 2,3,4) se llama directamente en vue guardar contrato enlacecrearcontrato
 router.post('/contratos/aspirante', verificarToken, async (req, res) => {
   const client = await pool.connect();
