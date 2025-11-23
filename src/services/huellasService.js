@@ -47,14 +47,31 @@ export const updateHuellaId = async (contratoId, huellaId) => {
  * Obtener estado del sensor ESP32
  */
 export const getESP32Status = async (esp32Ip) => {
+  const response = await axios.get(`http://${esp32Ip}/api/status`, {
+    timeout: 5000,
+    withCredentials: false
+  });
+  return response.data;
+};
+
+// Versión segura para uso en polling: no lanza excepción por timeout / network, devuelve fallback
+export const getESP32StatusSafe = async (esp32Ip) => {
   try {
-    const response = await axios.get(`http://${esp32Ip}/api/status`, {
-      timeout: 5000,
-      withCredentials: false // Importante: no enviar cookies al ESP32 para evitar problemas de CORS
-    });
-    return response.data;
+    const data = await getESP32Status(esp32Ip);
+    return data;
   } catch (error) {
-    console.error('Error al obtener estado del ESP32:', error);
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+      return {
+        ready: false,
+        stored: 0,
+        capacity: 0,
+        result: 'timeout',
+        scanning: false,
+        error: true,
+        errorType: 'timeout'
+      };
+    }
+    // Otros errores se propagan para manejo explícito (ej. IP incorrecta inicialmente)
     throw error;
   }
 };

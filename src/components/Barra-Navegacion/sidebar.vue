@@ -185,6 +185,11 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth';
+import { useSidebar } from '@/composables/useSidebar';
+
 // Roles que pueden ver el reporte analítico
 const analiticoRoles = [
   'ADMIN',
@@ -192,11 +197,6 @@ const analiticoRoles = [
   'JEFE_ASISTENCIAS',
   'JEFE_CONTRATOS'
 ];
-const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
-import { ref, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
-import { useSidebar } from '@/composables/useSidebar';
 
 const { isSidebarOpen, toggleSidebar: toggleSidebarComposable } = useSidebar();
 const isUserMenuOpen = ref(false);
@@ -207,6 +207,9 @@ const isVacacionesMenuOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
 const { userName, userRole, logout } = useAuth();
+
+// Computed para mostrar enlace analítico dependiendo del rol
+const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 
 // Formatear el nombre del rol para mostrarlo de manera legible
 const formattedRole = computed(() => {

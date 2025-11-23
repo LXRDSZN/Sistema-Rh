@@ -89,55 +89,59 @@
       </div>
     </div>
 
-    <!-- Tarjeta de último registro -->
-    <div v-if="ultimoRegistro" class="registro-card">
-      <div class="registro-header" :class="{'entrada': ultimoRegistro.tipo === 'entrada', 'salida': ultimoRegistro.tipo === 'salida'}">
-        <div class="registro-icon">
-          {{ ultimoRegistro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+    <!-- Tarjeta de último registro (animada) o estado de espera -->
+    <transition name="registro" mode="out-in">
+      <template v-if="ultimoRegistro">
+        <div class="registro-card">
+          <div class="registro-header" :class="{'entrada': ultimoRegistro.tipo === 'entrada', 'salida': ultimoRegistro.tipo === 'salida'}">
+            <div class="registro-icon">
+              {{ ultimoRegistro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+            </div>
+            <div class="registro-tipo">
+              {{ ultimoRegistro.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' }}
+            </div>
+            <button @click="cerrarRegistro" class="btn-cerrar-registro">✖</button>
+          </div>
+          
+          <div class="registro-body">
+            <div class="empleado-info">
+              <div class="info-row nombre-row">
+                <span class="label">Nombre:</span>
+                <span class="value">{{ ultimoRegistro.empleado.nombre_completo }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Área:</span>
+                <span class="value">{{ ultimoRegistro.empleado.area }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Puesto:</span>
+                <span class="value">{{ ultimoRegistro.empleado.puesto }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Turno:</span>
+                <span class="value">{{ ultimoRegistro.empleado.turno }}</span>
+              </div>
+              <div class="info-row hora-row">
+                <span class="label">Hora:</span>
+                <span class="value hora">{{ ultimoRegistro.registro.hora }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="registro-footer">
+            <span class="mensaje">{{ ultimoRegistro.mensaje }}</span>
+            <span class="fecha">{{ formatearFecha(ultimoRegistro.registro.fecha) }}</span>
+          </div>
         </div>
-        <div class="registro-tipo">
-          {{ ultimoRegistro.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' }}
+      </template>
+      <template v-else>
+        <div class="waiting-card">
+          <div class="waiting-icon">👆</div>
+          <h2>En espera de huella...</h2>
+          <p>Coloque su dedo en el sensor para registrar su asistencia</p>
         </div>
-        <button @click="cerrarRegistro" class="btn-cerrar-registro">✖</button>
-      </div>
-      
-      <div class="registro-body">
-        <div class="empleado-info">
-          <div class="info-row nombre-row">
-            <span class="label">Nombre:</span>
-            <span class="value">{{ ultimoRegistro.empleado.nombre_completo }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Área:</span>
-            <span class="value">{{ ultimoRegistro.empleado.area }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Puesto:</span>
-            <span class="value">{{ ultimoRegistro.empleado.puesto }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Turno:</span>
-            <span class="value">{{ ultimoRegistro.empleado.turno }}</span>
-          </div>
-          <div class="info-row hora-row">
-            <span class="label">Hora:</span>
-            <span class="value hora">{{ ultimoRegistro.registro.hora }}</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="registro-footer">
-        <span class="mensaje">{{ ultimoRegistro.mensaje }}</span>
-        <span class="fecha">{{ formatearFecha(ultimoRegistro.registro.fecha) }}</span>
-      </div>
-    </div>
-
-    <!-- Estado de espera -->
-    <div v-else class="waiting-card">
-      <div class="waiting-icon">👆</div>
-      <h2>En espera de huella...</h2>
-      <p>Coloque su dedo en el sensor para registrar su asistencia</p>
-    </div>
+      </template>
+    </transition>
 
     <!-- Historial de registros del día -->
     <div class="historial-section">
@@ -183,29 +187,31 @@
         <div v-if="registrosFiltrados.length === 0" class="empty-historial">
           No hay registros que coincidan con la búsqueda
         </div>
-        <div 
-          v-else 
-          v-for="registro in registrosFiltrados" 
-          :key="registro.registro_id"
-          class="historial-item"
-          :class="registro.tipo"
-        >
-          <div class="historial-icon">
-            {{ registro.tipo === 'entrada' ? '➡️' : '⬅️' }}
-          </div>
-          <div class="historial-info">
-            <div class="historial-nombre">{{ registro.empleado.nombre_completo }}</div>
-            <div class="historial-detalles">
-              {{ registro.empleado.area }} • {{ registro.empleado.puesto }}
+
+        <transition-group name="list" tag="div" v-else class="historial-items">
+          <div 
+            v-for="registro in registrosFiltrados" 
+            :key="registro.registro_id"
+            class="historial-item"
+            :class="registro.tipo"
+          >
+            <div class="historial-icon">
+              {{ registro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+            </div>
+            <div class="historial-info">
+              <div class="historial-nombre">{{ registro.empleado.nombre_completo }}</div>
+              <div class="historial-detalles">
+                {{ registro.empleado.area }} • {{ registro.empleado.puesto }}
+              </div>
+            </div>
+            <div class="historial-hora">
+              <div class="hora-badge" :class="registro.tipo">
+                {{ registro.tipo.toUpperCase() }}
+              </div>
+              <div class="hora-value">{{ registro.registro.hora }}</div>
             </div>
           </div>
-          <div class="historial-hora">
-            <div class="hora-badge" :class="registro.tipo">
-              {{ registro.tipo.toUpperCase() }}
-            </div>
-            <div class="hora-value">{{ registro.registro.hora }}</div>
-          </div>
-        </div>
+        </transition-group>
       </div>
     </div>
 
@@ -231,7 +237,7 @@
 import { useAuth } from '@/composables/useAuth';
 const { userRole } = useAuth();
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { getESP32Status } from '@/services/huellasService.js';
+import { getESP32Status, getESP32StatusSafe } from '@/services/huellasService.js';
 import { registrarAsistenciaPorHuella, getChecadasHoy } from '@/services/asistenciasService.js';
 
 // Estado
@@ -307,13 +313,8 @@ const checkConnection = async () => {
 
 const updateSensorStatus = async () => {
   if (connectionStatus.value !== 'connected' || !esp32Ip.value) return;
-  
-  try {
-    const status = await getESP32Status(esp32Ip.value);
-    sensorStatus.value = status;
-  } catch (error) {
-    console.error('Error actualizando estado del sensor:', error);
-  }
+  const status = await getESP32StatusSafe(esp32Ip.value);
+  sensorStatus.value = status;
 };
 
 const checkForNewFingerprint = async () => {
@@ -321,8 +322,8 @@ const checkForNewFingerprint = async () => {
   if (!sensorStatus.value?.scanning) return;
   
   try {
-    // Obtener el último resultado del sensor
-    const status = await getESP32Status(esp32Ip.value);
+    // Obtener el último resultado del sensor (modo silencioso)
+    const status = await getESP32StatusSafe(esp32Ip.value);
     sensorStatus.value = status;
 
     // Si el sensor reporta una huella, la tomamos siempre como un nuevo intento de registro
@@ -366,12 +367,12 @@ const procesarHuella = async (huellaId) => {
         tipo: tipoRegistro
       });
       
-      // Auto-ocultar después de 5 segundos (sin persistencia en localStorage)
+      // Auto-ocultar después de 10 segundos (sin persistencia en localStorage)
       setTimeout(() => {
         if (ultimoRegistro.value?.registro_id === response.data.registro_id) {
           ultimoRegistro.value = null;
         }
-      }, 5000);
+      }, 10000);
       
     } else {
       mostrarError(response.message || 'Error al registrar asistencia');
@@ -1046,6 +1047,76 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   color: #666;
   font-weight: 600;
+}
+
+/* Animaciones y transiciones */
+.registro-enter-active {
+  transition: all 450ms cubic-bezier(.34,1.56,.64,1);
+}
+.registro-leave-active {
+  transition: all 280ms cubic-bezier(.4,0,.6,1);
+}
+.registro-enter-from {
+  transform: translateY(-24px) scale(0.92);
+  opacity: 0;
+}
+.registro-enter-to {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.registro-leave-from {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.registro-leave-to {
+  transform: translateY(16px) scale(0.96);
+  opacity: 0;
+}
+
+.historial-items .historial-item {
+  transition: transform 350ms cubic-bezier(.34,1.56,.64,1), opacity 220ms ease;
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-16px) scale(0.92);
+}
+.list-enter-to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.list-leave-from {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(12px) scale(0.94);
+}
+.list-move {
+  transition: transform 380ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Pequeñas microinteracciones */
+.btn-accion:active {
+  transform: translateY(2px) scale(0.96);
+  transition: transform 80ms cubic-bezier(.34,1.56,.64,1);
+}
+
+.btn-cerrar-registro:active,
+.clear-search:active {
+  transform: scale(0.88) rotate(90deg);
+  transition: transform 120ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .registro-enter-active, .registro-leave-active,
+  .historial-items .historial-item,
+  .list-enter-from, .list-enter-to, .list-leave-from, .list-leave-to,
+  .list-move {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* Modal */
