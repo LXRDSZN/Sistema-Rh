@@ -425,9 +425,9 @@ const estadisticas = computed(() => {
   const totalRetardos = analyticsData.value
     .reduce((sum, emp) => sum + Number(emp.retardos || 0), 0)
   
-  // Sumar faltas (justificadas + injustificadas)
+  // Sumar solo faltas injustificadas (NO incluir justificadas)
   const totalFaltas = analyticsData.value
-    .reduce((sum, emp) => sum + Number(emp.faltJustif || 0) + Number(emp.faltInjustif || 0), 0)
+    .reduce((sum, emp) => sum + Number(emp.faltInjustif || 0), 0)
   
   // Sumar horas extra
   const totalHorasExtra = analyticsData.value
