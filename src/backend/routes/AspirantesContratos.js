@@ -134,7 +134,8 @@ router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
           al.pretension_salarial,
           al.fecha_disponible,
           al.jornada_id,
-          j.nombre AS jornada
+          j.nombre AS jornada,
+          al.comentario
       FROM aspiracion_laboral al
       LEFT JOIN area ar ON ar.id = al.area_id
       LEFT JOIN puesto pt ON pt.id = al.puesto_id

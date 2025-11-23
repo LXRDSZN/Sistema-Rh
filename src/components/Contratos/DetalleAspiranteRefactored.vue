@@ -35,6 +35,7 @@
             <ProcesoSeleccionTab
                 v-if="tabActual === 'proceso'"
                 :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral"
                 @etapa-actualizada="actualizarEtapaLocal"
                 @comentario-enviado="guardarComentarioAspiracion"
             />
@@ -183,6 +184,8 @@ const guardarComentarioAspiracion = async (comentarioTexto) => {
     if (!aspirante.value) return;
     try {
         await actualizarComentarioAspiracion(aspirante.value.id, comentarioTexto);
+        // Recargar aspiración laboral desde la BD para reflejar el comentario
+        aspiracionLaboral.value = await obtenerAspiracionLaboralAspirante(aspirante.value.id);
     } catch (error) {
         console.error('Error al guardar comentario de aspiración laboral:', error);
     }

@@ -82,13 +82,9 @@
                 <!-- Historial -->
                 <div class="historial-box">
                     <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
-                    </div>
-                    <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
-                    </div>
-                    <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
+                        <span class="historial-text">
+                            {{ comentarioActual || 'Sin comentarios registrados.' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -110,6 +106,10 @@ const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    aspiracionLaboral: {
+        type: Object,
+        default: null
     }
 });
 
@@ -117,6 +117,8 @@ const etapasOrdenadas = ['Registro', 'Revisión', 'Entrevista', 'Evaluación', '
 
 const etapaLocal = ref(props.aspirante.estadoProceso || 'Registro');
 const comentario = ref('');
+
+const comentarioActual = computed(() => props.aspiracionLaboral?.comentario || '');
 
 watch(
     () => props.aspirante.estadoProceso,
