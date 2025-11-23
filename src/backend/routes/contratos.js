@@ -83,9 +83,14 @@ router.get('/contratos/empleados-destacados', async (req, res) => {
           COALESCE(a.nombre, 'Sin área') AS area,
           'empleado' AS tipo
       FROM persona p
-      INNER JOIN contrato c ON c.persona_id = p.id
+      INNER JOIN contrato c 
+              ON c.persona_id = p.id
+             AND c.estado_id = (
+                  SELECT id FROM estado_contrato 
+                  WHERE nombre ILIKE 'ACTIVO'
+             )
       LEFT JOIN puesto pu ON pu.id = c.puesto_id
-      LEFT JOIN area a ON a.id = c.area_id
+      LEFT JOIN area a   ON a.id = c.area_id
       WHERE p.tipo = 'Empleado'
       ORDER BY p.id, c.fecha_inicio DESC
       LIMIT 10;
@@ -105,6 +110,7 @@ router.get('/contratos/empleados-destacados', async (req, res) => {
     });
   }
 });
+
 
 
 // ========================================
@@ -693,7 +699,6 @@ router.post('/contratos/aspirante', verificarToken, async (req, res) => {
       jornadaId,
       horaEntrada,
       horaSalida,
-      tipoDocumentoId,
       archivoId
     } = req.body;
 
