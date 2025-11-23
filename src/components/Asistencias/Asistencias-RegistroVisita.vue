@@ -237,7 +237,7 @@
 
       <!-- Tabla de Monitoreo de Visitas Activas -->
       <v-card class="card-monitoreo" elevation="0">
-        <h2 class="card-titulo">Monitoreo de Visitas</h2>
+        <h2 class="card-titulo">Monitoreo de Visitas Activas</h2>
 
         <v-card-text>
           <div class="filtros-monitoreo">

@@ -28,9 +28,9 @@
 
         <v-text-field
           v-model="searchTerm"
-          placeholder="Buscar Empleado"
+          placeholder="Buscar Visitante, Persona Visitada o Empresa"
           class="search-input-monitor input-white"
-          variant="outlined"
+          variant="outlined"  
           density="compact"
           clearable
           hide-details
@@ -73,11 +73,11 @@
               <thead>
                 <tr>
                   <th class="text-center">Visitante</th>
-                  <th class="text-center">Fecha</th>
                   <th class="text-center">Cargo/Rol Durante la Visita</th>
                   <th class="text-center">Área Visitada</th>
                   <th class="text-center">Persona Visitada</th>
                   <th class="text-center">Empresa</th>
+                  <th class="text-center">Fecha</th>
                   <th class="text-center">Hora Ingreso</th>
                   <th class="text-center">Hora Salida</th>
                 </tr>
@@ -85,11 +85,11 @@
               <tbody>
                 <tr v-for="(visit, index) in visitsData" :key="index">
                   <td class="text-center">{{ visit.visitante }}</td>
-                  <td class="text-center">{{ visit.fecha }}</td>
                   <td class="text-center">{{ visit.cargoRol }}</td>
                   <td class="text-center">{{ visit.areaVisitada }}</td>
                   <td class="text-center">{{ visit.personaVisitada }}</td>
                   <td class="text-center">{{ visit.empresaPertenece }}</td>
+                  <td class="text-center">{{ visit.fecha }}</td>
                   <td class="text-center">{{ visit.horaIngreso }}</td>
                   <td class="text-center">{{ visit.horaSalida }}</td>
                 </tr>
@@ -464,15 +464,18 @@ const generarPDF = async () => {
   grid-template-columns: 200px 200px minmax(300px, 1fr) auto auto;
   gap: 1rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1300px;
   padding: 0rem 0;
   box-sizing: border-box;
   margin: 0 0 2rem 0;
 }
 
-.filter-select,
+.filter-select { 
+  width: 20px; 
+}
+
 .search-input-monitor { 
-  width: 100%; 
+  width: 140px; 
 }
 
 .filter-btn {
