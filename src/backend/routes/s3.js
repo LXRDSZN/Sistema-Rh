@@ -468,5 +468,70 @@ router.get('/empleados/:personaId/foto-base64', verificarToken, async (req, res)
   }
 });
 
+/**
+ * 3) OBTENER URL FIRMADA DEL CONTRATO ACTUAL DE UN EMPLEADO
+ *    Ruta real: GET /api/s3/contrato-actual/:personaId
+ */
+router.get('/s3/contrato-actual/:personaId', verificarToken, async (req, res) => {
+  const { personaId } = req.params;
+
+  try {
+    // Buscar el contrato ACTIVO más reciente y su archivo
+    const sql = `
+      SELECT a.storage_url
+      FROM contrato c
+      JOIN archivo a ON a.id = c.archivo_id
+      WHERE c.persona_id = $1
+        AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+      ORDER BY c.fecha_inicio DESC
+      LIMIT 1;
+    `;
+
+    const { rows } = await pool.query(sql, [personaId]);
+
+    if (!rows.length || !rows[0].storage_url) {
+      return res.status(404).json({
+        ok: false,
+        error: 'No se encontró contrato activo con PDF para este empleado'
+      });
+    }
+
+    const storageUrl = rows[0].storage_url;
+
+    // 🔑 Obtener la KEY de S3 a partir de la URL guardada
+    let key;
+    try {
+      const urlObj = new URL(storageUrl);
+      key = urlObj.pathname.slice(1); // quita el "/" inicial
+    } catch (e) {
+      // fallback por si algún día guardas solo la key
+      key = storageUrl.split('/').pop();
+    }
+
+    const params = {
+      Bucket: config.aws.bucket,
+      Key: key
+    };
+
+    // URL firmada válida por 7 días
+    const signedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand(params),
+      { expiresIn: 60 * 60 * 24 * 7 }
+    );
+
+    return res.json({
+      ok: true,
+      url: signedUrl
+    });
+  } catch (error) {
+    console.error('Error al obtener contrato actual desde S3:', error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 
 export default router;

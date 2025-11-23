@@ -23,7 +23,7 @@ export const useEmpleadoContratos = () => {
     );
     return data;
   };
-
+  
   return {
     obtenerDatosRenovacionEmpleado,
     renovarContratoEmpleado,
