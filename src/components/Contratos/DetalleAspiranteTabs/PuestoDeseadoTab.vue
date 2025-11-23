@@ -10,7 +10,7 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Área o departamento deseado:</span>
-                        <span class="puesto-value">{{ aspirante.area || '----' }}</span>
+                        <span class="puesto-value">{{ areaMostrada }}</span>
                     </div>
                 </div>
 
@@ -32,10 +32,13 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Tipo de contrato:</span>
-                        <span class="puesto-value">----</span>
+                        <span class="puesto-value">{{ tipoContratoMostrado }}</span>
                     </div>
                 </div>
+            </div>
 
+            <!-- Columna Derecha -->
+            <div class="puesto-columna">
                 <!-- Jornada -->
                 <div class="puesto-item">
                     <div class="puesto-icon-circle">
@@ -43,43 +46,18 @@
                     </div>
                     <div class="puesto-info">
                         <span class="puesto-label">Jornada:</span>
-                        <span class="puesto-value">----</span>
+                        <span class="puesto-value">{{ jornadaMostrada }}</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Columna Derecha -->
-            <div class="puesto-columna">
-                <!-- Cargo -->
+                <!-- Modalidad -->
                 <div class="puesto-item">
                     <div class="puesto-icon">
                         <span class="material-symbols-rounded">work</span>
                     </div>
                     <div class="puesto-info">
-                        <span class="puesto-label">Cargo:</span>
-                        <span class="puesto-value">----</span>
-                    </div>
-                </div>
-
-                <!-- Periodo -->
-                <div class="puesto-item">
-                    <div class="puesto-icon">
-                        <span class="material-symbols-rounded">sync_alt</span>
-                    </div>
-                    <div class="puesto-info">
-                        <span class="puesto-label">Periodo:</span>
-                        <span class="puesto-value">----</span>
-                    </div>
-                </div>
-
-                <!-- Motivo de salida -->
-                <div class="puesto-item">
-                    <div class="puesto-icon">
-                        <span class="material-symbols-rounded">warning</span>
-                    </div>
-                    <div class="puesto-info">
-                        <span class="puesto-label">Motivo de salida:</span>
-                        <span class="puesto-value">----</span>
+                        <span class="puesto-label">Modalidad:</span>
+                        <span class="puesto-value">{{ modalidadMostrada }}</span>
                     </div>
                 </div>
 
@@ -105,6 +83,10 @@ const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    aspiracionLaboral: {
+        type: Object,
+        default: null
     }
 });
 
@@ -129,7 +111,24 @@ const formatearNombrePuesto = (nombre) => {
  * Computed property para formatear el puesto deseado
  */
 const puestoFormateado = computed(() => {
-  return formatearNombrePuesto(props.aspirante.puesto) || '----';
+  const nombrePuesto = props.aspiracionLaboral?.puesto || props.aspirante.puesto;
+  return formatearNombrePuesto(nombrePuesto) || '----';
+});
+
+const areaMostrada = computed(() => {
+  return (props.aspiracionLaboral && props.aspiracionLaboral.area) || props.aspirante.area || '----';
+});
+
+const tipoContratoMostrado = computed(() => {
+  return (props.aspiracionLaboral && props.aspiracionLaboral.tipo_contrato) || '----';
+});
+
+const jornadaMostrada = computed(() => {
+  return (props.aspiracionLaboral && props.aspiracionLaboral.jornada) || '----';
+});
+
+const modalidadMostrada = computed(() => {
+  return (props.aspiracionLaboral && props.aspiracionLaboral.modalidad) || '----';
 });
 </script>
 

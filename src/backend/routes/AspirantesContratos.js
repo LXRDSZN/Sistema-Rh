@@ -123,22 +123,23 @@ router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
     const { personaId } = req.params;
 
     const query = `
-      -- Aspirante (Primer contrato)
+      -- Aspiración laboral del aspirante
       SELECT
-          p.id AS persona_id,
-          p.nombre,
-          p.apellido_paterno,
-          p.apellido_materno,
-          p.foto_url,
           al.area_id,
+          ar.nombre AS area,
           al.puesto_id,
+          pt.nombre AS puesto,
           al.tipo_contrato,
           al.modalidad,
+          al.pretension_salarial,
           al.fecha_disponible,
-          al.jornada_id
-      FROM persona p
-      LEFT JOIN aspiracion_laboral al ON al.persona_id = p.id
-      WHERE p.id = $1
+          al.jornada_id,
+          j.nombre AS jornada
+      FROM aspiracion_laboral al
+      LEFT JOIN area ar ON ar.id = al.area_id
+      LEFT JOIN puesto pt ON pt.id = al.puesto_id
+      LEFT JOIN jornada j ON j.id = al.jornada_id
+      WHERE al.persona_id = $1
       LIMIT 1;
     `;
 
