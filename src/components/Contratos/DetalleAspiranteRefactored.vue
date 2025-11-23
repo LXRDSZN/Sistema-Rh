@@ -27,7 +27,11 @@
             <!-- Contenido de las pestañas -->
             <DatosPersonalesTab v-if="tabActual === 'datos'" :aspirante="aspirante" />
             <FormacionExperienciaTab v-if="tabActual === 'formacion'" :aspirante="aspirante" />
-            <PuestoDeseadoTab v-if="tabActual === 'puesto'" :aspirante="aspirante" />
+            <PuestoDeseadoTab
+                v-if="tabActual === 'puesto'"
+                :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral"
+            />
             <ProcesoSeleccionTab v-if="tabActual === 'proceso'" :aspirante="aspirante" />
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" />
         </template>
@@ -59,11 +63,12 @@ const emit = defineEmits(['cerrar', 'crear-contrato']);
 
 
 // Composable
-const { obtenerDatosPersonalesAspirante, obtenerCvAspirante } = useAspirantesContratos();
+const { obtenerDatosPersonalesAspirante, obtenerCvAspirante, obtenerAspiracionLaboralAspirante } = useAspirantesContratos();
 
 // Estado
 const aspirante = ref(null);
 const cvUrl = ref(null);
+const aspiracionLaboral = ref(null);
 const cargando = ref(false);
 const error = ref(null);
 
@@ -96,6 +101,8 @@ const cargarDatos = async () => {
     try {
         // Cargar datos personales
         const datosPersonales = await obtenerDatosPersonalesAspirante(props.personaId);
+        // Cargar aspiración laboral
+        aspiracionLaboral.value = await obtenerAspiracionLaboralAspirante(props.personaId);
 
         // Transformar datos del backend al formato del componente
         aspirante.value = {
