@@ -100,10 +100,14 @@
                 <!-- Calendario -->
                 <div class="chart-card">
                     <div class="calendar-header-wrapper">
-                        <h3 class="chart-title">Mes {{ currentMonth }} {{ currentYear }}</h3>
+                        <h3 class="chart-title">Mes {{ months[currentMonthNum] }} {{ currentYear }}</h3>
                         <div class="calendar-nav">
-                            <span class="material-symbols-rounded">chevron_left</span>
-                            <span class="material-symbols-rounded">chevron_right</span>
+                            <span style="display:inline-block;cursor:pointer" @click="prevMonth">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                            <span style="display:inline-block;cursor:pointer" @click="nextMonth">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
                         </div>
                     </div>
                     <div class="chart-content">
@@ -114,12 +118,32 @@
                                 </div>
                             </div>
                             <div class="calendar-body">
-                                <div v-for="day in calendarDays" :key="day.date" :class="['calendar-day', {
-                                    'other-month': day.otherMonth,
-                                    'today': day.isToday
-                                }]">
-                                    {{ day.day }}
+                                <div v-for="day in calendarDays" :key="day.date"
+                                    :class="['calendar-day', { 'other-month': day.otherMonth, 'today': day.isToday }]"
+                                    @click="selectDay(day)">
+                                    <span>{{ day.day }}</span>
+                                    <span v-if="day.events.length" class="event-dot" :title="day.events.map(e=>e.title).join(', ')"></span>
                                 </div>
+                                        <!-- Modal para día seleccionado -->
+                                        <div v-if="showDayModal" class="day-modal-overlay" @click.self="closeDayModal">
+                                            <div class="day-modal">
+                                                <h3>Eventos para {{ selectedDay?.date }}</h3>
+                                                <ul v-if="selectedDay?.events.length">
+                                                    <li v-for="(ev, idx) in selectedDay.events" :key="idx">
+                                                        <strong>{{ ev.title }}</strong>
+                                                        <span v-if="ev.type === 'vencimiento'" class="event-type vencimiento">Vencimiento</span>
+                                                        <span v-if="ev.type === 'personal'" class="event-type personal">Personal</span>
+                                                        <span v-if="ev.note"> · {{ ev.note }}</span>
+                                                    </li>
+                                                </ul>
+                                                <div v-else><em>No hay eventos para este día.</em></div>
+                                                <form @submit.prevent="addCustomEvent" class="add-event-form">
+                                                    <input v-model="customEventText" type="text" placeholder="Agregar evento personalizado..." maxlength="60" />
+                                                    <button type="submit">Agregar</button>
+                                                </form>
+                                                <button class="close-modal-btn" @click="closeDayModal">Cerrar</button>
+                                            </div>
+                                        </div>
                             </div>
                         </div>
                     </div>
@@ -209,38 +233,88 @@ const getColorProceso = (index) => {
     return coloresProceso[index] || '#0c4a7a';
 };
 
-const today = new Date();
-const currentMonth = computed(() => {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return months[today.getMonth()];
-});
-const currentYear = today.getFullYear();
-const diaActual = today.getDate();
-const mesActual = today.getMonth();
-const añoActual = today.getFullYear();
+const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const diasSemana = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const today = new Date();
+const currentMonthNum = ref(today.getMonth());
+const currentYear = ref(today.getFullYear());
+const selectedDay = ref(null); // { date, day, events }
+const showDayModal = ref(false);
+const customEventText = ref('');
+
+// Example events: { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 }
+const calendarEvents = ref([
+    { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 },
+    { date: '2025-11-25', type: 'personal', title: 'Reunión RH', note: 'Revisar documentos' }
+]);
+
+function prevMonth() {
+    if (currentMonthNum.value === 0) {
+        currentMonthNum.value = 11;
+        currentYear.value--;
+    } else {
+        currentMonthNum.value--;
+    }
+}
+function nextMonth() {
+    if (currentMonthNum.value === 11) {
+        currentMonthNum.value = 0;
+        currentYear.value++;
+    } else {
+        currentMonthNum.value++;
+    }
+}
 
 const calendarDays = computed(() => {
     const days = [];
-    const firstDay = new Date(añoActual, mesActual, 1).getDay();
-    const daysInMonth = new Date(añoActual, mesActual + 1, 0).getDate();
+    const firstDay = new Date(currentYear.value, currentMonthNum.value, 1).getDay();
+    const daysInMonth = new Date(currentYear.value, currentMonthNum.value + 1, 0).getDate();
+    const diaActual = today.getDate();
+    const mesActual = today.getMonth();
+    const añoActual = today.getFullYear();
 
     for (let i = 0; i < firstDay; i++) {
-        days.push({ day: null, otherMonth: true, isToday: false, date: null });
+        days.push({ day: null, otherMonth: true, isToday: false, date: null, events: [] });
     }
-
     for (let i = 1; i <= daysInMonth; i++) {
+        const dateStr = `${currentYear.value}-${(currentMonthNum.value + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+        const events = calendarEvents.value.filter(ev => ev.date === dateStr);
         days.push({
             day: i,
             otherMonth: false,
-            isToday: i === diaActual && mesActual === today.getMonth() && añoActual === today.getFullYear(),
-            date: `${añoActual}-${(mesActual + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`
+            isToday: i === diaActual && currentMonthNum.value === mesActual && currentYear.value === añoActual,
+            date: dateStr,
+            events
         });
     }
-
     return days;
 });
+
+function selectDay(dayObj) {
+    if (!dayObj.otherMonth && dayObj.day) {
+        selectedDay.value = dayObj;
+        showDayModal.value = true;
+        customEventText.value = '';
+    }
+}
+
+function addCustomEvent() {
+    if (selectedDay.value && customEventText.value.trim()) {
+        calendarEvents.value.push({
+            date: selectedDay.value.date,
+            type: 'personal',
+            title: customEventText.value.trim(),
+            note: ''
+        });
+        customEventText.value = '';
+    }
+}
+
+function closeDayModal() {
+    showDayModal.value = false;
+    selectedDay.value = null;
+    customEventText.value = '';
+}
 
 const chartAreas = ref([]);
 
@@ -550,7 +624,7 @@ watch(() => areasData.value, () => {
 
 .content-card {
     background-color: transparent;
-    padding: 2rem;
+    padding: 0rem;
     margin: 1.5rem;
 }
 
@@ -1029,6 +1103,46 @@ watch(() => areasData.value, () => {
     box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
     transform: scale(1.05);
 }
+
+.event-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    margin-left: 4px;
+    vertical-align: middle;
+    box-shadow: 0 1px 4px rgba(16,185,129,0.18);
+}
+
+.day-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17,24,39,0.18);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.day-modal {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 2rem 2.5rem;
+    min-width: 320px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+.day-modal h3 { margin-top: 0; font-size: 1.1rem; }
+.event-type { font-size: 0.85em; font-weight: 600; margin-left: 8px; padding: 2px 8px; border-radius: 8px; }
+.event-type.vencimiento { background: #f8d7da; color: #c82333; }
+.event-type.personal { background: #d1ecf1; color: #138496; }
+.add-event-form { display: flex; gap: 0.5rem; margin-top: 1.2rem; }
+.add-event-form input { flex: 1; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; }
+.add-event-form button { padding: 0.5rem 1.2rem; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: 600; cursor: pointer; }
+.close-modal-btn { margin-top: 1.2rem; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; padding: 0.5rem 1.2rem; cursor: pointer; font-weight: 600; }
 
 .chart-tooltip {
     position: fixed;

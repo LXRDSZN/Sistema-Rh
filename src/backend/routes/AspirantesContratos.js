@@ -166,7 +166,7 @@ router.get('/aspirantes/:personaId/aspiracion-laboral', async (req, res) => {
 });
 
 // ========================================
-// ACTUALIZAR NOMBRE / APELLIDOS DEL ASPIRANTE
+// ACTUALIZAR NOMBRE / APELLIDOS DEL ASPIRANTE enlacreCrearContrato guardar
 // ========================================
 router.put('/aspirantes/:personaId/nombre', async (req, res) => {
   try {

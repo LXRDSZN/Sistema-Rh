@@ -16,9 +16,10 @@ export const useEmpleadoContratos = () => {
   const renovarContratoEmpleado = async (payload) => {
     const { data } = await axios.post(
       `${API_URL}/contratos/empleado/renovar`,
-      payload
+      payload,
       // si tu backend NO usa cookies/token, déjalo así
       // si sí usa cookie de sesión, aquí iría: { withCredentials: true }
+      { withCredentials: true }
     );
     return data;
   };
