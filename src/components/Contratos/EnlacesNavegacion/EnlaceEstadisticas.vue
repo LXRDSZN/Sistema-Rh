@@ -83,16 +83,22 @@
 
                 <!-- Estado del proceso de contratación -->
                 <div class="chart-card">
-                    <h3 class="chart-title">Estado del proceso de contratación</h3>
+                    <div class="chart-header">
+                        <h3 class="chart-title">Estado del proceso de contratación</h3>
+                        <span class="chart-subtitle">Total procesos: {{ totalProceso }}</span>
+                    </div>
                     <div class="chart-content horizontal-bars">
                         <div v-for="(item, index) in procesoData" :key="index" class="bar-item">
-                            <span class="bar-label">{{ item.label }}</span>
+                            <div class="bar-label-group">
+                                <span class="bar-label">{{ item.label }}</span>
+                                <span class="bar-percent">{{ calcularPorcentaje(item.value, totalProceso).toFixed(0) }}%</span>
+                            </div>
                             <div class="bar-container">
                                 <div class="bar"
-                                    :style="{ width: calcularPorcentaje(item.value, procesoMax) + '%', backgroundColor: getColorProceso(index) }">
+                                    :style="{ width: calcularPorcentaje(item.value, totalProceso) + '%', backgroundColor: getColorProceso(index) }">
+                                    <span class="bar-value-inside">{{ item.value }}</span>
                                 </div>
                             </div>
-                            <span class="bar-value">{{ item.value }}</span>
                         </div>
                     </div>
                 </div>
@@ -204,6 +210,10 @@ const procesoMax = computed(() => {
     return Math.max(...procesoData.value.map(d => d.value));
 });
 
+// Total de procesos para porcentajes
+const totalProceso = computed(() => {
+    return procesoData.value.reduce((sum, item) => sum + item.value, 0) || 1;
+});
 // Calcular total de contratos
 const totalContratos = computed(() => {
     return distribucionContratos.value.reduce((sum, item) => sum + item.total, 0);
@@ -949,29 +959,48 @@ watch(() => areasData.value, () => {
     color: #6b7280;
 }
 
-.horizontal-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-height: auto !important;
-    align-items: stretch;
-    justify-content: flex-start;
-    padding: 1rem 0;
-}
+  .horizontal-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: auto !important;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 1rem 0;
+  }
+  
+  .bar-item {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 1rem;
+      align-items: center;
+  }
+  
+  .bar-label-group {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+  }
 
-.bar-item {
-    display: grid;
-    grid-template-columns: 100px 1fr 40px;
-    gap: 1rem;
-    align-items: center;
-}
+  .bar-label {
+      font-size: 0.85rem;
+  }
 
-.bar-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    text-align: right;
-}
+  .chart-subtitle {
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-weight: 500;
+  }
+
+  .bar-percent {
+      font-size: 0.75rem;
+      color: #6b7280;
+  }
 
 .bar-container {
     height: 32px;
@@ -981,14 +1010,24 @@ watch(() => areasData.value, () => {
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-.bar {
-    height: 100%;
-    border-radius: 16px;
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: barSlide 0.8s ease-out;
-    position: relative;
-    overflow: hidden;
-}
+  .bar {
+      height: 100%;
+      border-radius: 16px;
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: barSlide 0.8s ease-out;
+      position: relative;
+      overflow: hidden;
+  }
+
+  .bar-value-inside {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #f9fafb;
+      font-size: 0.8rem;
+      font-weight: 600;
+  }
 
 @keyframes barSlide {
     from { width: 0 !important; }
