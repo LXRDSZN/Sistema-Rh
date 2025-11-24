@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
+import { db } from '../models/db.js';
 
 /**
  * MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN
@@ -8,7 +9,7 @@ import config from '../config/config.js';
 /**
  * Middleware para verificar que el usuario está autenticado
  */
-export const verificarToken = (req, res, next) => {
+export const verificarToken = async (req, res, next) => {
   try {
     
     
@@ -29,6 +30,19 @@ export const verificarToken = (req, res, next) => {
     
     // Agregar información del usuario al request
     req.user = decoded;
+    
+    // Renovar sesión activa en la base de datos (actualizar expiración)
+    try {
+      await db.query(
+        `UPDATE sesiones_activas 
+         SET expiracion = NOW() + INTERVAL '30 minutes'
+         WHERE token = $1 AND expiracion > NOW()`,
+        [token]
+      );
+    } catch (dbError) {
+      console.error('⚠️ Error al renovar sesión:', dbError.message);
+      // No bloquear la petición si falla la renovación
+    }
     
     next();
   } catch (error) {

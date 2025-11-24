@@ -51,6 +51,12 @@ export function useAuth() {
    */
   const logout = async () => {
     try {
+      // Primero limpiamos el estado local
+      stopInactivityTimer();
+      user.value = null;
+      isAuthenticated.value = false;
+      
+      // Llamar al backend para cerrar la sesión
       await axios.post(
         'http://localhost:5000/api/logout',
         {},
@@ -59,10 +65,10 @@ export function useAuth() {
     } catch (error) {
       console.error('Error en logout:', error);
     } finally {
-      user.value = null;
-      isAuthenticated.value = false;
-      stopInactivityTimer();
-      router.push('/');
+      // Asegurar que siempre redirigimos al login
+      await router.push('/');
+      // Forzar recarga para limpiar cualquier estado residual
+      window.location.href = '/';
     }
   };
 

@@ -104,7 +104,6 @@ const openRegisterModal = async () => {
 // Logout
 const handleLogout = () => {
   logout();
-  router.push('/login');
 };
 </script>
 
