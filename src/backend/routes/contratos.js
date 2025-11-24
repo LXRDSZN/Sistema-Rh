@@ -464,11 +464,16 @@ router.get('/contratos/estadisticas/distribucion-tipo', async (req, res) => {
     try {
         const query = `
             SELECT
-                tipo_contrato AS tipo,
+                c.tipo_contrato AS tipo,
                 COUNT(*) AS total
-            FROM contrato
-            GROUP BY tipo_contrato
-            ORDER BY total DESC
+            FROM contrato c
+            JOIN persona p ON p.id = c.persona_id
+            JOIN estado_contrato ec ON ec.id = c.estado_id
+            WHERE p.tipo = 'Empleado'
+              AND ec.nombre ILIKE 'ACTIVO'
+              AND c.tipo_contrato IN ('Indefinido', 'Temporal', 'Por Proyecto')
+            GROUP BY c.tipo_contrato
+            ORDER BY c.tipo_contrato;
         `;
 
         const result = await pool.query(query);
@@ -497,9 +502,13 @@ router.get('/contratos/estadisticas/contratos-por-area', async (req, res) => {
                 a.nombre AS area,
                 COUNT(c.id) AS total_contratos
             FROM contrato c
+            JOIN persona p ON p.id = c.persona_id
             JOIN area a ON a.id = c.area_id
+            JOIN estado_contrato ec ON ec.id = c.estado_id
+            WHERE p.tipo = 'Empleado'
+              AND ec.nombre ILIKE 'ACTIVO'
             GROUP BY a.nombre
-            ORDER BY total_contratos DESC
+            ORDER BY total_contratos DESC;
         `;
 
         const result = await pool.query(query);
