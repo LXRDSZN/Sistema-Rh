@@ -407,13 +407,17 @@ const sexosFiltrados = computed(() => {
   );
 });
 
-// Filtrar y formatear puestos (mostrar todos)
-const puestosFiltrados = computed(() => {
-  return catalogos.value.puestos.map(puesto => ({
-    ...puesto,
-    nombreFormateado: formatearNombrePuesto(puesto.nombre)
-  }));
-});
+  // Filtrar y formatear puestos: solo hasta JEFE_AREA (incluido)
+  const puestosFiltrados = computed(() => {
+    const lista = catalogos.value.puestos || [];
+    const indexJefeArea = lista.findIndex((puesto) => puesto.nombre === 'JEFE_AREA');
+    const recortados = indexJefeArea === -1 ? lista : lista.slice(0, indexJefeArea + 1);
+
+    return recortados.map((puesto) => ({
+      ...puesto,
+      nombreFormateado: formatearNombrePuesto(puesto.nombre)
+    }));
+  });
 
 // Función para formatear nombres de puestos
 const formatearNombrePuesto = (nombre) => {

@@ -27,8 +27,18 @@
             <!-- Contenido de las pestañas -->
             <DatosPersonalesTab v-if="tabActual === 'datos'" :aspirante="aspirante" />
             <FormacionExperienciaTab v-if="tabActual === 'formacion'" :aspirante="aspirante" />
-            <PuestoDeseadoTab v-if="tabActual === 'puesto'" :aspirante="aspirante" />
-            <ProcesoSeleccionTab v-if="tabActual === 'proceso'" :aspirante="aspirante" />
+            <PuestoDeseadoTab
+                v-if="tabActual === 'puesto'"
+                :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral"
+            />
+            <ProcesoSeleccionTab
+                v-if="tabActual === 'proceso'"
+                :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral"
+                @etapa-actualizada="actualizarEtapaLocal"
+                @comentario-enviado="guardarComentarioAspiracion"
+            />
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" />
         </template>
     </div>
@@ -59,11 +69,18 @@ const emit = defineEmits(['cerrar', 'crear-contrato']);
 
 
 // Composable
-const { obtenerDatosPersonalesAspirante, obtenerCvAspirante } = useAspirantesContratos();
+const {
+    obtenerDatosPersonalesAspirante,
+    obtenerCvAspirante,
+    obtenerAspiracionLaboralAspirante,
+    actualizarEtapaAspirante,
+    actualizarComentarioAspiracion
+} = useAspirantesContratos();
 
 // Estado
 const aspirante = ref(null);
 const cvUrl = ref(null);
+const aspiracionLaboral = ref(null);
 const cargando = ref(false);
 const error = ref(null);
 
@@ -96,6 +113,8 @@ const cargarDatos = async () => {
     try {
         // Cargar datos personales
         const datosPersonales = await obtenerDatosPersonalesAspirante(props.personaId);
+        // Cargar aspiración laboral
+        aspiracionLaboral.value = await obtenerAspiracionLaboralAspirante(props.personaId);
 
         // Transformar datos del backend al formato del componente
         aspirante.value = {
@@ -124,7 +143,7 @@ const cargarDatos = async () => {
             domicilio: datosPersonales.domicilio,
 
             // Estado del proceso
-            estadoProceso: datosPersonales.etapa || 'EN REVISIÓN',
+            estadoProceso: datosPersonales.etapa || 'Registro',
             fechaRegistro: datosPersonales.fecha_registro
         };
 
@@ -146,6 +165,30 @@ const cargarDatos = async () => {
 
 const cerrar = () => {
     emit('cerrar');
+};
+
+const actualizarEtapaLocal = async (nuevaEtapa) => {
+    if (!aspirante.value) return;
+    try {
+        const proceso = await actualizarEtapaAspirante(aspirante.value.id, nuevaEtapa);
+        // Actualiza estado local rápidamente
+        aspirante.value.estadoProceso = proceso.etapa;
+        // Refresca todos los datos desde el backend para asegurarse
+        await cargarDatos();
+    } catch (error) {
+        console.error('Error al actualizar etapa desde detalle aspirante:', error);
+    }
+};
+
+const guardarComentarioAspiracion = async (comentarioTexto) => {
+    if (!aspirante.value) return;
+    try {
+        await actualizarComentarioAspiracion(aspirante.value.id, comentarioTexto);
+        // Recargar aspiración laboral desde la BD para reflejar el comentario
+        aspiracionLaboral.value = await obtenerAspiracionLaboralAspirante(aspirante.value.id);
+    } catch (error) {
+        console.error('Error al guardar comentario de aspiración laboral:', error);
+    }
 };
 
 // Cargar datos al montar

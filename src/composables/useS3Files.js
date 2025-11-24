@@ -86,7 +86,7 @@ export const useS3Files = () => {
 
   const obtenerUrlFirmada = async (fileName) => {
     try {
-      const response = await api.get(`/get-file/${fileName}`);
+      const response = await api.get(`/get-file/${encodeURIComponent(fileName)}`);
       return response.data.url;
     } catch (error) {
       console.error('Error al obtener URL firmada:', error.response?.data || error);
@@ -96,8 +96,15 @@ export const useS3Files = () => {
 
   const descargarArchivo = async (fileName) => {
     try {
-      const url = `${API_URL}/download-file/${fileName}`;
-      window.open(url, '_blank');
+      const url = `${API_URL}/download-file/${encodeURIComponent(fileName)}`;
+
+      // 👇 Forzar descarga sin “ver” el PDF
+      const link = document.createElement('a');
+      link.href = url;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Error al descargar archivo:', error.response?.data || error);
       throw error;
@@ -126,6 +133,25 @@ export const useS3Files = () => {
     }
   };
 
+    // ✅ Nuevo: obtener URL firmada del contrato actual
+  const obtenerUrlContratoActual = async (personaId) => {
+    try {
+      const { data } = await axios.get(
+        `${API_URL}/s3/contrato-actual/${personaId}`,
+        { withCredentials: true }
+      );
+
+      if (!data.ok || !data.url) {
+        throw new Error(data.error || 'No se pudo obtener la URL del contrato');
+      }
+
+      return data.url;
+    } catch (error) {
+      console.error('Error al obtener URL del contrato actual:', error.response || error);
+      throw error;
+    }
+  };
+
   return {
     subirArchivo,
     obtenerArchivos,
@@ -135,6 +161,7 @@ export const useS3Files = () => {
     obtenerUrlFirmada,
     descargarArchivo,
     listarArchivosS3,
-    listarBuckets
+    listarBuckets,
+    obtenerUrlContratoActual
   };
 };

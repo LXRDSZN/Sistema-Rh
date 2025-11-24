@@ -28,9 +28,9 @@
 
         <v-text-field
           v-model="searchTerm"
-          placeholder="Buscar Empleado"
+          placeholder="Buscar Visitante, Persona Visitada o Empresa"
           class="search-input-monitor input-white"
-          variant="outlined"
+          variant="outlined"  
           density="compact"
           clearable
           hide-details
@@ -77,6 +77,7 @@
                   <th class="text-center">Área Visitada</th>
                   <th class="text-center">Persona Visitada</th>
                   <th class="text-center">Empresa</th>
+                  <th class="text-center">Fecha</th>
                   <th class="text-center">Hora Ingreso</th>
                   <th class="text-center">Hora Salida</th>
                 </tr>
@@ -88,6 +89,7 @@
                   <td class="text-center">{{ visit.areaVisitada }}</td>
                   <td class="text-center">{{ visit.personaVisitada }}</td>
                   <td class="text-center">{{ visit.empresaPertenece }}</td>
+                  <td class="text-center">{{ visit.fecha }}</td>
                   <td class="text-center">{{ visit.horaIngreso }}</td>
                   <td class="text-center">{{ visit.horaSalida }}</td>
                 </tr>
@@ -206,12 +208,30 @@ const areasItems = computed(() => [
   ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
 ])
 
+// Función para formatear fecha
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'N/A'
+  
+  // Si ya viene en formato DD/MM/YYYY, retornarla tal cual
+  if (fecha.includes('/')) return fecha
+  
+  // Si viene como objeto Date o string ISO, formatear
+  const date = new Date(fecha)
+  if (isNaN(date.getTime())) return 'N/A'
+  
+  const dia = String(date.getDate()).padStart(2, '0')
+  const mes = String(date.getMonth() + 1).padStart(2, '0')
+  const anio = date.getFullYear()
+  return `${dia}/${mes}/${anio}`
+}
+
 // Datos mostrados en la tabla, filtrados en frontend por área y búsqueda
 const visitsData = computed(() => {
   if (!visitas.value || visitas.value.length === 0) return []
   
   let resultado = visitas.value.map(v => ({
     visitante: v.nombre_visitante || 'N/A',
+    fecha: formatearFecha(v.fecha),
     cargoRol: v.cargo_rol || 'N/A',
     areaVisitada: v.area_visitada || 'N/A',
     personaVisitada: v.persona_visitada || 'N/A',
@@ -317,8 +337,8 @@ const generarPDF = async () => {
       yPosition += 15
 
       // Encabezados de la tabla
-      const headers = ['Visitante', 'Cargo/Rol', 'Área Visitada', 'Persona Visitada', 'Empresa', 'Hora Ingreso', 'Hora Salida']
-      const columnWidths = [30, 35, 25, 30, 40, 25, 25]
+      const headers = ['Visitante', 'Fecha', 'Cargo/Rol', 'Área Visitada', 'Persona Visitada', 'Empresa', 'Hora Ingreso', 'Hora Salida']
+      const columnWidths = [30, 20, 35, 25, 30, 40, 25, 25]
 
       let xPosition = 20
 
@@ -366,6 +386,7 @@ const generarPDF = async () => {
         // Datos de cada columna
         const datosFila = [
           visit.visitante.substring(0, 18),
+          visit.fecha,
           visit.cargoRol.substring(0, 20),
           visit.areaVisitada.substring(0, 15),
           visit.personaVisitada.substring(0, 18),
@@ -443,15 +464,18 @@ const generarPDF = async () => {
   grid-template-columns: 200px 200px minmax(300px, 1fr) auto auto;
   gap: 1rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1300px;
   padding: 0rem 0;
   box-sizing: border-box;
   margin: 0 0 2rem 0;
 }
 
-.filter-select,
+.filter-select { 
+  width: 20px; 
+}
+
 .search-input-monitor { 
-  width: 100%; 
+  width: 140px; 
 }
 
 .filter-btn {

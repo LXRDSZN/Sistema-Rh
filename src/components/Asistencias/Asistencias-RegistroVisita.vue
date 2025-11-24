@@ -144,6 +144,7 @@
                   v-model="formulario.persona_visitada"
                   :items="empleados"
                   item-title="nombre_completo"
+                  item-value="id"
                   placeholder="Seleccione la persona"
                   class="input-custom"
                   variant="outlined"
@@ -236,7 +237,7 @@
 
       <!-- Tabla de Monitoreo de Visitas Activas -->
       <v-card class="card-monitoreo" elevation="0">
-        <h2 class="card-titulo">Monitoreo de Visitas</h2>
+        <h2 class="card-titulo">Monitoreo de Visitas Activas</h2>
 
         <v-card-text>
           <div class="filtros-monitoreo">
@@ -290,12 +291,12 @@
               </tr>
               <tr v-for="(visita, index) in visitasActivasFiltradas" :key="visita.id || index" v-else>
                 <td class="text-center">
-                  {{ visita.nombre }} {{ visita.apellido_paterno }} {{ visita.apellido_materno }}
+                  {{ visita.nombre_visitante }}
                 </td>
                 <td class="text-center">{{ visita.empresa }}</td>
                 <td class="text-center">{{ visita.persona_visitada }}</td>
                 <td class="text-center">{{ visita.area_visitada }}</td>
-                <td class="text-center">{{ visita.hora_ingreso }}</td>
+                <td class="text-center">{{ visita.hora_entrada }}</td>
                 <td class="text-center">
                   <span class="estado-en-curso">
                     En curso
@@ -337,6 +338,18 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAsistencias } from '@/composables/useAsistencias'
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Composable de asistencias
+const {
+  visitas,
+  cargarVisitas: cargarVisitasAPI,
+  crearVisita,
+  actualizarVisita
+} = useAsistencias()
 
 // Estados del formulario
 const formulario = ref({
@@ -378,18 +391,8 @@ const empresas = ref([
   'Future Technologies'
 ])
 
-const areasVisitadas = ref([
-  'Recursos Humanos',
-  'Administración',
-  'Contabilidad',
-  'TI/Sistemas',
-  'Operaciones',
-  'Ventas',
-  'Marketing',
-  'Dirección',
-  'Recepción',
-  'Almacén'
-])
+const areasVisitadas = ref([])
+const areas = ref([])
 
 const motivosVisita = ref([
   'Reunión de trabajo',
@@ -403,13 +406,7 @@ const motivosVisita = ref([
   'Otro'
 ])
 
-const empleados = ref([
-  { id: 1, nombre_completo: 'Juan Pérez García' },
-  { id: 2, nombre_completo: 'María López Hernández' },
-  { id: 3, nombre_completo: 'Carlos Rodríguez Martínez' },
-  { id: 4, nombre_completo: 'Ana García Sánchez' },
-  { id: 5, nombre_completo: 'Pedro Martínez López' }
-])
+const empleados = ref([])
 
 // Visitas registradas
 const visitasRegistradas = ref([])
@@ -430,10 +427,11 @@ const actualizarReloj = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   actualizarReloj()
   intervaloReloj = setInterval(actualizarReloj, 1000)
-  cargarVisitas()
+  await cargarDatosIniciales()
+  await cargarVisitas()
 })
 
 onUnmounted(() => {
@@ -444,69 +442,72 @@ onUnmounted(() => {
 
 // Computed para visitas activas filtradas
 const visitasActivasFiltradas = computed(() => {
-  let visitas = visitasRegistradas.value.filter(visita => !visita.hora_salida)
+  let visitasArray = Array.isArray(visitasRegistradas.value) ? visitasRegistradas.value : []
+  let visitasActivas = visitasArray.filter(visita => !visita.hora_salida)
 
   // Filtro por búsqueda
   if (filtroBusqueda.value) {
     const busqueda = filtroBusqueda.value.toLowerCase().trim()
-    visitas = visitas.filter(visita => 
-      visita.nombre.toLowerCase().includes(busqueda) ||
-      visita.apellido_paterno.toLowerCase().includes(busqueda) ||
-      visita.empresa.toLowerCase().includes(busqueda) ||
-      visita.persona_visitada.toLowerCase().includes(busqueda) ||
-      visita.area_visitada.toLowerCase().includes(busqueda)
+    visitasActivas = visitasActivas.filter(visita => 
+      (visita.nombre_visitante && visita.nombre_visitante.toLowerCase().includes(busqueda)) ||
+      (visita.empresa && visita.empresa.toLowerCase().includes(busqueda)) ||
+      (visita.persona_visitada && visita.persona_visitada.toLowerCase().includes(busqueda)) ||
+      (visita.area_visitada && visita.area_visitada.toLowerCase().includes(busqueda))
     )
   }
 
-  return visitas
+  return visitasActivas
 })
 
+// Cargar datos iniciales de empleados y áreas
+const cargarDatosIniciales = async () => {
+  try {
+    // Cargar empleados
+    const responseEmpleados = await axios.get(`${API_URL}/empleados`, { 
+      withCredentials: true 
+    })
+    
+    const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
+    empleados.value = empleadosData.map(emp => ({
+      id: emp.id,
+      nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
+    }))
+
+    // Cargar áreas
+    const responseAreas = await axios.get(`${API_URL}/areas`, { 
+      withCredentials: true 
+    })
+    areas.value = responseAreas.data.data || responseAreas.data || []
+    
+    // Mapear áreas para el select (con id y nombre)
+    areasVisitadas.value = areas.value.map(area => ({
+      title: area.nombre,
+      value: area.id
+    }))
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error)
+    mostrarMensaje('Error al cargar datos iniciales', 'error')
+  }
+}
+
 // Funciones principales
-const cargarVisitas = () => {
-  // Simular carga de visitas desde API
-  loading.value = true
-  setTimeout(() => {
-    // Datos de ejemplo - solo visitas activas
-    visitasRegistradas.value = [
-      {
-        id: 1,
-        nombre: 'Carlos',
-        apellido_paterno: 'Gómez',
-        apellido_materno: 'López',
-        cargo: 'Gerente Comercial',
-        empresa: 'Tech Solutions SA',
-        persona_visitada: 'Juan Pérez García',
-        motivo: 'Reunión de trabajo',
-        area_visitada: 'Ventas',
-        fecha_ingreso: new Date().toLocaleDateString('es-ES'),
-        hora_ingreso: new Date(new Date().setHours(9, 30)).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        }),
-        hora_salida: null
-      },
-      {
-        id: 2,
-        nombre: 'Ana',
-        apellido_paterno: 'Martínez',
-        apellido_materno: 'Rodríguez',
-        cargo: 'Auditora',
-        empresa: 'Consultores Asociados',
-        persona_visitada: 'María López Hernández',
-        motivo: 'Auditoría',
-        area_visitada: 'Contabilidad',
-        fecha_ingreso: new Date().toLocaleDateString('es-ES'),
-        hora_ingreso: new Date(new Date().setHours(14, 15)).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        }),
-        hora_salida: null
-      }
-    ]
-    loading.value = false
-  }, 1000)
+const cargarVisitas = async () => {
+  try {
+    // Cargar visitas del mes actual
+    const now = new Date()
+    const filtros = {
+      mes: now.getMonth() + 1,
+      anio: now.getFullYear()
+    }
+    await cargarVisitasAPI(filtros)
+    // Sincronizar con las visitas del composable
+    if (visitas.value && Array.isArray(visitas.value)) {
+      visitasRegistradas.value = visitas.value
+    }
+  } catch (error) {
+    console.error('Error al cargar visitas:', error)
+    mostrarMensaje('Error al cargar visitas', 'error')
+  }
 }
 
 const registrarIngreso = async () => {
@@ -534,18 +535,26 @@ const registrarIngreso = async () => {
 
     guardando.value = true
 
-    // Crear registro de visita
-    const nuevaVisita = {
-      id: Date.now(),
-      ...formulario.value,
-      fecha_ingreso: fechaActual.value,
-      hora_ingreso: horaActual.value,
-      hora_salida: null,
-      fecha_registro: new Date().toISOString()
+    // Construir nombre completo del visitante
+    const nombreCompleto = `${formulario.value.nombre} ${formulario.value.apellido_paterno} ${formulario.value.apellido_materno || ''}`.trim()
+
+    // Preparar datos para enviar a la API (según estructura del backend)
+    const datosVisita = {
+      nombre_visitante: nombreCompleto,
+      cargo_rol: formulario.value.cargo,
+      area_visitada_id: formulario.value.area_visitada, // Debe ser ID del área
+      persona_visitada_id: formulario.value.persona_visitada, // Debe ser ID de la persona
+      empresa_pertenece: formulario.value.empresa,
+      motivo_visita: formulario.value.motivo === 'Otro' ? formulario.value.motivo_especifico : formulario.value.motivo
     }
 
-    // Agregar a visitas registradas
-    visitasRegistradas.value.unshift(nuevaVisita)
+    console.log('📤 Datos a enviar:', datosVisita)
+
+    // Crear visita en la API
+    await crearVisita(datosVisita)
+    
+    // Recargar visitas para mostrar la nueva
+    await cargarVisitas()
 
     mostrarMensaje('Ingreso de visita registrado correctamente')
     limpiarFormulario()
@@ -558,21 +567,24 @@ const registrarIngreso = async () => {
   }
 }
 
-const registrarSalida = (visita) => {
-  const horaSalida = new Date().toLocaleTimeString('es-ES', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: true
-  })
-  
-  // Actualizar la visita con la hora de salida
-  const visitaIndex = visitasRegistradas.value.findIndex(v => v.id === visita.id)
-  if (visitaIndex !== -1) {
-    visitasRegistradas.value[visitaIndex].hora_salida = horaSalida
+const registrarSalida = async (visita) => {
+  try {
+    // Formato TIME para PostgreSQL (HH:MM:SS)
+    const now = new Date()
+    const horaSalida = now.toTimeString().split(' ')[0] // HH:MM:SS
+    
+    // Actualizar visita en la API
+    await actualizarVisita(visita.id, { hora_salida: horaSalida })
+    
+    // Recargar visitas
+    await cargarVisitas()
+    
+    const horaDisplay = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    mostrarMensaje(`Salida registrada para ${visita.nombre_visitante} a las ${horaDisplay}`)
+  } catch (error) {
+    console.error('Error al registrar salida:', error)
+    mostrarMensaje('Error al registrar la salida', 'error')
   }
-  
-  // La visita desaparecerá automáticamente de la tabla porque ya no estará activa
-  mostrarMensaje(`Salida registrada para ${visita.nombre} ${visita.apellido_paterno} a las ${horaSalida}`)
 }
 
 const aplicarFiltros = () => {
