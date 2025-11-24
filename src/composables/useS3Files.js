@@ -152,6 +152,20 @@ export const useS3Files = () => {
     }
   };
 
+    /**
+   * 🔹 Actualizar archivo de un documento_persona del aspirante
+   *  - documentoPersonaId: dp.id (documento_persona_id que te regresa la consulta)
+   *  - archivo: File del <input type="file">
+   */
+  const actualizarDocumentoAspirante = async (documentoPersonaId, archivoId) => {
+    const { data } = await axios.put(
+      `${API_URL}/aspirantes/documentos/${documentoPersonaId}`,
+      { archivoId },
+      { withCredentials: true }
+    );
+    return data;
+  };
+
   return {
     subirArchivo,
     obtenerArchivos,
@@ -162,6 +176,7 @@ export const useS3Files = () => {
     descargarArchivo,
     listarArchivosS3,
     listarBuckets,
-    obtenerUrlContratoActual
+    obtenerUrlContratoActual,
+    actualizarDocumentoAspirante
   };
 };

@@ -23,7 +23,23 @@ export const useDocumentosPersona = () => {
     return data; // { ok: true, mensaje: 'Documento asociado...' }
   };
 
+  const eliminarDocumentoPersona = async (personaId, documentoPersonaId) => {
+    console.log(
+      '[useDocumentosPersona] DELETE ->',
+      `${API_URL}/personas/${personaId}/documentos/${documentoPersonaId}`
+    );
+
+    const { data } = await axios.delete(
+      `${API_URL}/personas/${personaId}/documentos/${documentoPersonaId}`,
+      { withCredentials: true }
+    );
+
+    console.log('[useDocumentosPersona] Respuesta eliminarDocumentoPersona:', data);
+    return data;
+  };
+
   return {
-    asociarDocumentoPersona
+    asociarDocumentoPersona,
+    eliminarDocumentoPersona
   };
 };
