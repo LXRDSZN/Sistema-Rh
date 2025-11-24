@@ -2,8 +2,7 @@
   <div class="pase-lista-container">
     <!-- Header -->
     <div class="header">
-      <h1>🔐 Pase de Lista por Huella Digital</h1>
-      <p class="subtitle">Sistema de registro de asistencias con sensor AS608</p>
+      <h1>Pase de Lista por Huella Digital</h1>
     </div>
 
     <!-- Configuración ESP32 solo para roles distintos a EMPLEADO -->
@@ -90,100 +89,129 @@
       </div>
     </div>
 
-    <!-- Tarjeta de último registro -->
-    <div v-if="ultimoRegistro" class="registro-card">
-      <div class="registro-header" :class="{'entrada': ultimoRegistro.tipo === 'entrada', 'salida': ultimoRegistro.tipo === 'salida'}">
-        <div class="registro-icon">
-          {{ ultimoRegistro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+    <!-- Tarjeta de último registro (animada) o estado de espera -->
+    <transition name="registro" mode="out-in">
+      <template v-if="ultimoRegistro">
+        <div class="registro-card">
+          <div class="registro-header" :class="{'entrada': ultimoRegistro.tipo === 'entrada', 'salida': ultimoRegistro.tipo === 'salida'}">
+            <div class="registro-icon">
+              {{ ultimoRegistro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+            </div>
+            <div class="registro-tipo">
+              {{ ultimoRegistro.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' }}
+            </div>
+            <button @click="cerrarRegistro" class="btn-cerrar-registro">✖</button>
+          </div>
+          
+          <div class="registro-body">
+            <div class="empleado-info">
+              <div class="info-row nombre-row">
+                <span class="label">Nombre:</span>
+                <span class="value">{{ ultimoRegistro.empleado.nombre_completo }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Área:</span>
+                <span class="value">{{ ultimoRegistro.empleado.area }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Puesto:</span>
+                <span class="value">{{ ultimoRegistro.empleado.puesto }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Turno:</span>
+                <span class="value">{{ ultimoRegistro.empleado.turno }}</span>
+              </div>
+              <div class="info-row hora-row">
+                <span class="label">Hora:</span>
+                <span class="value hora">{{ ultimoRegistro.registro.hora }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="registro-footer">
+            <span class="mensaje">{{ ultimoRegistro.mensaje }}</span>
+            <span class="fecha">{{ formatearFecha(ultimoRegistro.registro.fecha) }}</span>
+          </div>
         </div>
-        <div class="registro-tipo">
-          {{ ultimoRegistro.tipo === 'entrada' ? 'ENTRADA' : 'SALIDA' }}
+      </template>
+      <template v-else>
+        <div class="waiting-card">
+          <div class="waiting-icon">👆</div>
+          <h2>En espera de huella...</h2>
+          <p>Coloque su dedo en el sensor para registrar su asistencia</p>
         </div>
-      </div>
-      
-      <div class="registro-body">
-        <div class="empleado-info">
-          <div class="info-row nombre-row">
-            <span class="label">Nombre:</span>
-            <span class="value">{{ ultimoRegistro.empleado.nombre_completo }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Área:</span>
-            <span class="value">{{ ultimoRegistro.empleado.area }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Puesto:</span>
-            <span class="value">{{ ultimoRegistro.empleado.puesto }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Turno:</span>
-            <span class="value">{{ ultimoRegistro.empleado.turno }}</span>
-          </div>
-          <div class="info-row hora-row">
-            <span class="label">Hora:</span>
-            <span class="value hora">{{ ultimoRegistro.registro.hora }}</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="registro-footer">
-        <span class="mensaje">{{ ultimoRegistro.mensaje }}</span>
-        <span class="fecha">{{ formatearFecha(ultimoRegistro.registro.fecha) }}</span>
-      </div>
-    </div>
-
-    <!-- Estado de espera -->
-    <div v-else class="waiting-card">
-      <div class="waiting-icon">👆</div>
-      <h2>En espera de huella...</h2>
-      <p>Coloque su dedo en el sensor para registrar su asistencia</p>
-    </div>
+      </template>
+    </transition>
 
     <!-- Historial de registros del día -->
     <div class="historial-section">
       <h3>Registros de hoy</h3>
+      
+      <!-- Búsqueda en historial -->
+      <div class="historial-search">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            v-model="searchRegistros" 
+            type="text" 
+            placeholder="Buscar por nombre, área o puesto..."
+            class="search-input"
+          />
+          <button 
+            v-if="searchRegistros" 
+            @click="searchRegistros = ''" 
+            class="clear-search"
+            title="Limpiar búsqueda"
+          >
+            ✖
+          </button>
+        </div>
+      </div>
+
       <div class="historial-stats">
         <div class="stat-card">
-          <div class="stat-value">{{ registrosHoy.length }}</div>
-          <div class="stat-label">Total registros</div>
+          <div class="stat-value">{{ registrosFiltrados.length }}</div>
+          <div class="stat-label">Registros encontrados</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ contarRegistros('entrada') }}</div>
+          <div class="stat-value">{{ contarRegistrosFiltrados('entrada') }}</div>
           <div class="stat-label">Entradas</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ contarRegistros('salida') }}</div>
+          <div class="stat-value">{{ contarRegistrosFiltrados('salida') }}</div>
           <div class="stat-label">Salidas</div>
         </div>
       </div>
 
       <div class="historial-list">
-        <div v-if="registrosHoy.length === 0" class="empty-historial">
-          No hay registros para hoy
+        <div v-if="registrosFiltrados.length === 0" class="empty-historial">
+          No hay registros que coincidan con la búsqueda
         </div>
-        <div 
-          v-else 
-          v-for="registro in registrosHoy" 
-          :key="registro.registro_id"
-          class="historial-item"
-          :class="registro.tipo"
-        >
-          <div class="historial-icon">
-            {{ registro.tipo === 'entrada' ? '➡️' : '⬅️' }}
-          </div>
-          <div class="historial-info">
-            <div class="historial-nombre">{{ registro.empleado.nombre_completo }}</div>
-            <div class="historial-detalles">
-              {{ registro.empleado.area }} • {{ registro.empleado.puesto }}
+
+        <transition-group name="list" tag="div" v-else class="historial-items">
+          <div 
+            v-for="registro in registrosFiltrados" 
+            :key="registro.registro_id"
+            class="historial-item"
+            :class="registro.tipo"
+          >
+            <div class="historial-icon">
+              {{ registro.tipo === 'entrada' ? '➡️' : '⬅️' }}
+            </div>
+            <div class="historial-info">
+              <div class="historial-nombre">{{ registro.empleado.nombre_completo }}</div>
+              <div class="historial-detalles">
+                {{ registro.empleado.area }} • {{ registro.empleado.puesto }}
+              </div>
+            </div>
+            <div class="historial-hora">
+              <div class="hora-badge" :class="registro.tipo">
+                {{ registro.tipo.toUpperCase() }}
+              </div>
+              <div class="hora-value">{{ registro.registro.hora }}</div>
             </div>
           </div>
-          <div class="historial-hora">
-            <div class="hora-badge" :class="registro.tipo">
-              {{ registro.tipo.toUpperCase() }}
-            </div>
-            <div class="hora-value">{{ registro.registro.hora }}</div>
-          </div>
-        </div>
+        </transition-group>
       </div>
     </div>
 
@@ -209,7 +237,7 @@
 import { useAuth } from '@/composables/useAuth';
 const { userRole } = useAuth();
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { getESP32Status } from '@/services/huellasService.js';
+import { getESP32Status, getESP32StatusSafe } from '@/services/huellasService.js';
 import { registrarAsistenciaPorHuella, getChecadasHoy } from '@/services/asistenciasService.js';
 
 // Estado
@@ -219,6 +247,7 @@ const checking = ref(false);
 const sensorStatus = ref(null);
 const ultimoRegistro = ref(null);
 const registrosHoy = ref([]);
+const searchRegistros = ref('');
 const showError = ref(false);
 const errorMessage = ref('');
 const limpiando = ref(false);
@@ -284,13 +313,8 @@ const checkConnection = async () => {
 
 const updateSensorStatus = async () => {
   if (connectionStatus.value !== 'connected' || !esp32Ip.value) return;
-  
-  try {
-    const status = await getESP32Status(esp32Ip.value);
-    sensorStatus.value = status;
-  } catch (error) {
-    console.error('Error actualizando estado del sensor:', error);
-  }
+  const status = await getESP32StatusSafe(esp32Ip.value);
+  sensorStatus.value = status;
 };
 
 const checkForNewFingerprint = async () => {
@@ -298,8 +322,8 @@ const checkForNewFingerprint = async () => {
   if (!sensorStatus.value?.scanning) return;
   
   try {
-    // Obtener el último resultado del sensor
-    const status = await getESP32Status(esp32Ip.value);
+    // Obtener el último resultado del sensor (modo silencioso)
+    const status = await getESP32StatusSafe(esp32Ip.value);
     sensorStatus.value = status;
 
     // Si el sensor reporta una huella, la tomamos siempre como un nuevo intento de registro
@@ -343,12 +367,12 @@ const procesarHuella = async (huellaId) => {
         tipo: tipoRegistro
       });
       
-      // Auto-ocultar después de 5 segundos
+      // Auto-ocultar después de 10 segundos (sin persistencia en localStorage)
       setTimeout(() => {
         if (ultimoRegistro.value?.registro_id === response.data.registro_id) {
           ultimoRegistro.value = null;
         }
-      }, 5000);
+      }, 10000);
       
     } else {
       mostrarError(response.message || 'Error al registrar asistencia');
@@ -408,6 +432,11 @@ const mostrarError = (mensaje) => {
   showError.value = true;
 };
 
+const cerrarRegistro = () => {
+  ultimoRegistro.value = null;
+  localStorage.removeItem('ultimoRegistro');
+};
+
 const closeError = () => {
   showError.value = false;
   errorMessage.value = '';
@@ -425,6 +454,24 @@ const formatearFecha = (fecha) => {
 
 const contarRegistros = (tipo) => {
   return registrosHoy.value.filter(r => (r.tipo || r.registro?.tipo) === tipo).length;
+};
+
+// Computed para filtrar registros por búsqueda
+const registrosFiltrados = computed(() => {
+  if (!searchRegistros.value) {
+    return registrosHoy.value;
+  }
+  
+  const query = searchRegistros.value.toLowerCase();
+  return registrosHoy.value.filter(r => 
+    r.empleado.nombre_completo.toLowerCase().includes(query) ||
+    r.empleado.area.toLowerCase().includes(query) ||
+    r.empleado.puesto.toLowerCase().includes(query)
+  );
+});
+
+const contarRegistrosFiltrados = (tipo) => {
+  return registrosFiltrados.value.filter(r => (r.tipo || r.registro?.tipo) === tipo).length;
 };
 
 // Lifecycle
@@ -621,6 +668,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 15px;
+  justify-content: space-between;
 }
 
 .registro-header.entrada {
@@ -639,6 +687,23 @@ onBeforeUnmount(() => {
   font-size: 2rem;
   font-weight: 700;
   color: white;
+  flex: 1;
+}
+
+.btn-cerrar-registro {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-cerrar-registro:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
 }
 
 .registro-body {
@@ -812,6 +877,80 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
+.historial-search {
+  margin-bottom: 20px;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-box:focus-within {
+  border-color: #845EF7;
+  box-shadow: 0 4px 16px rgba(132, 94, 247, 0.15);
+  transform: translateY(-2px);
+}
+
+.search-icon {
+  font-size: 1.3rem;
+  padding: 0 14px;
+  color: #845EF7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 8px;
+  font-size: 1rem;
+  color: #232327;
+  outline: none;
+  font-weight: 500;
+}
+
+.search-input::placeholder {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+.clear-search {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-search:hover {
+  background: #fa5252;
+  transform: scale(1.1);
+}
+
+.clear-search:active {
+  transform: scale(0.95);
+}
+
 .historial-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -908,6 +1047,76 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   color: #666;
   font-weight: 600;
+}
+
+/* Animaciones y transiciones */
+.registro-enter-active {
+  transition: all 450ms cubic-bezier(.34,1.56,.64,1);
+}
+.registro-leave-active {
+  transition: all 280ms cubic-bezier(.4,0,.6,1);
+}
+.registro-enter-from {
+  transform: translateY(-24px) scale(0.92);
+  opacity: 0;
+}
+.registro-enter-to {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.registro-leave-from {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.registro-leave-to {
+  transform: translateY(16px) scale(0.96);
+  opacity: 0;
+}
+
+.historial-items .historial-item {
+  transition: transform 350ms cubic-bezier(.34,1.56,.64,1), opacity 220ms ease;
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-16px) scale(0.92);
+}
+.list-enter-to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.list-leave-from {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(12px) scale(0.94);
+}
+.list-move {
+  transition: transform 380ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Pequeñas microinteracciones */
+.btn-accion:active {
+  transform: translateY(2px) scale(0.96);
+  transition: transform 80ms cubic-bezier(.34,1.56,.64,1);
+}
+
+.btn-cerrar-registro:active,
+.clear-search:active {
+  transform: scale(0.88) rotate(90deg);
+  transition: transform 120ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .registro-enter-active, .registro-leave-active,
+  .historial-items .historial-item,
+  .list-enter-from, .list-enter-to, .list-leave-from, .list-leave-to,
+  .list-move {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* Modal */

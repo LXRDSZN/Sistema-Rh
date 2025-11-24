@@ -19,7 +19,7 @@ const router = express.Router();
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 10 * 1024 * 1024 // Límite de 10MB
+        fileSize: 20 * 1024 * 1024 // 20 MB
     }
 });
 
@@ -147,7 +147,7 @@ router.get('/get-file/:fileName', verificarToken, async (req, res) => {
 
         // Generar URL firmada que expira en 1 hora
         const signedUrl = await getSignedUrl(s3, new GetObjectCommand(getParams), {
-            expiresIn: 3600 // 1 hora
+            expiresIn: 604800  // 7 días (máximo permitido por AWS)
         });
 
         res.json({
@@ -388,5 +388,231 @@ router.put('/update-file/:id', upload.single('archivo'), async (req, res) => {
         });
     }
 });
+
+// ===============================
+//  FOTO DEL EMPLEADO EN BASE64
+// ===============================
+router.get('/empleados/:personaId/foto-base64', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { personaId } = req.params;
+
+    // 1) Leer foto_url de la tabla persona (como en tu SELECT)
+    const result = await client.query(
+      `
+      SELECT foto_url
+      FROM persona
+      WHERE id = $1
+        AND tipo = 'Empleado'
+      `,
+      [personaId]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].foto_url) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Empleado sin foto registrada'
+      });
+    }
+
+    const fotoUrl = result.rows[0].foto_url;
+
+    // 2) Sacar la KEY de S3 a partir de la foto_url
+    //    ejemplo: https://bucket.s3.amazonaws.com/solicitudes/foto/xxx.jpg
+    let key;
+    try {
+      const urlObj = new URL(fotoUrl);
+      key = urlObj.pathname.slice(1); // quita el "/" inicial
+    } catch (e) {
+      // fallback muy simple si por alguna razón no es URL válida
+      key = fotoUrl.split('/').pop();
+    }
+
+    if (!key) {
+      throw new Error(`No se pudo determinar key de S3 para foto_url=${fotoUrl}`);
+    }
+
+    // 3) Descargar objeto de S3
+    const s3Resp = await s3.send(
+      new GetObjectCommand({
+        Bucket: config.aws.bucket,
+        Key: key
+      })
+    );
+
+    const chunks = [];
+    for await (const chunk of s3Resp.Body) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    // 4) Armar data URL en base64
+    //    si tienes guardado el mime real en BD, úsalo; aquí asumo JPEG
+    const mime = 'image/jpeg';
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    return res.json({
+      ok: true,
+      fotoDataUrl: dataUrl
+    });
+  } catch (error) {
+    console.error('Error en /empleados/:personaId/foto-base64:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * 3) OBTENER URL FIRMADA DEL CONTRATO ACTUAL DE UN EMPLEADO
+ *    Ruta real: GET /api/s3/contrato-actual/:personaId
+ */
+router.get('/s3/contrato-actual/:personaId', verificarToken, async (req, res) => {
+  const { personaId } = req.params;
+
+  try {
+    // Buscar el contrato ACTIVO más reciente y su archivo
+    const sql = `
+      SELECT a.storage_url
+      FROM contrato c
+      JOIN archivo a ON a.id = c.archivo_id
+      WHERE c.persona_id = $1
+        AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO')
+      ORDER BY c.fecha_inicio DESC
+      LIMIT 1;
+    `;
+
+    const { rows } = await pool.query(sql, [personaId]);
+
+    if (!rows.length || !rows[0].storage_url) {
+      return res.status(404).json({
+        ok: false,
+        error: 'No se encontró contrato activo con PDF para este empleado'
+      });
+    }
+
+    const storageUrl = rows[0].storage_url;
+
+    // 🔑 Obtener la KEY de S3 a partir de la URL guardada
+    let key;
+    try {
+      const urlObj = new URL(storageUrl);
+      key = urlObj.pathname.slice(1); // quita el "/" inicial
+    } catch (e) {
+      // fallback por si algún día guardas solo la key
+      key = storageUrl.split('/').pop();
+    }
+
+    const params = {
+      Bucket: config.aws.bucket,
+      Key: key
+    };
+
+    // URL firmada válida por 7 días
+    const signedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand(params),
+      { expiresIn: 60 * 60 * 24 * 7 }
+    );
+
+    return res.json({
+      ok: true,
+      url: signedUrl
+    });
+  } catch (error) {
+    console.error('Error al obtener contrato actual desde S3:', error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+router.put('/aspirantes/documentos/:documentoPersonaId', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { documentoPersonaId } = req.params;
+    const { archivoId } = req.body;
+
+    if (!archivoId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Falta archivoId en el cuerpo de la petición',
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // 1) Obtener archivo anterior
+    const { rows } = await client.query(
+      `
+      SELECT archivo_id
+      FROM documento_persona
+      WHERE id = $1
+      `,
+      [documentoPersonaId]
+    );
+
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        ok: false,
+        error: 'documento_persona no encontrado',
+      });
+    }
+
+    const archivoAnteriorId = rows[0].archivo_id;
+
+    // 2) Actualizar documento_persona con el nuevo archivo
+    await client.query(
+      `
+      UPDATE documento_persona
+      SET archivo_id   = $1,
+          fecha_subida = NOW(),
+          estado       = 'Subido'
+      WHERE id = $2
+      `,
+      [archivoId, documentoPersonaId]
+    );
+
+    // 3) Borrar archivo anterior si ya no se usa
+    if (archivoAnteriorId && archivoAnteriorId !== archivoId) {
+      await client.query(
+        `
+        DELETE FROM archivo
+        WHERE id = $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM documento_persona
+            WHERE archivo_id = $1
+          )
+        `,
+        [archivoAnteriorId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return res.json({
+      ok: true,
+      mensaje: 'Documento actualizado correctamente',
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al actualizar documento_persona:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+
+
 
 export default router;

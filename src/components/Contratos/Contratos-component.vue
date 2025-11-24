@@ -33,7 +33,7 @@
         @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de estadísticas -->
-      <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: 18 }"
+      <EnlaceEstadisticas v-else-if="activeTab === 'estadisticas'" :stats="{ activos: stats.activos, vacantes: stats.enProceso }"
         :departamentos="['RRHH', 'Finanzas', 'Operaciones', 'TI', 'Marketing']" @volver-inicio="activeTab = 'inicio'" />
 
       <!-- Vista de Crear / Renovar Contrato -->

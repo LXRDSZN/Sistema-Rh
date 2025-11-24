@@ -9,8 +9,8 @@
         <div class="employee-details">
 
             <h3>{{ empleado.nombre }}</h3>
-            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || 'XXXXXXXXXXXXXXXX' }}</p>
-            <p><strong>ÁREA:</strong> {{ empleado.area || 'XXXXXXXXXXXXXXXXXX' }}</p>
+            <p><strong>PUESTO:</strong> {{ formatRoleName(empleado.puesto) || '----' }}</p>
+            <p><strong>ÁREA:</strong> {{ empleado.area || '----' }}</p>
 
             <!-- Botones de acción -->
             <div class="action-buttons">
@@ -42,10 +42,19 @@
 </template>
 
 <script setup>
+const props = defineProps({
+    empleado: {
+        type: Object,
+        required: true
+    }
+});
+
+const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
+
 // Formatea el nombre del rol del sistema
 const formatRoleName = (role) => {
     const map = {
-        'ADMIN': 'Administrador',
+        'ADMIN': 'Admin',
         'EMPLEADO': 'Empleado',
         'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
         'JEFE_VACACIONES': 'Jefe de Vacaciones',
@@ -56,16 +65,8 @@ const formatRoleName = (role) => {
     };
     return map[role] || role;
 };
-import { computed } from 'vue';
 
-const props = defineProps({
-    empleado: {
-        type: Object,
-        required: true
-    }
-});
 
-const emit = defineEmits(['ver-contrato', 'renovar-contrato']);
 
 // Avatar por defecto
 const defaultAvatar = '/src/assets/default-user.png';
@@ -229,6 +230,7 @@ const formatearFecha = (fecha) => {
 .status-value.vencido {
     color: #ef4444;
 }
+
 .status-value.indefinido {
     color: #7c3aed;
 }

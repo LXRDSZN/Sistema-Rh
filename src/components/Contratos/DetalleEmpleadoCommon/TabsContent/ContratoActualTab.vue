@@ -21,7 +21,7 @@
             </div>
             <div class="info-item">
                 <span class="label">Horario:</span>
-                <span class="value">{{ contrato.estadoFirma }}</span>
+                <span class="value">8:00 a.m. - 4:00 p.m.</span>
             </div>
             <div class="info-item">
                 <span class="label">Estado de Contrato:</span>

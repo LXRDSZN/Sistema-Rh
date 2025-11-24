@@ -262,7 +262,9 @@ export const subirArchivo = async (req, res) => {
       Key: nombreUnico
     });
     
-    const storageUrl = await getSignedUrl(s3Client, getCommand); // Sin expiración
+    const storageUrl = await getSignedUrl(s3Client, getCommand, { 
+    expiresIn: 604800  // 7 días (máximo permitido por AWS)
+    });
 
     res.status(200).json({
       success: true,

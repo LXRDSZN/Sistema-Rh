@@ -13,7 +13,6 @@ router.get('/contratos/empleado/:personaId/datos-renovacion', async (req, res) =
     const { personaId } = req.params;
 
     const sql = `
-      -- Empleado (Renovación)
       SELECT
         c.persona_id,
         p.nombre,
@@ -30,6 +29,10 @@ router.get('/contratos/empleado/:personaId/datos-renovacion', async (req, res) =
       FROM contrato c
       INNER JOIN persona p ON p.id = c.persona_id
       WHERE c.persona_id = $1
+        AND c.estado_id = (
+          SELECT id FROM estado_contrato
+          WHERE nombre ILIKE 'ACTIVO'
+        )
       ORDER BY c.fecha_inicio DESC
       LIMIT 1;
     `;
@@ -43,18 +46,13 @@ router.get('/contratos/empleado/:personaId/datos-renovacion', async (req, res) =
       });
     }
 
-    res.json({
-      ok: true,
-      datos: rows[0]
-    });
+    res.json({ ok: true, datos: rows[0] });
   } catch (error) {
     console.error('Error al obtener datos de renovación:', error);
-    res.status(500).json({
-      ok: false,
-      error: error.message
-    });
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
+
 
 // ========================================
 // X+1. RENOVAR CONTRATO DE EMPLEADO

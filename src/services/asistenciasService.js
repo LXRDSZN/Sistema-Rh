@@ -119,7 +119,12 @@ export const getReporteAnalitico = async (filtros = {}) => {
     if (filtros.anio) params.append('anio', filtros.anio);
     if (filtros.tipo) params.append('tipo', filtros.tipo);
 
+    console.log('🌐 Llamando API:', `${API_URL}/asistencias/reporte/analitico?${params}`);
     const response = await axios.get(`${API_URL}/asistencias/reporte/analitico?${params}`);
+    console.log('📡 Respuesta completa de Axios:', response);
+    console.log('📦 response.data (stringified):', JSON.stringify(response.data, null, 2));
+    console.log('📦 response.data.empleados:', response.data?.empleados);
+    console.log('📦 response.data.estadisticas:', response.data?.estadisticas);
     return response.data;
   } catch (error) {
     console.error('Error al obtener reporte analítico:', error);

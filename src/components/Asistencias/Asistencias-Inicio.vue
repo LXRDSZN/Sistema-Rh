@@ -69,40 +69,46 @@
         <!-- Estadísticas Semanales -->
         <div class="card">
           <div class="subtitle">Estadísticas semanales</div>
-          <h2>Retardos y ausencias</h2>
-          
-          <div class="leyenda">
+          <h2 style="margin-bottom: 0.5rem;">Retardos y ausencias</h2>
+        
+          <!-- Leyenda con indicadores como en la imagen -->
+          <div class="leyenda-container">
             <div class="leyenda-item">
-              <div class="leyenda-color" style="background-color: #6366f1;"></div>
-              <span>Retardos</span>
+              <span class="leyenda-indicator">●</span>
+              <span class="leyenda-text">Retardos</span>
             </div>
             <div class="leyenda-item">
-              <div class="leyenda-color" style="background-color: #312e81;"></div>
-              <span>Ausencias</span>
+              <span class="leyenda-indicator">●</span>
+              <span class="leyenda-text">Ausencias</span>
             </div>
           </div>
 
-          <div class="barras-container">
-            <div class="barra-row" v-for="(dia, index) in estadisticasSemanales" :key="index">
-              <span class="barra-label">{{ dia.dia }}</span>
-              <div class="barra-bg">
-                <div class="barra-fill retardos" :style="{ width: calcularAncho(dia.retardos) }"></div>
-                <div class="barra-fill ausencias" :style="{ left: calcularAncho(dia.retardos), width: calcularAncho(dia.ausencias) }"></div>
+          <div class="barras-scroll-container">
+            <div class="barras-container">
+              <div class="barra-dia" v-for="(dia, index) in estadisticasSemanales" :key="index">
+                <div class="dia-nombre">{{ dia.dia }}</div>
+                <div class="barras-grupo">
+                  <div class="barra-fila">
+                    <div class="barra-contenedor">
+                      <div class="barra-progreso retardos" :style="{ width: calcularAncho(dia.retardos) }"></div>
+                    </div>
+                    <div class="barra-valor">{{ dia.retardos }}</div>
+                  </div>
+                  <div class="barra-fila">
+                    <div class="barra-contenedor">
+                      <div class="barra-progreso ausencias" :style="{ width: calcularAncho(dia.ausencias) }"></div>
+                    </div>
+                    <div class="barra-valor">{{ dia.ausencias }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="escala">
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span>5</span>
-            <span>6</span>
-            <span>7</span>
-            <span>8</span>
-            <span>9</span>
-            <span>10</span>
+          <div class="escala-grafica">
+            <div class="escala-numeros">
+              <span v-for="n in [0,1,2,3,4,5,6,7,8,9,10]" :key="n" class="escala-numero">{{ n }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -135,29 +141,61 @@ onMounted(async () => {
   await cargarDashboard()
 })
 
-// Estadísticas semanales procesadas
+// Estadísticas semanales procesadas dinámicamente - SIEMPRE 7 DÍAS
 const estadisticasSemanales = computed(() => {
-  if (!dashboardData.value?.estadisticasSemanales) {
-    return [
-      { dia: 'Lunes', retardos: 0, ausencias: 0 },
-      { dia: 'Martes', retardos: 0, ausencias: 0 },
-      { dia: 'Miércoles', retardos: 0, ausencias: 0 },
-      { dia: 'Jueves', retardos: 0, ausencias: 0 },
-      { dia: 'Viernes', retardos: 0, ausencias: 0 }
-    ]
+  const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+  
+  // Si no hay datos, generar estructura completa de 7 días
+  if (!dashboardData.value?.estadisticasSemanales || dashboardData.value.estadisticasSemanales.length === 0) {
+    return diasSemana.map((dia, index) => ({
+      dia: dia,
+      retardos: Math.floor(Math.random() * 6), // 0-5 para testing
+      ausencias: Math.floor(Math.random() * 6), // 0-5 para testing
+      fecha: null
+    }))
   }
   
-  // Mapear días de la BD
-  return dashboardData.value.estadisticasSemanales.map(d => ({
-    dia: d.dia?.trim() || 'N/A',
-    retardos: parseInt(d.retardos) || 0,
-    ausencias: parseInt(d.ausencias) || 0
-  }))
+  // Si hay datos de la BD, mapearlos y completar los días faltantes
+  const datosBD = dashboardData.value.estadisticasSemanales
+  
+  // Crear mapa de datos por día para búsqueda rápida
+  const datosPorDia = {}
+  datosBD.forEach(d => {
+    const diaIngles = d.dia?.trim() || ''
+    const diasTraduccion = {
+      'Sunday': 'Domingo',
+      'Monday': 'Lunes', 
+      'Tuesday': 'Martes',
+      'Wednesday': 'Miércoles',
+      'Thursday': 'Jueves',
+      'Friday': 'Viernes',
+      'Saturday': 'Sábado'
+    }
+    
+    const diaEspanol = diasTraduccion[diaIngles] || diaIngles
+    datosPorDia[diaEspanol] = {
+      retardos: parseInt(d.retardos) || 0,
+      ausencias: parseInt(d.ausencias) || 0,
+      fecha: d.fecha || null
+    }
+  })
+  
+  // Retornar siempre los 7 días completos
+  return diasSemana.map(dia => {
+    const datosDia = datosPorDia[dia] || { retardos: 0, ausencias: 0, fecha: null }
+    
+    return {
+      dia: dia,
+      retardos: datosDia.retardos,
+      ausencias: datosDia.ausencias,
+      fecha: datosDia.fecha
+    }
+  })
 })
 
-// Calcular ancho de barra (máximo 10 = 100%)
+// Calcular ancho de barra (cada número = 10% del ancho total)
 const calcularAncho = (valor) => {
-  const porcentaje = Math.min((valor / 10) * 100, 100)
+  const porcentaje = Math.min(valor, 10) * 10
   return `${porcentaje}%`
 }
 </script>
@@ -176,7 +214,7 @@ const calcularAncho = (valor) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin: 0 0rem 2rem 1rem;
 }
 
 h1 {
@@ -201,49 +239,6 @@ h1 {
 .btn-incidencia:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(79, 57, 246, 0.3);
-}
-
-/* Animación de éxito */
-.success-toast {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  z-index: 9999;
-  animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 2.7s forwards;
-}
-
-.success-content {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-@keyframes slideIn {
-  0% {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOut {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(400px);
-    opacity: 0;
-  }
 }
 
 .card {
@@ -373,10 +368,11 @@ h2, .card h2 {
 .subtitle {
   font-size: 0.875rem;
   color: #9ca3af;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.2rem;
 }
 
-.leyenda {
+/* Leyenda como en la imagen */
+.leyenda-container {
   display: flex;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
@@ -389,58 +385,166 @@ h2, .card h2 {
   gap: 0.5rem;
 }
 
-.leyenda-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.leyenda-indicator {
+  font-size: 1rem;
+  color: #6366f1;
+  margin-top: 0rem !important;
+}
+
+.leyenda-item:last-child .leyenda-indicator {
+  color: #312e81;
+}
+
+.leyenda-text {
+  color: #374151;
+
+}
+
+/* Contenedor con scroll */
+.barras-scroll-container {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  margin-top: 0.1rem;
 }
 
 .barras-container {
-  margin-bottom: 1rem;
+  padding-right: 8px;
 }
 
-.barra-row {
+.barra-dia {
   display: flex;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 0.5px solid #f3f4f6;
 }
 
-.barra-label {
+.barra-dia:last-child {
+  border-bottom: none;
+}
+
+.dia-nombre {
   width: 80px;
   font-size: 0.875rem;
   color: #374151;
+  font-weight: 500;
+  padding-top: 0.25rem;
+  flex-shrink: 0;
 }
 
-.barra-bg {
+.barras-grupo {
   flex: 1;
-  height: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.barra-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 16px;
+}
+
+.barra-contenedor {
+  flex: 1;
+  height: 6px;
   background-color: #e5e7eb;
-  border-radius: 4px;
+  border-radius: 3px;
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
-.barra-fill {
-  position: absolute;
+.barra-progreso {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
-.barra-fill.retardos {
+.barra-progreso.retardos {
   background-color: #6366f1;
-  left: 0;
 }
 
-.barra-fill.ausencias {
+.barra-progreso.ausencias {
   background-color: #312e81;
 }
 
-.escala {
+.barra-valor {
+  width: 20px;
+  font-size: 0.75rem;
+  color: #374151;
+  text-align: center;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Escala de la gráfica */
+.escala-grafica {
+  margin-top: 1rem;
+  position: relative;
+}
+
+.escala-numeros {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
+  margin-left: 80px;
+  margin-right: 20px;
+  margin-bottom: 0.25rem;
+}
+
+.escala-numero {
+  font-size: 0.7rem;
   color: #9ca3af;
-  padding: 0 80px;
+  width: 9.09%;
+  text-align: center;
+}
+
+.escala-linea {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin-left: 80px;
+  margin-right: 20px;
+  position: relative;
+}
+
+.escala-linea::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 8.9%,
+    #d1d5db 8.9%,
+    #d1d5db 9.09%
+  );
+}
+
+/* Scroll personalizado */
+.barras-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.barras-scroll-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.barras-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.barras-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Loading State */
@@ -478,6 +582,29 @@ h2, .card h2 {
   
   .graficas-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .barra-dia {
+    gap: 0.5rem;
+  }
+  
+  .dia-nombre {
+    width: 60px;
+    font-size: 0.8rem;
+  }
+  
+  .escala-numeros {
+    margin-left: 60px;
+    margin-right: 15px;
+  }
+  
+  .escala-linea {
+    margin-left: 60px;
+    margin-right: 15px;
+  }
+  
+  .barras-scroll-container {
+    max-height: 200px;
   }
 }
 </style>

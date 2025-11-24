@@ -5,61 +5,61 @@
             <div class="etapas-info">
                 <div class="etapa-item">
                     <span class="etapa-label">Etapa</span>
-                    <span class="etapa-value">XXXXXXXXX</span>
+                    <span class="etapa-value">{{ etapaActual }}</span>
                 </div>
                 <div class="etapa-item">
-                    <span class="etapa-label">Fecha</span>
-                    <span class="etapa-value">XXXXXXXXX</span>
+                    <span class="etapa-label">Fecha de registro</span>
+                    <span class="etapa-value">{{ fechaRegistro }}</span>
                 </div>
                 <div class="etapa-item">
                     <span class="etapa-label">Resultado de entrevista</span>
-                    <span class="etapa-value">XXXXXXXXX</span>
+                    <span class="etapa-value">Aprobado</span>
                 </div>
                 <div class="etapa-item">
                     <span class="etapa-label">Resultado de examen</span>
-                    <span class="etapa-value">XXXXXXXXX</span>
+                    <span class="etapa-value">80 / 100</span>
                 </div>
                 <div class="etapa-item">
                     <span class="etapa-label">Evaluador Asignado</span>
-                    <span class="etapa-value">XXXXXXXXX</span>
+                    <span class="etapa-value">Lic. Recursos Humanos</span>
                 </div>
             </div>
 
             <!-- Línea de Progreso -->
             <div class="progreso-linea">
-                <div class="progreso-step completado">
+                <div class="progreso-step" :class="claseEtapa('Registro')">
                     <div class="step-circle">
                         <span class="material-symbols-rounded">check</span>
                     </div>
                     <span class="step-label">Registro</span>
                 </div>
-                <div class="progreso-conexion completado"></div>
+                <div class="progreso-conexion" :class="claseConexion('Revisión')"></div>
                 
-                <div class="progreso-step completado">
+                <div class="progreso-step" :class="claseEtapa('Revisión')">
                     <div class="step-circle">
                         <span class="material-symbols-rounded">check</span>
                     </div>
                     <span class="step-label">Revisión</span>
                 </div>
-                <div class="progreso-conexion completado"></div>
+                <div class="progreso-conexion" :class="claseConexion('Entrevista')"></div>
                 
-                <div class="progreso-step completado">
+                <div class="progreso-step" :class="claseEtapa('Entrevista')">
                     <div class="step-circle">
                         <span class="material-symbols-rounded">check</span>
                     </div>
                     <span class="step-label">Entrevista</span>
                 </div>
-                <div class="progreso-conexion completado"></div>
+                <div class="progreso-conexion" :class="claseConexion('Evaluación')"></div>
                 
-                <div class="progreso-step completado">
+                <div class="progreso-step" :class="claseEtapa('Evaluación')">
                     <div class="step-circle">
                         <span class="material-symbols-rounded">check</span>
                     </div>
                     <span class="step-label">Evaluación</span>
                 </div>
-                <div class="progreso-conexion pendiente"></div>
+                <div class="progreso-conexion" :class="claseConexion('Contratación')"></div>
                 
-                <div class="progreso-step pendiente">
+                <div class="progreso-step" :class="claseEtapa('Contratación')">
                     <div class="step-circle">
                         <span class="material-symbols-rounded">check</span>
                     </div>
@@ -72,40 +72,100 @@
                 <!-- Comentarios -->
                 <div class="comentarios-box">
                     <h4>Comentarios</h4>
-                    <textarea placeholder="Agregar un Comentario..."></textarea>
-                    <button class="btn-comentar">COMENTAR</button>
+                    <textarea
+                        v-model="comentario"
+                        placeholder="Agregar un Comentario..."
+                    ></textarea>
+                    <button class="btn-comentar" @click="enviarComentario">COMENTAR</button>
                 </div>
 
                 <!-- Historial -->
                 <div class="historial-box">
                     <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
-                    </div>
-                    <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
-                    </div>
-                    <div class="historial-item">
-                        <span class="historial-text">Se aplicó parcialmente el examen, no respeta</span>
+                        <span class="historial-text">
+                            {{ comentarioActual || 'Sin comentarios registrados.' }}
+                        </span>
                     </div>
                 </div>
             </div>
 
             <!-- Botones de Acción -->
             <div class="proceso-acciones">
-                <button class="btn-actualizar">Actualizar estado</button>
-                <button class="btn-mover">Mover a siguiente etapa</button>
+                <button class="btn-mover" @click="moverSiguienteEtapa">Mover a siguiente etapa</button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed, ref, watch } from 'vue';
+
+const emit = defineEmits(['etapa-actualizada', 'comentario-enviado']);
+
+const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    aspiracionLaboral: {
+        type: Object,
+        default: null
     }
 });
+
+const etapasOrdenadas = ['Registro', 'Revisión', 'Entrevista', 'Evaluación', 'Contratación'];
+
+const etapaLocal = ref(props.aspirante.estadoProceso || 'Registro');
+const comentario = ref('');
+
+const comentarioActual = computed(() => props.aspiracionLaboral?.comentario || '');
+
+watch(
+    () => props.aspirante.estadoProceso,
+    (nueva) => {
+        etapaLocal.value = nueva || 'Registro';
+    }
+);
+
+const etapaActual = computed(() => etapaLocal.value);
+
+const fechaRegistro = computed(() => props.aspirante.fechaRegistro || '');
+
+const indiceEtapa = (nombreEtapa) => etapasOrdenadas.indexOf(nombreEtapa);
+
+const claseEtapa = (nombreEtapa) => {
+    const actualIndex = indiceEtapa(etapaActual.value);
+    const etapaIndex = indiceEtapa(nombreEtapa);
+    return etapaIndex <= actualIndex ? 'completado' : 'pendiente';
+};
+
+const claseConexion = (etapaDestino) => {
+    const actualIndex = indiceEtapa(etapaActual.value);
+    const destinoIndex = indiceEtapa(etapaDestino);
+    return destinoIndex <= actualIndex ? 'completado' : 'pendiente';
+};
+
+const moverSiguienteEtapa = () => {
+    let actualIndex = indiceEtapa(etapaActual.value);
+    // Si la etapa actual no está en la lista, empezamos desde el inicio
+    if (actualIndex < 0) {
+        actualIndex = 0;
+    }
+    if (actualIndex >= etapasOrdenadas.length - 1) {
+        return;
+    }
+    const siguienteEtapa = etapasOrdenadas[actualIndex + 1];
+    etapaLocal.value = siguienteEtapa;
+    emit('etapa-actualizada', siguienteEtapa);
+};
+
+const enviarComentario = () => {
+    if (!comentario.value.trim()) {
+        return;
+    }
+    emit('comentario-enviado', comentario.value.trim());
+    comentario.value = '';
+};
 </script>
 
 <style scoped>

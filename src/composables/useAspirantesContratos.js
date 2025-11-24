@@ -53,9 +53,57 @@ export const useAspirantesContratos = () => {
     }
   };
 
+  /**
+   * Actualiza la etapa del proceso de selección del aspirante
+   */
+  const actualizarEtapaAspirante = async (personaId, etapa) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/aspirantes/${personaId}/etapa`,
+        { etapa }
+      );
+      return response.data.proceso;
+    } catch (error) {
+      console.error('Error al actualizar etapa del aspirante:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Actualiza el comentario de la aspiración laboral del aspirante
+   */
+  const actualizarComentarioAspiracion = async (personaId, comentario) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/aspirantes/${personaId}/aspiracion-laboral/comentario`,
+        { comentario }
+      );
+      return response.data.aspiracion;
+    } catch (error) {
+      console.error('Error al actualizar comentario de aspiración laboral:', error);
+      throw error;
+    }
+  };
+  
+  const obtenerDocumentosAspirante = async (personaId) => {
+    try {
+      const { data } = await axios.get(
+        `${API_URL}/aspirantes/${personaId}/documentos`,
+        { withCredentials: true }
+      );
+      return data.documentos || [];
+    } catch (error) {
+      console.error('Error al obtener documentos del aspirante:', error);
+      return [];
+    }
+  };
+
   return {
     obtenerDatosPersonalesAspirante,
     obtenerCvAspirante,
-    obtenerAspiracionLaboralAspirante
+    obtenerAspiracionLaboralAspirante,
+    actualizarEtapaAspirante,
+    actualizarComentarioAspiracion,
+    obtenerDocumentosAspirante
   };
 };

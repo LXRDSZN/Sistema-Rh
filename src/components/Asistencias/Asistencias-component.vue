@@ -17,20 +17,14 @@
         <!-- Reporte Analítico solo para roles permitidos -->
         <AsistenciasRepAnalitico v-else-if="activeTab === 'reporte-analitico' && canSeeAnalitico" />
         <AsistenciasPaseLista v-else-if="activeTab === 'pase-lista'" />
+        <AsistenciasRegistroVisita v-else-if="activeTab === 'registro-visita'" />
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
-// Roles que pueden ver el reporte analítico
-const analiticoRoles = [
-  'ADMIN',
-  'JEFE_RH',
-  'JEFE_ASISTENCIAS',
-  'JEFE_CONTRATOS'
-];
-const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
+// Imports primero
 import { ref, watch, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSidebar } from '@/composables/useSidebar';
@@ -41,12 +35,24 @@ import AsistenciasRepAsi from './Asistencias-RepAsistencias.vue';
 import AsistenciasRepVisitas from './Asistencias-RepVisitas.vue';
 import AsistenciasRepAnalitico from './Asistencias-RepAnalitico.vue';
 import AsistenciasPaseLista from './Asistencias-PaseLista.vue';
+import AsistenciasRegistroVisita from './Asistencias-RegistroVisita.vue';
 
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref('inicio');
 const { contentMarginLeft, contentWidth } = useSidebar();
 const { userRole } = useAuth();
+
+// Roles que pueden ver el reporte analítico
+const analiticoRoles = [
+  'ADMIN',
+  'JEFE_RH',
+  'JEFE_ASISTENCIAS',
+  'JEFE_CONTRATOS'
+];
+const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
+import { useAuth } from '@/composables/useAuth';
+const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
@@ -60,6 +66,8 @@ const updateTabFromRoute = () => {
     activeTab.value = 'reporte-analitico';
   } else if (route.path === '/Asistencias/pase-lista') {
     activeTab.value = 'pase-lista';
+  } else if (route.path === '/Asistencias/registro-visita') {
+    activeTab.value = 'registro-visita';
   } else {
     activeTab.value = 'inicio';
   }

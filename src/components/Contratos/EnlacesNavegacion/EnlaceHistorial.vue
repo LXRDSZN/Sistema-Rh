@@ -114,6 +114,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useContratos } from '@/composables/useContratos';
+import { useS3Files } from '@/composables/useS3Files';
 
 const router = useRouter();
 const {
@@ -121,6 +122,7 @@ const {
     obtenerTiposContratos,
     obtenerAreas
 } = useContratos();
+const { obtenerUrlFirmada, descargarArchivo } = useS3Files();
 
 const searchQuery = ref('');
 const contratos = ref([]);
@@ -198,27 +200,58 @@ const aplicarFiltros = () => {
     console.log('Filtros aplicados');
 };
 
+// helper para extraer la key de S3 desde la URL completa
+const obtenerKeyDesdeUrl = (url) => {
+    if (!url) return null;
+    try {
+        const u = new URL(url);
+        // quita el primer "/" => "carpeta/archivo.pdf"
+        return u.pathname.slice(1);
+    } catch {
+        // si alguna vez te llega ya como key, lo regresa tal cual
+        return url;
+    }
+};
+
+// ⬇ Descargar PDF
 const descargarPDF = async (contrato) => {
     try {
         console.log('Descargando PDF del contrato:', contrato.id);
+
         if (!contrato.url_almacenamiento) {
             alert('No hay archivo disponible');
             return;
         }
-        // Aquí irá la lógica para descargar el PDF
+
+        const key = obtenerKeyDesdeUrl(contrato.url_almacenamiento);
+        await descargarArchivo(key); // 👈 usa el helper que ya tienes
     } catch (error) {
         console.error('Error al descargar PDF:', error);
+        alert('Ocurrió un error al descargar el contrato');
     }
 };
 
-const visualizarContrato = (contrato) => {
-    // Navegar a la página de creación/edición con el contrato
-    router.push({
-        name: 'ContratoCreacion',
-        params: { id: contrato.id },
-        query: { modo: 'editar' }
-    });
+
+// 👁 Visualizar PDF
+const visualizarContrato = async (contrato) => {
+    try {
+        console.log('Visualizando contrato:', contrato.id);
+
+        if (!contrato.url_almacenamiento) {
+            alert('No hay archivo disponible');
+            return;
+        }
+
+        const key = obtenerKeyDesdeUrl(contrato.url_almacenamiento);
+        const url = await obtenerUrlFirmada(key);
+
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error al abrir contrato:', error);
+        alert('Ocurrió un error al abrir el contrato');
+    }
 };
+
 
 // Cargar datos iniciales
 onMounted(async () => {
