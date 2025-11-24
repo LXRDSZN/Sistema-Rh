@@ -13,7 +13,7 @@
               <div class="form-header">Empleado*</div>
             </v-col>
             <v-col cols="12" sm="6" md="3">
-              <div class="form-header">Tipo de Incidencia*</div>
+              <div class="form-header">Área*</div>
             </v-col>
             <v-col cols="12" sm="6" md="3">
               <div class="form-header">Fecha de Inicio*</div>
@@ -25,29 +25,35 @@
 
           <v-row class="mt-0 mb-4 row-no-padding">
             <v-col cols="12" sm="6" md="3">
-              <v-select
+              <v-autocomplete
                 v-model="formulario.empleado_id"
-                :items="empleadosConPlaceholder"
+                :items="empleadosFiltrados"
                 item-title="nombre_completo"
                 item-value="id"
+                :search-input.sync="busquedaEmpleado"
+                placeholder="Buscar empleado..."
                 class="input-white"
                 variant="outlined"
                 density="compact"
                 hide-details
-              />
+                clearable
+                @update:model-value="actualizarAreaPorEmpleado"
+                @update:search-input="filtrarEmpleados"
+              >
+                <template v-slot:append-inner>
+                  <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
+                </template>
+              </v-autocomplete>
             </v-col>
             <v-col cols="12" sm="6" md="3">
-              <v-select
-                v-model="formulario.tipo_incidencia_id"
-                :items="tiposIncidenciaConPlaceholder"
-                item-title="nombre"
-                item-value="id"
+              <v-text-field
+                v-model="areaEmpleadoSeleccionado"
                 class="input-white"
                 variant="outlined"
                 density="compact"
                 hide-details
-                :loading="loading"
-                :disabled="loading"
+                readonly
+                placeholder="Seleccione un empleado"
               />
             </v-col>
             <v-col cols="12" sm="6" md="3">
@@ -157,98 +163,11 @@
         </v-card-text>
       </v-card>
 
-      <v-card class="card-monitoreo" elevation="0">
-        <h2 class="card-titulo">Monitoreo de Justificaciones</h2>
-
-        <v-card-text>
-          <div class="filtros-monitoreo">
-            <v-select
-              v-model="monitoreo.mes"
-              :items="monthsItems"
-              placeholder="Seleccionar mes"
-              class="filter-select-monitor input-white"
-              variant="outlined"
-              density="compact"
-              hide-details
-            />
-
-            <!-- Filtro de área monitoreo -->
-            <v-select
-              v-model="monitoreo.area_id"
-              :items="areasMonitoreoItems"
-              item-title="title"
-              item-value="value"
-              placeholder="Todas las áreas"
-              class="filter-select-monitor input-white"
-              variant="outlined"
-              density="compact"
-              hide-details
-            />
-
-            <v-text-field
-              v-model="monitoreo.busqueda"
-              placeholder="Buscar Empleado"
-              class="search-input-monitor input-white"
-              variant="outlined"
-              density="compact"
-              hide-details
-              @input="validarBusqueda"
-              :class="{ 'input-error': busquedaError }"
-            >
-              <template v-slot:append-inner>
-                <v-icon size="20" color="#9ca3af">mdi-magnify</v-icon>
-              </template>
-            </v-text-field>
-
-            <v-btn
-              color="#5E47FF"
-              class="filter-btn"
-              @click="aplicarFiltrosMonitoreo"
-            >
-              Aplicar Filtro
-            </v-btn>
-          </div>
-          <v-table class="tabla-monitoreo">
-            <thead>
-              <tr>
-                <th class="text-center">Empleado</th>
-                <th class="text-center">Tipo de Incidencia</th>
-                <th class="text-center">Fecha</th>
-                <th class="text-center">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="4" class="text-center py-4">
-                  <v-progress-circular indeterminate color="#5E47FF"></v-progress-circular>
-                  <p class="mt-2">Cargando justificaciones...</p>
-                </td>
-              </tr>
-              <tr v-else-if="justificacionesFiltradas.length === 0">
-                <td colspan="4" class="text-center py-4 text-grey">
-                  No hay justificaciones registradas
-                </td>
-              </tr>
-              <tr v-for="(item, index) in justificacionesFiltradas" :key="item.id || index" v-else>
-                <td class="text-center">{{ item.empleado || 'N/A' }}</td>
-                <td class="text-center">{{ item.tipo_incidencia || 'N/A' }}</td>
-                <td class="text-center">{{ formatearFecha(item.fecha_inicio) }}</td>
-                <td class="text-center">
-                  <span :class="obtenerClaseEstado(item.estado)">
-                    {{ obtenerTextoEstado(item.estado) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-card-text>
-      </v-card>
-
       <v-card class="card-registro" elevation="0">
         <h2 class="card-titulo">Registro de Justificaciones</h2>
 
         <v-card-text>
-          <!-- Filtros para la tabla de registro (iguales a monitoreo) -->
+          <!-- Filtros para la tabla de registro -->
           <div class="filtros-registro">
             <v-select
               v-model="registro.mes"
@@ -384,9 +303,6 @@
               <strong>Fecha de Fin:</strong> {{ formatearFecha(justificacionSeleccionada.fecha_fin) }}
             </div>
             <div class="detalle-item">
-              <strong>Tipo de Incidencia:</strong> {{ justificacionSeleccionada.tipo_incidencia || 'N/A' }}
-            </div>
-            <div class="detalle-item">
               <strong>Motivo:</strong> {{ justificacionSeleccionada.motivo }}
             </div>
             <div class="detalle-item" v-if="justificacionSeleccionada.archivo_justificante">
@@ -457,6 +373,9 @@ const ESTADOS_JUSTIFICACION = {
 const empleados = ref([])
 const areas = ref([])
 
+// Búsqueda de empleado en el formulario
+const busquedaEmpleado = ref('')
+
 // Mapa idArchivo -> nombreArchivo
 const archivoNombres = ref({})
 
@@ -471,13 +390,15 @@ const snackbar = ref({
 const dialogDetalle = ref(false)
 const justificacionSeleccionada = ref(null)
 const guardando = ref(false)
-const busquedaError = ref(false)
 const busquedaRegistroError = ref(false)
 
 // Archivo
 const fileInput = ref(null)
 const nombreArchivo = ref('Ningún archivo seleccionado')
 const archivoPrevisualizacion = ref(null)
+
+// Área del empleado seleccionado
+const areaEmpleadoSeleccionado = ref('')
 
 // Año actual para los meses
 const currentDate = new Date()
@@ -486,20 +407,13 @@ const selectedYear = ref(currentDate.getFullYear())
 // Datos del formulario
 const formulario = ref({
   empleado_id: null,
-  tipo_incidencia_id: null,
+  area_id: null,
   fecha_inicio: '',
   fecha_fin: '',
   motivo: ''
 })
 
-// Filtros con mes específico
-const monitoreo = ref({
-  mes: currentDate.getMonth() + 1,
-  area_id: null,
-  busqueda: ''
-})
-
-// Nuevos filtros para registro
+// Filtros para registro
 const registro = ref({
   mes: currentDate.getMonth() + 1,
   area_id: null,
@@ -537,12 +451,14 @@ const cargarDatosIniciales = async () => {
           apellido_paterno: partes[1] || '',
           apellido_materno: partes[2] || '',
           nombre_completo: emp.nombre,
-          area_id: emp.area_id
+          area_id: emp.area_id,
+          area_nombre: emp.area_nombre || 'Sin área'
         }
       }
       return {
         ...emp,
-        nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
+        nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim(),
+        area_nombre: emp.area_nombre || 'Sin área'
       }
     })
 
@@ -550,10 +466,72 @@ const cargarDatosIniciales = async () => {
     const responseAreas = await axios.get(`${API_URL}/areas`, { 
       withCredentials: true 
     })
-    areas.value = responseAreas.data.data || responseAreas.data || []
+    const areasData = responseAreas.data.data || responseAreas.data || []
+    areas.value = areasData
+    
+    // Crear mapa de áreas para búsqueda rápida
+    areasMap.value = areasData.reduce((map, area) => {
+      map[area.id] = area.nombre
+      return map
+    }, {})
+
   } catch (error) {
     console.error('Error al cargar datos iniciales:', error)
     mostrarMensaje('Error al cargar empleados y áreas', 'error')
+  }
+}
+
+// Mapa de áreas para búsqueda rápida
+const areasMap = ref({})
+
+// Computed para empleados filtrados por búsqueda
+const empleadosFiltrados = computed(() => {
+  if (!busquedaEmpleado.value) {
+    return empleados.value
+  }
+  
+  const busqueda = busquedaEmpleado.value.toLowerCase().trim()
+  return empleados.value.filter(empleado => 
+    empleado.nombre_completo.toLowerCase().includes(busqueda) ||
+    empleado.nombre.toLowerCase().includes(busqueda) ||
+    empleado.apellido_paterno.toLowerCase().includes(busqueda) ||
+    (empleado.apellido_materno && empleado.apellido_materno.toLowerCase().includes(busqueda))
+  )
+})
+
+// Función para filtrar empleados (se ejecuta cuando se escribe)
+const filtrarEmpleados = (valor) => {
+  busquedaEmpleado.value = valor
+}
+
+// Función para actualizar el área cuando se selecciona un empleado
+const actualizarAreaPorEmpleado = (empleadoId) => {
+  if (!empleadoId) {
+    areaEmpleadoSeleccionado.value = ''
+    formulario.value.area_id = null
+    return
+  }
+
+  const empleadoSeleccionado = empleados.value.find(emp => emp.id === empleadoId)
+  if (empleadoSeleccionado) {
+    // Si el empleado ya tiene el nombre del área en sus datos
+    if (empleadoSeleccionado.area_nombre) {
+      areaEmpleadoSeleccionado.value = empleadoSeleccionado.area_nombre
+      formulario.value.area_id = empleadoSeleccionado.area_id
+    } 
+    // Si no, buscar el nombre del área en el mapa
+    else if (empleadoSeleccionado.area_id && areasMap.value[empleadoSeleccionado.area_id]) {
+      areaEmpleadoSeleccionado.value = areasMap.value[empleadoSeleccionado.area_id]
+      formulario.value.area_id = empleadoSeleccionado.area_id
+    } 
+    // Si no se encuentra el área
+    else {
+      areaEmpleadoSeleccionado.value = 'Sin área asignada'
+      formulario.value.area_id = null
+    }
+  } else {
+    areaEmpleadoSeleccionado.value = ''
+    formulario.value.area_id = null
   }
 }
 
@@ -569,67 +547,10 @@ const monthsItems = computed(() => {
   }))
 })
 
-const areasMonitoreoItems = computed(() => [
-  { title: 'Todas las áreas', value: null },
-  ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
-])
-
 const areasRegistroItems = computed(() => [
   { title: 'Todas las áreas', value: null },
   ...areas.value.map(area => ({ title: area.nombre, value: area.nombre }))
 ])
-
-// Computed
-const empleadosConPlaceholder = computed(() => {  
-  return [
-    { id: null, nombre_completo: 'Seleccionar Empleado', disabled: true }, 
-    ...empleados.value
-  ]
-})
-
-const tiposIncidenciaConPlaceholder = computed(() => {
-  const tipos = tiposIncidencia.value || []
-  
-  if (tipos.length === 0) {
-    return [{ id: null, nombre: 'Cargando tipos...', disabled: true }]
-  }
-  
-  return [
-    { id: null, nombre: 'Seleccionar Tipo', disabled: true }, 
-    ...tipos
-  ]
-})
-
-const justificacionesFiltradas = computed(() => {
-  let resultado = [...(justificantes.value || [])]
-  
-  // Filtro por mes
-  if (monitoreo.value.mes) {
-    resultado = resultado.filter(item => {
-      if (!item.fecha_inicio) return false
-      const fechaItem = new Date(item.fecha_inicio)
-      return fechaItem.getMonth() + 1 === monitoreo.value.mes && 
-             fechaItem.getFullYear() === selectedYear.value
-    })
-  }
-  
-  // Filtro por búsqueda de empleado
-  if (monitoreo.value.busqueda) {
-    const busqueda = monitoreo.value.busqueda.toLowerCase().trim()
-    resultado = resultado.filter(item => {
-      return item.empleado && item.empleado.toLowerCase().includes(busqueda)
-    })
-  }
-  
-  // Filtro por área
-  if (monitoreo.value.area_id) {
-    resultado = resultado.filter(item => 
-      item.area && item.area.toLowerCase() === monitoreo.value.area_id.toLowerCase()
-    )
-  }
-  
-  return resultado
-})
 
 const registroJustificacionesFiltradas = computed(() => {
   let resultado = [...(justificantes.value || [])]
@@ -690,40 +611,12 @@ const obtenerNombreArchivoTabla = (item) => {
 }
 
 // Funciones de utilidad
-const obtenerClaseEstado = (estado) => {
-  const clases = {
-    [ESTADOS_JUSTIFICACION.PENDIENTE]: 'estado-pendiente',
-    [ESTADOS_JUSTIFICACION.APROBADO]: 'estado-aprobado',
-    [ESTADOS_JUSTIFICACION.RECHAZADO]: 'estado-rechazado'
-  }
-  return clases[estado] || 'estado-pendiente'
-}
-
-const obtenerTextoEstado = (estado) => {
-  const textos = {
-    [ESTADOS_JUSTIFICACION.PENDIENTE]: 'Pendiente',
-    [ESTADOS_JUSTIFICACION.APROBADO]: 'Aprobado',
-    [ESTADOS_JUSTIFICACION.RECHAZADO]: 'Rechazado'
-  }
-  return textos[estado] || 'Pendiente'
-}
-
 const formatearFecha = (fecha) => {
   if (!fecha) return 'N/A'
   return new Date(fecha).toLocaleDateString('es-ES')
 }
 
 // Validación de búsqueda 
-const validarBusqueda = () => {
-  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
-  if (monitoreo.value.busqueda && !soloLetrasRegex.test(monitoreo.value.busqueda)) {
-    busquedaError.value = true
-    monitoreo.value.busqueda = monitoreo.value.busqueda.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-  } else {
-    busquedaError.value = false
-  }
-}
-
 const validarBusquedaRegistro = () => {
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/
   if (registro.value.busqueda && !soloLetrasRegex.test(registro.value.busqueda)) {
@@ -746,15 +639,6 @@ const mostrarMensaje = (texto, color = 'success') => {
 const quitarArchivo = () => {
   limpiarArchivo()
   mostrarMensaje('Archivo removido correctamente')
-}
-
-const aplicarFiltrosMonitoreo = async () => {
-  try {
-    await cargarJustificantes()
-    mostrarMensaje('Filtros de monitoreo aplicados')
-  } catch (error) {
-    console.error('Error al aplicar filtros:', error)
-  }
 }
 
 const aplicarFiltrosRegistro = async () => {
@@ -813,7 +697,7 @@ const limpiarArchivo = () => {
 const guardarJustificacion = async () => {
   try {
     // Validaciones
-    if (!formulario.value.empleado_id || !formulario.value.tipo_incidencia_id || 
+    if (!formulario.value.empleado_id || !formulario.value.area_id || 
         !formulario.value.fecha_inicio || !formulario.value.motivo) {
       mostrarMensaje('Por favor complete todos los campos obligatorios', 'warning')
       return
@@ -845,7 +729,7 @@ const guardarJustificacion = async () => {
 
     const datosJustificante = {
       empleado_id: formulario.value.empleado_id,
-      tipo_incidencia_id: formulario.value.tipo_incidencia_id,
+      area_id: formulario.value.area_id,
       fecha_inicio: formulario.value.fecha_inicio,
       fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
       motivo: formulario.value.motivo,
@@ -870,11 +754,13 @@ const guardarJustificacion = async () => {
 const limpiarFormulario = () => {
   formulario.value = {
     empleado_id: null,
-    tipo_incidencia_id: null,
+    area_id: null,
     fecha_inicio: '',
     fecha_fin: '',
     motivo: ''
   }
+  busquedaEmpleado.value = ''
+  areaEmpleadoSeleccionado.value = ''
   limpiarArchivo()
 }
 
@@ -931,21 +817,6 @@ watch(justificantes, () => {
 </script>
 
 <style scoped>
-.estado-pendiente {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.estado-aprobado {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.estado-rechazado {
-  color: #ef4444;
-  font-weight: 600;
-}
-
 .input-error :deep(.v-field) {
   border-color: #ef4444 !important;
 }
@@ -1060,9 +931,23 @@ watch(justificantes, () => {
   background-color: #FAFAFA;
 }
 
+/* Campo de área readonly */
+.input-white :deep(.v-field--readonly) {
+  background-color: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+
+/* Autocomplete personalizado */
+.input-white :deep(.v-autocomplete .v-field) {
+  background-color: #FAFAFA;
+}
+
+.input-white :deep(.v-autocomplete .v-field__input) {
+  padding-right: 40px;
+}
+
 /* Cards */
 .card-formulario,
-.card-monitoreo,
 .card-registro {
   padding: 0.2rem;
   background-color: #FAFAFA;
@@ -1150,25 +1035,6 @@ watch(justificantes, () => {
   margin-right: 0.5rem;
 }
 
-/* Filtros de monitoreo */
-.filtros-monitoreo {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  align-items: center;
-  width: 1100px;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-}
-
-.filter-select-monitor {
-  width: 200px;
-}
-
-.search-input-monitor {
-  width: 350px;
-}
-
 /* Filtros de registro */
 .filtros-registro {
   display: flex;
@@ -1195,18 +1061,15 @@ watch(justificantes, () => {
 }
 
 /* Tablas con filas alternadas */
-.tabla-monitoreo,
 .tabla-registro {
   border: 1px solid #e5e7eb;
   background-color: #FAFAFA;
 }
 
-.tabla-monitoreo :deep(thead),
 .tabla-registro :deep(thead) {
   background-color: #221A68;
 }
 
-.tabla-monitoreo :deep(thead th),
 .tabla-registro :deep(thead th) {
   color: #ffffff !important;
   font-weight: 600 !important;
@@ -1216,21 +1079,6 @@ watch(justificantes, () => {
 
 .tabla-acciones-header {
   width: 80px;
-}
-
-/* Filas alternadas para tabla de monitoreo */
-.tabla-monitoreo :deep(tbody tr:nth-child(odd)) {
-  background-color: #ffffff;
-}
-
-.tabla-monitoreo :deep(tbody tr:nth-child(even)) {
-  background-color: #f8fafc;
-}
-
-.tabla-monitoreo :deep(tbody td) {
-  padding: 0.75rem;
-  font-size: 0.875rem;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 /* Filas alternadas para tabla de registro */
@@ -1248,16 +1096,6 @@ watch(justificantes, () => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.estado-a-tiempo {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.estado-ausente {
-  color: #ef4444;
-  font-weight: 600;
-}
-
 /* Responsive */
 @media (min-width: 1024px) {
   .justificaciones-content {
@@ -1270,15 +1108,12 @@ watch(justificantes, () => {
     padding: 1rem;
   }
 
-  .filtros-monitoreo,
   .filtros-registro {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filter-select-monitor,
   .filter-select-registro,
-  .search-input-monitor,
   .search-input-registro {
     width: 100%;
   }
