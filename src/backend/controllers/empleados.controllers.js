@@ -31,7 +31,7 @@ export const getAllEmpleados = async (req, res) => {
         ec.nombre as estado_contrato
       FROM persona p
       LEFT JOIN sexo s ON p.sexo_id = s.id
-      LEFT JOIN contrato c ON p.id = c.persona_id 
+      INNER JOIN contrato c ON p.id = c.persona_id 
         AND c.estado_id = (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO' LIMIT 1)
         AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
       LEFT JOIN area a ON c.area_id = a.id
