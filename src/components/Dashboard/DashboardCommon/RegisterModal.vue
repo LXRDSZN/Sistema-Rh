@@ -26,7 +26,7 @@
             >
               {{ empleado.apellido_paterno }} {{ empleado.apellido_materno }} {{ empleado.nombre }}
               {{ empleado.area ? ` - ${empleado.area}` : '' }}
-              {{ empleado.puesto ? ` (${empleado.puesto})` : '' }}
+              {{ empleado.puesto ? ` (${formatRoleName(empleado.puesto)})` : '' }}
             </option>
           </select>
           <small class="field-hint">Selecciona un empleado con contrato activo que aún no tiene correo registrado</small>
@@ -60,7 +60,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">Puesto:</span>
-              <span class="info-value">{{ props.modelValue.puesto || 'Sin puesto' }}</span>
+              <span class="info-value">{{ formatRoleName(props.modelValue.puesto) || 'Sin puesto' }}</span>
             </div>
           </div>
           <div class="info-row">
@@ -192,6 +192,22 @@ const formatCurrency = (amount) => {
     style: 'currency',
     currency: 'MXN'
   }).format(amount);
+};
+
+// Formatear nombre de puesto
+const formatRoleName = (role) => {
+  if (!role) return '';
+  const map = {
+    'ADMIN': 'Admin',
+    'EMPLEADO': 'Empleado',
+    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'JEFE_AREA': 'Jefe de Área',
+    'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+    'JEFE_CONTRATOS': 'Jefe de Contratos',
+    'JEFE_VACACIONES': 'Jefe de Vacaciones',
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+  };
+  return map[role] || role;
 };
 
 watch(() => props.modelValue.email, (val) => {

@@ -21,19 +21,46 @@
 
       <!-- Cuerpo del Modal -->
       <div class="modal-body">
-        <!-- Información del Empleado -->
-        <div class="employee-info-card">
+        <!-- Información del empleado (solo lectura) -->
+        <div class="employee-info">
+          <h3 class="info-title">Datos del Empleado</h3>
           <div class="info-row">
-            <span class="info-label">Nombre:</span>
-            <span class="info-value">{{ empleado?.nombre }}</span>
+            <div class="info-item full-width">
+              <span class="info-label">Nombre completo:</span>
+              <span class="info-value">{{ empleado?.nombre }}</span>
+            </div>
           </div>
           <div class="info-row">
-            <span class="info-label">Género:</span>
-            <span class="info-value">{{ empleado?.genero }}</span>
+            <div class="info-item">
+              <span class="info-label">Sexo:</span>
+              <span class="info-value">{{ empleado?.genero }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Fecha de inicio:</span>
+              <span class="info-value">{{ empleado?.fechaInicio }}</span>
+            </div>
+          </div>
+          
+          <h3 class="info-title">Datos del Contrato Actual</h3>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Departamento:</span>
+              <span class="info-value">{{ empleado?.departamento || 'Sin departamento' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Título/Rol:</span>
+              <span class="info-value">{{ empleado?.titulo || 'Sin título' }}</span>
+            </div>
           </div>
           <div class="info-row">
-            <span class="info-label">Fecha de inicio:</span>
-            <span class="info-value">{{ empleado?.fechaInicio }}</span>
+            <div class="info-item">
+              <span class="info-label">Modalidad:</span>
+              <span class="info-value">{{ empleado?.modalidad || 'No especificada' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tipo de contrato:</span>
+              <span class="info-value">{{ empleado?.tipoContrato || 'No especificado' }}</span>
+            </div>
           </div>
         </div>
 
@@ -41,9 +68,10 @@
         <div class="form-section">
           <label class="form-label">Departamento</label>
           <div class="options-grid">
-            <button 
-              v-for="dept in departamentos" 
+            <button
+              v-for="dept in departamentos"
               :key="dept"
+              type="button"
               class="option-btn"
               :class="{ active: empleado?.departamento === dept }"
               @click="actualizarDepartamento(dept)"
@@ -54,12 +82,12 @@
         </div>
 
         <!-- Motivo del cambio de área -->
-        <div class="form-section motivo-section" v-if="empleado?.departamento !== empleadoOriginal?.departamento">
+        <div class="motivo-section" v-if="empleado?.departamento !== empleadoOriginal?.departamento">
           <label class="form-label">
             <span class="material-symbols-rounded">edit_note</span>
             Motivo del cambio de área*
           </label>
-          <textarea 
+          <textarea
             v-model="motivoCambio"
             placeholder="Ejemplo: Promoción, reestructuración del equipo, necesidades del departamento, etc."
             class="motivo-textarea"
@@ -80,9 +108,10 @@
         <div class="form-section">
           <label class="form-label">Título de trabajo</label>
           <div class="options-grid">
-            <button 
-              v-for="titulo in titulos" 
+            <button
+              v-for="titulo in titulos"
               :key="titulo"
+              type="button"
               class="option-btn"
               :class="{ active: empleado?.titulo === titulo }"
               @click="actualizarTitulo(titulo)"
@@ -95,8 +124,8 @@
 
       <!-- Footer del Modal -->
       <div class="modal-footer">
-        <button class="cancel-btn" @click="cerrar">Cancelar</button>
-        <button class="save-btn" @click="guardar">Guardar cambios</button>
+        <button class="cancel-btn" type="button" @click="cerrar">Cancelar</button>
+        <button class="save-btn" type="button" @click="guardar">Guardar cambios</button>
       </div>
     </div>
   </div>
@@ -162,7 +191,7 @@ const guardar = () => {
       return;
     }
   }
-  
+
   emit('guardar', motivoCambio.value);
   motivoCambio.value = '';
 };
@@ -198,7 +227,7 @@ const actualizarTitulo = (titulo) => {
 .modal-container {
   background: white;
   border-radius: 1rem;
-  max-width: 600px;
+  max-width: 700px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -217,9 +246,9 @@ const actualizarTitulo = (titulo) => {
 }
 
 .modal-header h3 {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: #1F2937;
   margin: 0;
 }
 
@@ -252,33 +281,58 @@ const actualizarTitulo = (titulo) => {
   padding: 1.5rem;
 }
 
-/* Tarjeta de Información */
-.employee-info-card {
-  background: #F9FAFB;
-  border-radius: 0.5rem;
+/* Información del Empleado */
+.employee-info {
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
+.info-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0.5rem 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #E5E7EB;
 }
 
-.info-row:not(:last-child) {
-  border-bottom: 1px solid #E5E7EB;
+.info-title:first-child {
+  margin-top: 0;
+}
+
+.info-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-item {
+  flex: 1;
+}
+
+.info-item.full-width {
+  flex: 1 1 100%;
 }
 
 .info-label {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #6B7280;
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .info-value {
   font-size: 0.875rem;
   color: #111827;
+  display: block;
 }
 
 /* Secciones del Formulario */
@@ -286,7 +340,7 @@ const actualizarTitulo = (titulo) => {
   margin-bottom: 1.5rem;
 }
 
-.form-section:last-child {
+.form-section:last-of-type {
   margin-bottom: 0;
 }
 
@@ -337,7 +391,7 @@ const actualizarTitulo = (titulo) => {
   border: 2px dashed #BAE6FD;
   border-radius: 0.75rem;
   padding: 1.25rem;
-  margin: 1rem 0;
+  margin: 1rem 0 1.5rem 0;
 }
 
 .motivo-section .form-label {
@@ -409,43 +463,6 @@ const actualizarTitulo = (titulo) => {
 }
 
 /* ============================================
-   INFO BOX Y READONLY
-   ============================================ */
-.info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.875rem;
-  background: #EEF2FF;
-  border: 1px solid #C7D2FE;
-  border-radius: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.info-box .material-symbols-rounded {
-  color: #6366F1;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.info-box p {
-  margin: 0;
-  font-size: 0.813rem;
-  color: #4338CA;
-  line-height: 1.5;
-}
-
-.readonly-value {
-  padding: 0.75rem 1rem;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.5rem;
-  font-size: 0.938rem;
-  color: #6B7280;
-  font-weight: 500;
-}
-
-/* ============================================
    MODAL FOOTER
    ============================================ */
 .modal-footer {
@@ -493,6 +510,11 @@ const actualizarTitulo = (titulo) => {
 @media (max-width: 640px) {
   .options-grid {
     grid-template-columns: 1fr;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .modal-footer {

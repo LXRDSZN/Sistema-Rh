@@ -51,7 +51,10 @@ export const getAllEmpleados = async (req, res) => {
       genero: row.sexo || 'No especificado',
       area_id: row.area_id,
       puesto_id: row.puesto_id,
-      avatar: row.foto_url
+      avatar: row.foto_url,
+      tipoContrato: row.tipo_contrato || 'No especificado',
+      modalidad: row.modalidad || 'No especificada',
+      estadoContrato: row.estado_contrato || 'Activo'
     }));
 
     return res.json({
