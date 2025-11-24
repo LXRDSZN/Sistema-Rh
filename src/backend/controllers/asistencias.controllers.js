@@ -344,11 +344,21 @@ export const getReporteAsistencias = async (req, res) => {
         0 as faltas_injustificadas
         
       FROM persona p
-      -- Solo empleados con contratos activos
-      INNER JOIN contrato c ON p.id = c.persona_id
-      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
-      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
+      -- Solo empleados con contratos activos (obtener el más reciente por empleado)
+      INNER JOIN LATERAL (
+        SELECT c.* 
+        FROM contrato c
+        INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+        WHERE c.persona_id = p.id
+          AND ec.nombre ILIKE 'ACTIVO'
+          AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+        ORDER BY c.fecha_inicio DESC
+        LIMIT 1
+      ) c ON TRUE
+      
+      -- Obtener área y puesto desde el contrato
+      LEFT JOIN area a ON c.area_id = a.id
+      LEFT JOIN puesto pu ON c.puesto_id = pu.id
       
       -- Usar tabla CHECADA
       LEFT JOIN checada ch ON p.id = ch.persona_id 
@@ -358,8 +368,6 @@ export const getReporteAsistencias = async (req, res) => {
         AND DATE_TRUNC('month', j.fecha_inicio) = $1::date
         
       WHERE p.tipo = 'Empleado'
-        AND ec.nombre ILIKE 'ACTIVO'
-        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
       ${area && area !== 'todas' ? 'AND LOWER(a.nombre) = $2' : ''}
       
       GROUP BY a.id, a.nombre
@@ -414,56 +422,90 @@ export const getDetalleAsistencias = async (req, res) => {
         COALESCE(a.nombre, 'Sin área') as area,
         ARRAY_AGG(
           CASE 
-            -- Si tiene entrada en checada
-            WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora <= '09:00:00' THEN 'A'  -- Asistencia
-            WHEN ch.id IS NOT NULL AND ch.tipo = 'entrada' AND ch.hora > '09:00:00' THEN 'R'  -- Retardo
-            
-            -- Faltas justificadas (sin importar el estado)
-            WHEN j.id IS NOT NULL THEN 'FJ'
-            
             -- Fines de semana
-            WHEN EXTRACT(DOW FROM dias.fecha) IN (0, 6) THEN 'DF'  -- Día festivo/fin de semana
+            WHEN EXTRACT(DOW FROM dias.fecha) IN (0, 6) THEN 'DF'
+            
+            -- Retardo: tiene checada de entrada después de las 9:00 AM
+            WHEN ch.id IS NOT NULL AND ch.hora > '09:00:00' THEN 'R'
+            
+            -- Asistencia: tiene checada de entrada antes o a las 9:00 AM
+            WHEN ch.id IS NOT NULL AND ch.hora <= '09:00:00' THEN 'A'
+            
+            -- Faltas justificadas (solo si NO hay checada)
+            WHEN ch.id IS NULL AND j.id IS NOT NULL THEN 'FJ'
             
             -- Falta (día hábil sin checada ni justificante)
-            WHEN ch.id IS NULL AND j.id IS NULL AND EXTRACT(DOW FROM dias.fecha) NOT IN (0, 6) THEN 'F'
+            WHEN ch.id IS NULL AND j.id IS NULL THEN 'F'
             
             ELSE '-'
           END
           ORDER BY dias.fecha
         ) as attendance
       FROM persona p
-      -- Solo empleados con contratos activos
-      INNER JOIN contrato c ON p.id = c.persona_id
-      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
-      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
-      LEFT JOIN puesto pu ON ap.puesto_id = pu.id
+      -- Solo empleados con contratos activos (obtener el más reciente)
+      INNER JOIN LATERAL (
+        SELECT c.* 
+        FROM contrato c
+        INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+        WHERE c.persona_id = p.id
+          AND ec.nombre ILIKE 'ACTIVO'
+          AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+        ORDER BY c.fecha_inicio DESC
+        LIMIT 1
+      ) c ON TRUE
+      
+      -- Obtener área y puesto desde el contrato
+      LEFT JOIN area a ON c.area_id = a.id
+      LEFT JOIN puesto pu ON c.puesto_id = pu.id
+      
       CROSS JOIN generate_series(
         $1::date,
         ($1::date + INTERVAL '1 month - 1 day')::date,
         '1 day'::interval
       ) AS dias(fecha)
       
-      -- Usar CHECADA
+      -- Usar CHECADA (comparar solo la parte DATE, ignorando hora)
       LEFT JOIN checada ch ON p.id = ch.persona_id 
-        AND ch.fecha = dias.fecha
+        AND DATE(ch.fecha) = dias.fecha
         AND ch.tipo = 'entrada'
         
       LEFT JOIN justificantes j ON p.id = j.persona_id 
         AND dias.fecha BETWEEN j.fecha_inicio AND j.fecha_fin
         
-      WHERE p.tipo = 'Empleado'
-        AND ec.nombre ILIKE 'ACTIVO'
-        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)`;
+      WHERE p.tipo = 'Empleado'`;
     const params = [fecha];
     if (area_id) {
-      query += ` AND ap.area_id = $2`;
+      query += ` AND a.id = $2`;
       params.push(area_id);
     }
     query += ` GROUP BY p.id, p.nombre, p.apellido_paterno, pu.nombre, a.nombre
       ORDER BY empleado`;
 
     const detalle = await db.query(query, params);
+
+    // Debug: Ver datos de Julian específicamente
+    const julian = detalle.rows.find(e => e.empleado.includes('Julian'));
+    if (julian) {
+      console.log('🔍 DEBUG Julian Ojeda:');
+      console.log('- ID:', julian.id);
+      console.log('- Attendance completo:', julian.attendance);
+      console.log('- Día 24 (posición 23):', julian.attendance[23]);
+      
+      // Verificar TODAS las checadas de Julian en noviembre
+      const debugJulian = await db.query(`
+        SELECT 
+          DATE(ch.fecha) as fecha,
+          ch.hora,
+          ch.tipo,
+          EXTRACT(DOW FROM ch.fecha) as dia_semana
+        FROM checada ch
+        WHERE ch.persona_id = $1
+          AND EXTRACT(MONTH FROM ch.fecha) = 11
+        ORDER BY ch.fecha
+      `, [julian.id]);
+      
+      console.log('- TODAS las checadas de Julian en noviembre:', JSON.stringify(debugJulian.rows, null, 2));
+    }
 
     return res.json({
       success: true,
@@ -577,20 +619,20 @@ export const getReporteAnalitico = async (req, res) => {
         COALESCE(a.nombre, 'Sin área') as area,
         COALESCE(pu.nombre, 'Sin puesto') as puesto,
         
-        -- Contar días únicos con entrada en el mes
-        COUNT(DISTINCT ch.fecha) FILTER (WHERE ch.tipo = 'entrada') as dias_trabajados,
+        -- Contar días únicos con entrada en el mes (excluyendo fines de semana)
+        COUNT(DISTINCT ch.fecha) FILTER (WHERE ch.tipo = 'entrada' AND EXTRACT(DOW FROM ch.fecha) NOT IN (0, 6)) as dias_trabajados,
         
-        -- Calcular retardos (checadas después de las 9:00 AM)
-        COUNT(*) FILTER (WHERE ch.tipo = 'entrada' AND ch.hora > '09:00:00') as retardos,
+        -- Calcular retardos (checadas después de las 9:00 AM, excluyendo fines de semana)
+        COUNT(DISTINCT ch.id) FILTER (WHERE ch.tipo = 'entrada' AND ch.hora > '09:00:00' AND EXTRACT(DOW FROM ch.fecha) NOT IN (0, 6)) as retardos,
         
-        -- Faltas justificadas: Contar registros de justificantes en el mes
-        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as faltas_justificadas,
+        -- Faltas justificadas: Contar días cubiertos por justificantes en el mes
+        COUNT(DISTINCT dias_justificados.fecha) as faltas_justificadas,
         
         -- Faltas injustificadas (por ahora 0, se puede calcular con días hábiles)
         0 as faltas_injustificadas,
         
-        -- Incidencias: Igual que faltas justificadas (total de justificaciones)
-        COUNT(DISTINCT j.id) FILTER (WHERE j.fecha_inicio IS NOT NULL) as incidencias,
+        -- Incidencias: Contar número de justificantes
+        COUNT(DISTINCT j.id) as incidencias,
         
         -- Horas extra (no aplica con checada simple)
         0 as horas_extra,
@@ -599,29 +641,55 @@ export const getReporteAnalitico = async (req, res) => {
         0 as dias_festivos_trabajados
         
       FROM persona p
-      -- Solo empleados con contratos activos
-      INNER JOIN contrato c ON p.id = c.persona_id
-      INNER JOIN estado_contrato ec ON c.estado_id = ec.id
-      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
-      LEFT JOIN puesto pu ON ap.puesto_id = pu.id
+      -- Solo empleados con contratos activos (obtener el más reciente por empleado)
+      INNER JOIN LATERAL (
+        SELECT c.* 
+        FROM contrato c
+        INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+        WHERE c.persona_id = p.id
+          AND ec.nombre ILIKE 'ACTIVO'
+          AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+        ORDER BY c.fecha_inicio DESC
+        LIMIT 1
+      ) c ON TRUE
       
-      -- Usar tabla CHECADA
+      -- Obtener área y puesto desde el contrato
+      LEFT JOIN area a ON c.area_id = a.id
+      LEFT JOIN puesto pu ON c.puesto_id = pu.id
+      
+      -- Usar tabla CHECADA (comparar mes y año por separado para mayor precisión)
       LEFT JOIN checada ch ON p.id = ch.persona_id 
-        AND DATE_TRUNC('month', ch.fecha) = $1::date
+        AND EXTRACT(YEAR FROM ch.fecha) = EXTRACT(YEAR FROM $1::date)
+        AND EXTRACT(MONTH FROM ch.fecha) = EXTRACT(MONTH FROM $1::date)
       
-      -- Justificantes: incluir todos sin importar el estado
+      -- Justificantes del mes
       LEFT JOIN justificantes j ON p.id = j.persona_id 
         AND (
-          (DATE_TRUNC('month', j.fecha_inicio) = $1::date)
-          OR (DATE_TRUNC('month', COALESCE(j.fecha_fin, j.fecha_inicio)) = $1::date)
-          OR (j.fecha_inicio < DATE_TRUNC('month', $1::date)::date 
-              AND COALESCE(j.fecha_fin, j.fecha_inicio) >= DATE_TRUNC('month', $1::date)::date)
+          (EXTRACT(YEAR FROM j.fecha_inicio) = EXTRACT(YEAR FROM $1::date) 
+           AND EXTRACT(MONTH FROM j.fecha_inicio) = EXTRACT(MONTH FROM $1::date))
+          OR 
+          (EXTRACT(YEAR FROM COALESCE(j.fecha_fin, j.fecha_inicio)) = EXTRACT(YEAR FROM $1::date)
+           AND EXTRACT(MONTH FROM COALESCE(j.fecha_fin, j.fecha_inicio)) = EXTRACT(MONTH FROM $1::date))
+          OR
+          (j.fecha_inicio < DATE_TRUNC('month', $1::date)::date 
+           AND COALESCE(j.fecha_fin, j.fecha_inicio) >= DATE_TRUNC('month', $1::date)::date)
         )
+      
+      -- Generar días cubiertos por justificantes para contar correctamente
+      LEFT JOIN LATERAL (
+        SELECT dias.fecha
+        FROM justificantes jx
+        CROSS JOIN generate_series(
+          GREATEST(jx.fecha_inicio, DATE_TRUNC('month', $1::date)::date),
+          LEAST(COALESCE(jx.fecha_fin, jx.fecha_inicio), (DATE_TRUNC('month', $1::date) + INTERVAL '1 month - 1 day')::date),
+          '1 day'::interval
+        ) AS dias(fecha)
+        WHERE jx.persona_id = p.id
+          AND jx.id = j.id
+          AND EXTRACT(DOW FROM dias.fecha) NOT IN (0, 6)
+      ) dias_justificados ON TRUE
         
       WHERE p.tipo = 'Empleado'
-        AND ec.nombre ILIKE 'ACTIVO'
-        AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
       ${tipo && tipo !== 'todos' ? 'AND LOWER(a.nombre) = $2' : ''}
       
       GROUP BY p.id, p.nombre, p.apellido_paterno, a.nombre, pu.nombre

@@ -1,12 +1,9 @@
 <template>
   <div class="asistencias-inicio">
-    <!-- Formulario de incidencias -->
-    <IncidenciasFormulario v-if="showIncidencia" @cerrar="showIncidencia = false" />
-    
     <div class="content-inner" v-if="!loading">
       <div class="header-section">
         <h1>Asistencias</h1>
-        <button class="btn-incidencia" @click="showIncidencia = true">+ Registrar Incidencia</button>
+        <button class="btn-incidencia" @click="irAIncidencias">+ Registrar Incidencia</button>
       </div>
       
       <!-- Estado Actual -->
@@ -124,10 +121,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAsistencias } from '@/composables/useAsistencias'
-import IncidenciasFormulario from '../Incidencias/Incidencias-Formulario.vue'
 
-const showIncidencia = ref(false)
+// Router
+const router = useRouter()
 
 // Composable
 const {
@@ -135,6 +133,11 @@ const {
   loading,
   cargarDashboard
 } = useAsistencias()
+
+// Función para ir a Justificantes dentro de Asistencias
+const irAIncidencias = () => {
+  router.push({ name: 'Asistencias-Justificantes' })
+}
 
 // Cargar datos al montar
 onMounted(async () => {
