@@ -407,16 +407,37 @@ const sexosFiltrados = computed(() => {
   );
 });
 
-  // Filtrar y formatear puestos: solo hasta JEFE_AREA (incluido)
+  // Filtrar puestos según área seleccionada
   const puestosFiltrados = computed(() => {
     const lista = catalogos.value.puestos || [];
-    const indexJefeArea = lista.findIndex((puesto) => puesto.nombre === 'JEFE_AREA');
-    const recortados = indexJefeArea === -1 ? lista : lista.slice(0, indexJefeArea + 1);
+    const areaSeleccionada = catalogos.value.areas.find(a => a.id === formulario.value.areaId);
+    const nombreArea = areaSeleccionada?.nombre;
 
-    return recortados.map((puesto) => ({
-      ...puesto,
-      nombreFormateado: formatearNombrePuesto(puesto.nombre)
-    }));
+    // Roles de jefes específicos por área
+    const jefesPorArea = {
+      'Contratos': 'JEFE_CONTRATOS',
+      'Asistencias': 'JEFE_ASISTENCIAS',
+      'Vacaciones': 'JEFE_VACACIONES',
+      'Incidencias': 'JEFE_INCIDENCIAS',
+      'Areas': 'JEFE_AREA'
+    };
+
+    // Todos los jefes específicos (para excluir si no es el área correspondiente)
+    const todosLosJefes = Object.values(jefesPorArea);
+
+    return lista
+      .filter(puesto => {
+        // Si es un jefe específico, solo mostrarlo si es el del área seleccionada
+        if (todosLosJefes.includes(puesto.nombre)) {
+          return nombreArea && jefesPorArea[nombreArea] === puesto.nombre;
+        }
+        // Mostrar todos los demás roles (ADMIN, EMPLEADO, JEFE_RH, y roles generales)
+        return true;
+      })
+      .map(puesto => ({
+        ...puesto,
+        nombreFormateado: formatearNombrePuesto(puesto.nombre)
+      }));
   });
 
 // Función para formatear nombres de puestos

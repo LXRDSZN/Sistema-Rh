@@ -290,14 +290,32 @@ const plantillas = ref([]);
 const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
 
-// Solo mostrar puestos hasta JEFE_AREA (incluido)
+// Filtrar puestos según área seleccionada
 const puestosHastaJefeArea = computed(() => {
     const lista = puestos.value || [];
-    const indexJefeArea = lista.findIndex((p) => p.nombre === 'JEFE_AREA');
-    if (indexJefeArea === -1) {
-        return lista;
-    }
-    return lista.slice(0, indexJefeArea + 1);
+    const areaSeleccionada = areas.value.find(a => a.id === formData.value.area);
+    const nombreArea = areaSeleccionada?.nombre;
+
+    // Roles de jefes específicos por área
+    const jefesPorArea = {
+        'Contratos': 'JEFE_CONTRATOS',
+        'Asistencias': 'JEFE_ASISTENCIAS',
+        'Vacaciones': 'JEFE_VACACIONES',
+        'Incidencias': 'JEFE_INCIDENCIAS',
+        'Areas': 'JEFE_AREA'
+    };
+
+    // Todos los jefes específicos (para excluir si no es el área correspondiente)
+    const todosLosJefes = Object.values(jefesPorArea);
+
+    return lista.filter(puesto => {
+        // Si es un jefe específico, solo mostrarlo si es el del área seleccionada
+        if (todosLosJefes.includes(puesto.nombre)) {
+            return nombreArea && jefesPorArea[nombreArea] === puesto.nombre;
+        }
+        // Mostrar todos los demás roles (ADMIN, EMPLEADO, JEFE_RH, y roles generales)
+        return true;
+    });
 });
   
 // Computed que devuelve sólo la primera opción del catálogo de tipos de documento
