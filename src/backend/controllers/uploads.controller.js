@@ -18,8 +18,8 @@ const ALLOWED_MIMES = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx'
 };
 
-// Tamaño máximo en bytes (5MB)
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Tamaño máximo en bytes (50MB - consistente con multer)
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 // Directorio de almacenamiento
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
@@ -63,7 +63,7 @@ const validateFile = (file) => {
   if (file.size > MAX_FILE_SIZE) {
     return { 
       valid: false, 
-      error: `El archivo excede el tamaño máximo de 5MB` 
+      error: `El archivo excede el tamaño máximo de 50MB` 
     };
   }
 

@@ -9,7 +9,7 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 50 * 1024 * 1024 // 50MB (consistente con s3.js)
   },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [

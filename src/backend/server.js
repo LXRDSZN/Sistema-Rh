@@ -113,6 +113,36 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// ========== MANEJO DE ERRORES DE MULTER ==========
+import multer from 'multer';
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    // Error de Multer
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        ok: false,
+        error: 'El archivo excede el tamaño máximo permitido (50MB)',
+        detalles: err.message
+      });
+    }
+    return res.status(400).json({
+      ok: false,
+      error: 'Error al procesar el archivo',
+      detalles: err.message
+    });
+  } else if (err) {
+    // Otros errores
+    console.error('Error en la aplicación:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Error interno del servidor',
+      detalles: err.message
+    });
+  }
+  next();
+});
+
 // ========== LIMPIEZA DE SESIONES EXPIRADAS ==========
 // Ejecutar cada 2 minutos para eliminar sesiones expiradas (sesiones duran 5 min)
 import { db } from './models/db.js';
