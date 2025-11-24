@@ -51,8 +51,6 @@ const analiticoRoles = [
   'JEFE_CONTRATOS'
 ];
 const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
-import { useAuth } from '@/composables/useAuth';
-const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 
 // Detectar la ruta y cambiar el activeTab
 const updateTabFromRoute = () => {
