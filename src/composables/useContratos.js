@@ -169,6 +169,23 @@ export const useContratos = () => {
         }
     };
 
+    /**
+     * Obtiene el reporte mensual de empleados contratados y aspirantes registrados
+     * @param {string} fecha - en formato 'YYYY-MM' o 'YYYY-MM-DD'
+     */
+    const obtenerReporteMensual = async (fecha) => {
+        try {
+            const response = await axios.get(
+                `${API_URL}/contratos/estadisticas/reporte-mensual`,
+                { params: { fecha } }
+            );
+            return response.data.data || { contratos: [], aspirantes: [] };
+        } catch (error) {
+            console.error('Error al obtener reporte mensual:', error);
+            return { contratos: [], aspirantes: [] };
+        }
+    };
+
     return {
         obtenerEstadisticas,
         obtenerEmpleadosDestacados,
@@ -182,6 +199,7 @@ export const useContratos = () => {
         obtenerEstadisticasGenerales,
         obtenerHistorialContratos,
         obtenerTiposContratos,
-        obtenerAreas
+        obtenerAreas,
+        obtenerReporteMensual
     };
 };

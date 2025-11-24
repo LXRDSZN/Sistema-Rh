@@ -1,11 +1,23 @@
 <template>
     <div class="enlace-estadisticas">
-        <!-- Header gris con flecha y título -->
+        <!-- Header gris con flecha, título y botón de reporte -->
         <div class="top-header">
-            <button class="btn-back" @click="volverInicio">
-                <span class="material-symbols-rounded">arrow_back</span>
-            </button>
-            <h1>Contratos/Estadísticas</h1>
+            <div class="top-left">
+                <button class="btn-back" @click="volverInicio">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                </button>
+                <h1>Contratos/Estadísticas</h1>
+            </div>
+            <div class="top-report-controls">
+                <label>
+                    Mes:
+                    <input type="month" v-model="mesReporte" class="report-month-input" />
+                </label>
+                <button class="btn-report" @click="generarReporte" :disabled="cargandoReporte">
+                    <span class="material-symbols-rounded">description</span>
+                    {{ cargandoReporte ? 'Generando...' : 'Generar reporte' }}
+                </button>
+            </div>
         </div>
 
         <!-- Contenido blanco -->
@@ -156,6 +168,17 @@
                 </div>
             </div>
 
+            <!-- Sección de reporte mensual (solo mensajes) -->
+            <div class="report-section">
+                <div v-if="errorReporte" class="alert alert-error" style="margin-top: 0.75rem;">
+                    {{ errorReporte }}
+                </div>
+                <p class="report-hint">
+                    Usa el botón "Generar reporte" en la parte superior para descargar un PDF con los empleados contratados
+                    y los aspirantes registrados en el mes seleccionado.
+                </p>
+            </div>
+
             <!-- Tooltip para el gráfico de dona -->
             <div v-if="tooltip.show" class="chart-tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
                 <strong>{{ tooltip.label }}</strong><br>
@@ -169,8 +192,11 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useContratos } from '@/composables/useContratos';
+// Para generación de PDF (asegúrate de instalar: npm install jspdf jspdf-autotable)
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-const { obtenerDistribucionTipo, obtenerContratosPorArea, obtenerEstadoProceso } = useContratos();
+const { obtenerDistribucionTipo, obtenerContratosPorArea, obtenerEstadoProceso, obtenerReporteMensual } = useContratos();
 const router = useRouter();
 
 const volverInicio = () => {
@@ -252,6 +278,13 @@ const selectedDay = ref(null); // { date, day, events }
 const showDayModal = ref(false);
 const customEventText = ref('');
 
+// ========================
+//  REPORTE MENSUAL
+// ========================
+const mesReporte = ref(new Date().toISOString().slice(0, 7)); // YYYY-MM
+const cargandoReporte = ref(false);
+const errorReporte = ref(null);
+
 // Example events: { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 }
 const calendarEvents = ref([
     { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 },
@@ -324,6 +357,99 @@ function closeDayModal() {
     showDayModal.value = false;
     selectedDay.value = null;
     customEventText.value = '';
+}
+
+async function generarReporte() {
+    try {
+        errorReporte.value = null;
+        cargandoReporte.value = true;
+
+        const fechaParam = mesReporte.value ? `${mesReporte.value}-01` : null;
+        if (!fechaParam) {
+            errorReporte.value = 'Selecciona un mes para generar el reporte.';
+            cargandoReporte.value = false;
+            return;
+        }
+
+        const data = await obtenerReporteMensual(fechaParam);
+        const contratos = data.contratos || [];
+        const aspirantes = data.aspirantes || [];
+
+        if (!contratos.length && !aspirantes.length) {
+            errorReporte.value = 'No hay datos para el mes seleccionado.';
+            return;
+        }
+
+        // Generar PDF
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'pt',
+            format: 'a4'
+        });
+
+        const fechaMes = new Date(fechaParam);
+        const tituloMes = fechaMes.toLocaleDateString('es-MX', {
+            month: 'long',
+            year: 'numeric'
+        });
+
+        doc.setFontSize(16);
+        doc.text('Reporte mensual de contratos', 40, 40);
+        doc.setFontSize(11);
+        doc.text(`Mes: ${tituloMes}`, 40, 60);
+
+        let startY = 80;
+
+        if (contratos.length) {
+            doc.setFontSize(12);
+            doc.text('Empleados contratados', 40, startY);
+            startY += 10;
+
+            autoTable(doc, {
+                startY,
+                head: [['Empleado', 'Área', 'Puesto', 'Tipo', 'Modalidad', 'Estado', 'Fecha inicio']],
+                body: contratos.map((c) => [
+                    c.empleado,
+                    c.area,
+                    c.puesto,
+                    c.tipo_contrato,
+                    c.modalidad,
+                    c.estado_contrato,
+                    new Date(c.fecha_inicio).toLocaleDateString('es-MX')
+                ]),
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [99, 102, 241] }
+            });
+
+            startY = doc.lastAutoTable.finalY + 25;
+        }
+
+        if (aspirantes.length) {
+            doc.setFontSize(12);
+            doc.text('Aspirantes registrados', 40, startY);
+            startY += 10;
+
+            autoTable(doc, {
+                startY,
+                head: [['Aspirante', 'Etapa', 'Fecha registro']],
+                body: aspirantes.map((a) => [
+                    a.aspirante,
+                    a.etapa,
+                    new Date(a.fecha_registro).toLocaleDateString('es-MX')
+                ]),
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+        }
+
+        const nombreArchivo = `reporte_contratos_${mesReporte.value}.pdf`;
+        doc.save(nombreArchivo);
+    } catch (error) {
+        console.error('Error al generar reporte mensual:', error);
+        errorReporte.value = 'Ocurrió un error al generar el reporte.';
+    } finally {
+        cargandoReporte.value = false;
+    }
 }
 
 const chartAreas = ref([]);
@@ -598,15 +724,28 @@ watch(() => areasData.value, () => {
 }
 
 .top-header {
-    background-color: transparent;
-    padding: 1rem 2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
+      background-color: transparent;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+  }
 
-.btn-back {
-    background: none;
+  .top-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .top-report-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .btn-back {
+      background: none;
     border: none;
     color: #333;
     cursor: pointer;
@@ -1027,6 +1166,99 @@ watch(() => areasData.value, () => {
       color: #f9fafb;
       font-size: 0.8rem;
       font-weight: 600;
+  }
+
+  /* Reporte mensual */
+  .report-section {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e5e7eb;
+  }
+
+  .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+  }
+
+  .report-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .report-month-input {
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 0.9rem;
+  }
+
+  .btn-report {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+  }
+
+  .btn-report:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+  }
+
+  .report-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+  }
+
+  .report-column h4 {
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      color: #111827;
+  }
+
+  .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      overflow: hidden;
+  }
+
+  .report-table th,
+  .report-table td {
+      padding: 0.45rem 0.6rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+  }
+
+  .report-table th {
+      background: #e5e7eb;
+      font-weight: 600;
+      color: #374151;
+  }
+
+  .report-empty {
+      font-size: 0.8rem;
+      color: #6b7280;
+  }
+
+  .report-hint {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: #6b7280;
   }
 
 @keyframes barSlide {

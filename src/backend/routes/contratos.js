@@ -522,9 +522,82 @@ router.get('/contratos/estadisticas/contratos-por-area', async (req, res) => {
         console.error('Error al obtener contratos por área:', error);
         res.status(500).json({
             ok: false,
-            error: error.message
-        });
+          error: error.message
+      });
+  }
+});
+
+// ========================================
+// ENDPOINT: Reporte mensual (empleados contratados y aspirantes registrados)
+// ========================================
+router.get('/contratos/estadisticas/reporte-mensual', async (req, res) => {
+  try {
+    const { fecha } = req.query; // se espera algo como '2025-11-01' o '2025-11'
+
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        error: 'La fecha es obligatoria (YYYY-MM o YYYY-MM-DD)'
+      });
     }
+
+    // Normalizar a date en PostgreSQL
+    const fechaParam = fecha;
+
+    const contratosSql = `
+      SELECT
+          c.id AS contrato_id,
+          CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS empleado,
+          a.nombre AS area,
+          pu.nombre AS puesto,
+          c.tipo_contrato,
+          c.modalidad,
+          c.salario_mensual,
+          c.fecha_inicio,
+          c.fecha_fin,
+          ec.nombre AS estado_contrato
+      FROM contrato c
+      JOIN persona p ON p.id = c.persona_id
+      JOIN area a ON a.id = c.area_id
+      JOIN puesto pu ON pu.id = c.puesto_id
+      JOIN estado_contrato ec ON ec.id = c.estado_id
+      WHERE p.tipo = 'Empleado'
+        AND DATE_TRUNC('month', c.fecha_inicio) = DATE_TRUNC('month', $1::date)
+      ORDER BY c.fecha_inicio;
+    `;
+
+    const aspirantesSql = `
+      SELECT
+          p.id AS persona_id,
+          CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS aspirante,
+          p.etapa,
+          p.fecha_registro
+      FROM persona p
+      WHERE p.tipo = 'Aspirante'
+        AND DATE_TRUNC('month', p.fecha_registro) = DATE_TRUNC('month', $1::date)
+      ORDER BY p.fecha_registro DESC;
+    `;
+
+    const [contratosResult, aspirantesResult] = await Promise.all([
+      pool.query(contratosSql, [fechaParam]),
+      pool.query(aspirantesSql, [fechaParam])
+    ]);
+
+    res.json({
+      ok: true,
+      data: {
+        contratos: contratosResult.rows,
+        aspirantes: aspirantesResult.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener reporte mensual:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
 // ========================================
