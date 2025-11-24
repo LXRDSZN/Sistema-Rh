@@ -26,20 +26,20 @@
 
             <!-- Contenido de las pestañas -->
             <DatosPersonalesTab v-if="tabActual === 'datos'" :aspirante="aspirante" />
+
             <FormacionExperienciaTab v-if="tabActual === 'formacion'" :aspirante="aspirante" />
-            <PuestoDeseadoTab
-                v-if="tabActual === 'puesto'"
-                :aspirante="aspirante"
-                :aspiracion-laboral="aspiracionLaboral"
-            />
-            <ProcesoSeleccionTab
-                v-if="tabActual === 'proceso'"
-                :aspirante="aspirante"
-                :aspiracion-laboral="aspiracionLaboral"
-                @etapa-actualizada="actualizarEtapaLocal"
-                @comentario-enviado="guardarComentarioAspiracion"
-            />
-            <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" />
+
+            <PuestoDeseadoTab v-if="tabActual === 'puesto'" :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral" />
+
+            <ProcesoSeleccionTab v-if="tabActual === 'proceso'" :aspirante="aspirante"
+                :aspiracion-laboral="aspiracionLaboral" @etapa-actualizada="actualizarEtapaLocal"
+                @comentario-enviado="guardarComentarioAspiracion" />
+
+            <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" :documentos="documentos"
+                @subir-documento="handleSubirDocumento" @eliminar-documento="handleEliminarDocumento"
+                @ver-documento="handleVerDocumento" @descargar-documento="handleDescargarDocumento" />
+
         </template>
     </div>
 </template>
@@ -48,6 +48,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
+import { useS3Files } from '@/composables/useS3Files';
+import { useDocumentosPersona } from '@/composables/useDocumentosPersona';
 
 import AspiranteHeader from './DetalleAspiranteCommon/AspiranteHeader.vue';
 import AspiranteInfo from './DetalleAspiranteCommon/AspiranteInfo.vue';
@@ -74,8 +76,11 @@ const {
     obtenerCvAspirante,
     obtenerAspiracionLaboralAspirante,
     actualizarEtapaAspirante,
-    actualizarComentarioAspiracion
+    actualizarComentarioAspiracion,
+    obtenerDocumentosAspirante,
 } = useAspirantesContratos();
+const { asociarDocumentoPersona, eliminarDocumentoPersona } = useDocumentosPersona();
+const { subirArchivo, obtenerUrlFirmada, descargarArchivo, actualizarDocumentoAspirante } = useS3Files();
 
 // Estado
 const aspirante = ref(null);
@@ -83,6 +88,8 @@ const cvUrl = ref(null);
 const aspiracionLaboral = ref(null);
 const cargando = ref(false);
 const error = ref(null);
+const documentos = ref([]);
+
 
 const tabActual = ref('datos');
 
@@ -147,14 +154,15 @@ const cargarDatos = async () => {
             fechaRegistro: datosPersonales.fecha_registro
         };
 
-        // Cargar CV (opcional)
+        // 👇 aquí traemos los documentos
+        documentos.value = await obtenerDocumentosAspirante(props.personaId);
+
         try {
             cvUrl.value = await obtenerCvAspirante(props.personaId);
         } catch (cvError) {
             console.warn('El aspirante no tiene CV:', cvError);
             cvUrl.value = null;
         }
-
     } catch (err) {
         console.error('Error al cargar aspirante:', err);
         error.value = err.response?.data?.error || 'Error al cargar información';
@@ -162,6 +170,8 @@ const cargarDatos = async () => {
         cargando.value = false;
     }
 };
+
+
 
 const cerrar = () => {
     emit('cerrar');
@@ -190,6 +200,235 @@ const guardarComentarioAspiracion = async (comentarioTexto) => {
         console.error('Error al guardar comentario de aspiración laboral:', error);
     }
 };
+
+const extraerS3KeyDeDocumento = (doc) => {
+    // 1) Preferimos storage_url (lo que tienes en la tabla archivo)
+    let value = doc.storage_url || doc.nombre_archivo;
+    if (!value) return null;
+
+    // Si es una URL completa (http/https), nos quedamos solo con el path
+    if (value.startsWith('http')) {
+        try {
+            const url = new URL(value);
+            // /solicitudes/.../archivo.pdf  -> solicitudes/.../archivo.pdf
+            let path = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+            // Por si viene con bucket en el path (poco probable en tu caso):
+            // /mi-bucket/solicitudes/... -> quitamos el primer segmento
+            const parts = path.split('/');
+            if (parts[0] === 'recursos-humanos-2025-becerro') {
+                path = parts.slice(1).join('/');
+            }
+            // Si viniera con query por alguna razón
+            const qIndex = path.indexOf('?');
+            return qIndex !== -1 ? path.slice(0, qIndex) : path;
+        } catch (e) {
+            // Si algo falla, devolvemos lo original
+            return value;
+        }
+    }
+
+    // Si NO es url pero trae query, la cortamos
+    const qIndex = value.indexOf('?');
+    if (qIndex !== -1) return value.slice(0, qIndex);
+
+    return value;
+};
+
+
+
+const handleSubirDocumento = async (doc) => {
+    console.log('--- handleSubirDocumento INICIO ---');
+    console.log('Doc recibido:', JSON.parse(JSON.stringify(doc)));
+
+    try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/pdf,image/*';
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            console.log('Archivo seleccionado:', file);
+            if (!file) return;
+
+            // 1) SIEMPRE subimos primero a S3 (tu función ya probada)
+            const respSubir = await subirArchivo(file);
+            console.log('Respuesta subirArchivo:', respSubir);
+
+            if (!respSubir?.ok || !respSubir.archivo) {
+                alert('Error al subir archivo');
+                return;
+            }
+
+            const archivoId = respSubir.archivo.id;
+            console.log('archivoId nuevo:', archivoId);
+
+            // 2) Si ya existe documento_persona -> ACTUALIZAR
+            if (doc.documento_persona_id) {
+                console.log(
+                    'RAMA: ACTUALIZAR documento_persona',
+                    doc.documento_persona_id
+                );
+                const respAct = await actualizarDocumentoAspirante(
+                    doc.documento_persona_id,
+                    archivoId
+                );
+                console.log('Respuesta actualizarDocumentoAspirante:', respAct);
+                alert('Documento actualizado correctamente');
+            } else {
+                // 3) Si NO existe -> crear documento_persona (POST que ya tenías)
+                console.log(
+                    'RAMA: PRIMERA SUBIDA para documento_tipo_id:',
+                    doc.documento_tipo_id
+                );
+
+                const payloadAsociar = {
+                    personaId: aspirante.value.id,
+                    documentoTipoId: doc.documento_tipo_id,
+                    archivoId,
+                };
+                console.log('Payload asociarDocumentoPersona:', payloadAsociar);
+
+                const respAsociar = await asociarDocumentoPersona(payloadAsociar);
+                console.log('Respuesta asociarDocumentoPersona:', respAsociar);
+
+                alert('Documento subido correctamente');
+            }
+
+            // 4) Refrescar lista
+            documentos.value = await obtenerDocumentosAspirante(aspirante.value.id);
+            console.log('Documentos después de refrescar:', documentos.value);
+
+            console.log('--- handleSubirDocumento FIN ---');
+        };
+    } catch (error) {
+        console.error('Error al subir/actualizar documento:', error);
+        alert('Error al subir/actualizar documento');
+    }
+};
+
+
+
+const handleEliminarDocumento = async (doc) => {
+    console.log('--- handleEliminarDocumento INICIO ---');
+    console.log('Doc recibido para eliminar:', JSON.parse(JSON.stringify(doc)));
+
+    if (!doc.documento_persona_id) {
+        console.warn(
+            'No hay documento_persona_id; no hay nada que eliminar para este tipo.'
+        );
+        alert('Este tipo de documento todavía no tiene archivo asociado.');
+        return;
+    }
+
+    const ok = confirm(
+        `¿Seguro que deseas eliminar el documento "${doc.tipo_documento}"?`
+    );
+    console.log('Confirmación eliminarDocumentoPersona:', ok);
+
+    if (!ok) {
+        console.log('El usuario canceló la eliminación.');
+        return;
+    }
+
+    try {
+        console.log(
+            'Llamando a eliminarDocumentoPersona con personaId:',
+            aspirante.value.id,
+            ' documentoPersonaId:',
+            doc.documento_persona_id
+        );
+
+        const resp = await eliminarDocumentoPersona(
+            aspirante.value.id,
+            doc.documento_persona_id
+        );
+        console.log('Respuesta eliminarDocumentoPersona (front):', resp);
+
+        alert('Documento eliminado');
+
+        console.log(
+            'Refrescando documentos de persona después de eliminar:',
+            aspirante.value.id
+        );
+        documentos.value = await obtenerDocumentosAspirante(aspirante.value.id);
+        console.log('Documentos después de refrescar (eliminar):', documentos.value);
+
+        console.log('--- handleEliminarDocumento FIN ---');
+    } catch (error) {
+        console.error('Error al eliminar documento:', error);
+        alert('No se pudo eliminar el documento');
+    }
+};
+
+
+
+
+
+
+
+
+const handleVerDocumento = async (doc) => {
+    console.log('--- handleVerDocumento INICIO ---');
+    console.log('Doc recibido en ver:', JSON.parse(JSON.stringify(doc)));
+
+    try {
+        const key = extraerS3KeyDeDocumento(doc);
+        console.log('Key extraída para ver:', key);
+
+        if (!key) {
+            console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
+            alert('Este documento no tiene archivo asociado');
+            return;
+        }
+
+        const url = await obtenerUrlFirmada(key);
+        console.log('URL firmada obtenida para ver:', url);
+
+        if (!url) {
+            console.warn('obtenerUrlFirmada devolvió URL vacía');
+            alert('No se pudo obtener la URL del documento');
+            return;
+        }
+
+        window.open(url, '_blank');
+        console.log('Se abrió ventana con el documento.');
+
+        console.log('--- handleVerDocumento FIN ---');
+    } catch (error) {
+        console.error('Error al ver documento:', error);
+        alert('No se pudo abrir el documento');
+    }
+};
+
+
+const handleDescargarDocumento = async (doc) => {
+    console.log('--- handleDescargarDocumento INICIO ---');
+    console.log('Doc recibido en descargar:', JSON.parse(JSON.stringify(doc)));
+
+    try {
+        const key = extraerS3KeyDeDocumento(doc);
+        console.log('Key extraída para descargar:', key);
+
+        if (!key) {
+            console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
+            alert('Este documento no tiene archivo para descargar');
+            return;
+        }
+
+        const resp = await descargarArchivo(key); // depende de cómo lo implementaste
+        console.log('Resultado descargarArchivo:', resp);
+
+        console.log('--- handleDescargarDocumento FIN ---');
+    } catch (error) {
+        console.error('Error al descargar documento:', error);
+        alert('No se pudo descargar el documento');
+    }
+};
+
+
+
+
 
 // Cargar datos al montar
 onMounted(() => {

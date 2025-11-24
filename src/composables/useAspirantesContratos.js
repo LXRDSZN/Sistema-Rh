@@ -84,12 +84,26 @@ export const useAspirantesContratos = () => {
       throw error;
     }
   };
+  
+  const obtenerDocumentosAspirante = async (personaId) => {
+    try {
+      const { data } = await axios.get(
+        `${API_URL}/aspirantes/${personaId}/documentos`,
+        { withCredentials: true }
+      );
+      return data.documentos || [];
+    } catch (error) {
+      console.error('Error al obtener documentos del aspirante:', error);
+      return [];
+    }
+  };
 
   return {
     obtenerDatosPersonalesAspirante,
     obtenerCvAspirante,
     obtenerAspiracionLaboralAspirante,
     actualizarEtapaAspirante,
-    actualizarComentarioAspiracion
+    actualizarComentarioAspiracion,
+    obtenerDocumentosAspirante
   };
 };

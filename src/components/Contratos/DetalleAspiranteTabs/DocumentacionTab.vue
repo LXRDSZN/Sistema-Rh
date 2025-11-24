@@ -1,9 +1,8 @@
 <template>
     <div class="tab-panel">
         <div class="documentacion-container">
-            <!-- Tabla de Documentos -->
             <div class="documentos-tabla">
-                <!-- Header de la tabla -->
+                <!-- Header -->
                 <div class="tabla-header">
                     <div class="tabla-col">Tipo</div>
                     <div class="tabla-col">Estado</div>
@@ -11,202 +10,61 @@
                     <div class="tabla-col">Acciones</div>
                 </div>
 
-                <!-- Filas de documentos -->
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>CV</span>
-                    </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge subido">Subido</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload" title="Subir">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete" title="Eliminar">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view" title="Ver">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download" title="Descargar">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
+                <!-- Sin documentos -->
+                <div v-if="!documentos || !documentos.length" class="tabla-row empty-row">
+                    <div class="tabla-col" colspan="4">
+                        No hay documentos registrados para este aspirante.
                     </div>
                 </div>
 
-                <div class="tabla-row">
+                <!-- Filas -->
+                <div v-for="doc in documentos" :key="doc.id || doc.documento_tipo_id" class="tabla-row">
+                    <!-- Tipo -->
                     <div class="tabla-col tipo-col">
                         <span class="doc-icon"></span>
-                        <span>Identificación</span>
+                        <span>{{ doc.tipo_documento }}</span>
                     </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge pendiente">Pendiente</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>Comprobante</span>
-                    </div>
+                    <!-- Estado -->
                     <div class="tabla-col">
-                        <span class="estado-badge rechazado">Rechazado</span>
+                        <span class="estado-badge" :class="{
+                            subido: doc.estado === 'Subido',
+                            pendiente: doc.estado === 'Pendiente',
+                            rechazado: doc.estado === 'Rechazado'
+                        }">
+                            {{ doc.estado || 'Pendiente' }}
+                        </span>
                     </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>Carta de recomendación</span>
-                    </div>
+                    <!-- Fecha -->
                     <div class="tabla-col">
-                        <span class="estado-badge subido">Subido</span>
+                        {{ doc.fecha_subida ? formatearFecha(doc.fecha_subida) : '—' }}
                     </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>XXXXXXXX</span>
-                    </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge pendiente">Pendiente</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
+                    <!-- Acciones -->
                     <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
+                        <!-- Subir / reemplazar -->
+                        <button class="btn-accion upload" title="Subir / reemplazar"
+                            @click="emit('subir-documento', doc)">
                             <span class="material-symbols-rounded">upload</span>
                         </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>XXXXXXXX</span>
-                    </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge rechazado">Rechazado</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
+                        <!-- Eliminar -->
+                        <!-- Eliminar -->
+                        <button class="btn-accion delete" title="Eliminar" @click="emit('eliminar-documento', doc)"
+                            :disabled="!doc.documento_persona_id">
                             <span class="material-symbols-rounded">delete</span>
                         </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>XXXXXXXX</span>
-                    </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge subido">Subido</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
+                        <!-- Ver (abre en nueva pestaña) -->
+                        <button class="btn-accion view" title="Ver" @click="emit('ver-documento', doc)"
+                            :disabled="!doc.archivo_id">
                             <span class="material-symbols-rounded">visibility</span>
                         </button>
-                        <button class="btn-accion download">
-                            <span class="material-symbols-rounded">download</span>
-                        </button>
-                    </div>
-                </div>
 
-                <div class="tabla-row">
-                    <div class="tabla-col tipo-col">
-                        <span class="doc-icon"></span>
-                        <span>XXXXXXXX</span>
-                    </div>
-                    <div class="tabla-col">
-                        <span class="estado-badge pendiente">Pendiente</span>
-                    </div>
-                    <div class="tabla-col">11/11/25</div>
-                    <div class="tabla-col acciones-col">
-                        <button class="btn-accion upload">
-                            <span class="material-symbols-rounded">upload</span>
-                        </button>
-                        <button class="btn-accion delete">
-                            <span class="material-symbols-rounded">delete</span>
-                        </button>
-                        <button class="btn-accion view">
-                            <span class="material-symbols-rounded">visibility</span>
-                        </button>
-                        <button class="btn-accion download">
+                        <!-- Descargar (solo descarga, no abrir) -->
+                        <button class="btn-accion download" title="Descargar" @click="emit('descargar-documento', doc)"
+                            :disabled="!doc.archivo_id">
                             <span class="material-symbols-rounded">download</span>
                         </button>
                     </div>
@@ -217,12 +75,33 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
     aspirante: {
         type: Object,
         required: true
+    },
+    documentos: {
+        type: Array,
+        default: () => []
     }
 });
+
+const emit = defineEmits([
+    'subir-documento',
+    'eliminar-documento',
+    'ver-documento',
+    'descargar-documento'
+]);
+
+const formatearFecha = (fecha) => {
+    if (!fecha) return '—';
+    const d = new Date(fecha);
+    return d.toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
 </script>
 
 <style scoped>

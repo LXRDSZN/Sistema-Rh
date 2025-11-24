@@ -1,6 +1,7 @@
 // routes/AspiranteContratos.js
 import express from 'express';
 import pool from '../models/db.js';
+import { verificarToken } from '../middleware/authMiddleware.js'; 
 
 const router = express.Router();
 
@@ -330,6 +331,55 @@ router.put('/aspirantes/:personaId/aspiracion-laboral/comentario', async (req, r
       error: error.message
     });
   }
+  
 });
+
+// ========================================
+// GET: Documentos de un aspirante
+// ========================================
+router.get('/aspirantes/:personaId/documentos', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { personaId } = req.params;
+
+    const sql = `
+      SELECT
+        dt.id                               AS documento_tipo_id,
+        dt.nombre                           AS tipo_documento,
+        COALESCE(dp.estado, 'Pendiente')    AS estado,
+        dp.fecha_subida,
+        dp.id                             AS documento_persona_id,
+        a.id                                AS archivo_id,
+        a.nombre                            AS nombre_archivo,
+        a.storage_url
+      FROM documento_tipo dt
+      LEFT JOIN documento_persona dp
+        ON dp.documento_tipo_id = dt.id
+       AND dp.persona_id = $1
+      LEFT JOIN archivo a
+        ON a.id = dp.archivo_id
+      ORDER BY dt.nombre;
+    `;
+
+    const { rows } = await client.query(sql, [personaId]);
+
+    res.json({
+      ok: true,
+      documentos: rows
+    });
+  } catch (error) {
+    console.error('Error al obtener documentos del aspirante:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
+
+
 
 export default router;

@@ -533,5 +533,86 @@ router.get('/s3/contrato-actual/:personaId', verificarToken, async (req, res) =>
   }
 });
 
+router.put('/aspirantes/documentos/:documentoPersonaId', verificarToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { documentoPersonaId } = req.params;
+    const { archivoId } = req.body;
+
+    if (!archivoId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Falta archivoId en el cuerpo de la petición',
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // 1) Obtener archivo anterior
+    const { rows } = await client.query(
+      `
+      SELECT archivo_id
+      FROM documento_persona
+      WHERE id = $1
+      `,
+      [documentoPersonaId]
+    );
+
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        ok: false,
+        error: 'documento_persona no encontrado',
+      });
+    }
+
+    const archivoAnteriorId = rows[0].archivo_id;
+
+    // 2) Actualizar documento_persona con el nuevo archivo
+    await client.query(
+      `
+      UPDATE documento_persona
+      SET archivo_id   = $1,
+          fecha_subida = NOW(),
+          estado       = 'Subido'
+      WHERE id = $2
+      `,
+      [archivoId, documentoPersonaId]
+    );
+
+    // 3) Borrar archivo anterior si ya no se usa
+    if (archivoAnteriorId && archivoAnteriorId !== archivoId) {
+      await client.query(
+        `
+        DELETE FROM archivo
+        WHERE id = $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM documento_persona
+            WHERE archivo_id = $1
+          )
+        `,
+        [archivoAnteriorId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return res.json({
+      ok: true,
+      mensaje: 'Documento actualizado correctamente',
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al actualizar documento_persona:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+
+
 
 export default router;
