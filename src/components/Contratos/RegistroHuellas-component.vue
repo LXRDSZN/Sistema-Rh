@@ -466,11 +466,11 @@ const eliminarHuella = async (contrato) => {
 };
 
 const closeModal = () => {
-  if (!enrolling.value) {
-    showModal.value = false;
-    enrollStep.value = 0;
-    selectedContrato.value = null;
-  }
+  // Permitir cerrar en cualquier momento (incluso durante el enrolado)
+  showModal.value = false;
+  enrollStep.value = 0;
+  selectedContrato.value = null;
+  enrolling.value = false; // Resetear estado de enrolado
 };
 
 // Lifecycle
