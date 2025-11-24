@@ -86,18 +86,23 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-if="loading">
+        <!-- Cuerpos separados para estados y lista animada -->
+        <tbody v-if="loading">
+          <tr>
             <td colspan="8" class="loading-row">
               <div class="loader">Cargando contratos...</div>
             </td>
           </tr>
-          <tr v-else-if="filteredContratos.length === 0">
+        </tbody>
+        <tbody v-else-if="filteredContratos.length === 0">
+          <tr>
             <td colspan="8" class="empty-row">
               No se encontraron contratos
             </td>
           </tr>
-          <tr v-else v-for="(contrato, index) in filteredContratos" :key="contrato.contrato_id">
+        </tbody>
+        <transition-group name="rows" tag="tbody" v-else>
+          <tr v-for="(contrato, index) in filteredContratos" :key="contrato.contrato_id" class="contrato-row">
             <td class="number-cell">{{ index + 1 }}</td>
             <td>
               <img 
@@ -142,7 +147,7 @@
               </div>
             </td>
           </tr>
-        </tbody>
+        </transition-group>
       </table>
     </div>
 
@@ -191,6 +196,7 @@ import {
   getContratos, 
   updateHuellaId, 
   getESP32Status,
+  getESP32StatusSafe,
   enrollFingerprint,
   deleteFingerprint,
   clearAllFingerprints
@@ -300,13 +306,8 @@ const checkConnection = async () => {
 
 const updateSensorStatus = async () => {
   if (connectionStatus.value !== 'connected' || !esp32Ip.value) return;
-  
-  try {
-    const status = await getESP32Status(esp32Ip.value);
-    sensorStatus.value = status;
-  } catch (error) {
-    console.error('Error actualizando estado del sensor:', error);
-  }
+  const status = await getESP32StatusSafe(esp32Ip.value);
+  sensorStatus.value = status;
 };
 
 const registrarHuella = async (contrato) => {
@@ -465,11 +466,11 @@ const eliminarHuella = async (contrato) => {
 };
 
 const closeModal = () => {
-  if (!enrolling.value) {
-    showModal.value = false;
-    enrollStep.value = 0;
-    selectedContrato.value = null;
-  }
+  // Permitir cerrar en cualquier momento (incluso durante el enrolado)
+  showModal.value = false;
+  enrollStep.value = 0;
+  selectedContrato.value = null;
+  enrolling.value = false; // Resetear estado de enrolado
 };
 
 // Lifecycle
@@ -503,6 +504,11 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
   margin-left: v-bind(contentMarginLeft);
   width: v-bind(contentWidth);
+  /* Variables para animaciones */
+  --dur-fast: 120ms;
+  --dur-medium: 250ms;
+  --dur-slow: 420ms;
+  --bounce-easing: cubic-bezier(.34,1.56,.64,1);
 }
 
 .content-wrapper {
@@ -826,6 +832,33 @@ onBeforeUnmount(() => {
   background: #f8f9fa;
 }
 
+/* Animaciones filas */
+.rows-enter-active {
+  transition: all 380ms var(--bounce-easing);
+}
+.rows-leave-active {
+  transition: all var(--dur-medium) cubic-bezier(.4,0,.6,1);
+}
+.rows-enter-from {
+  opacity: 0;
+  transform: translateX(-20px) scale(.9);
+}
+.rows-enter-to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.rows-leave-from {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.rows-leave-to {
+  opacity: 0;
+  transform: translateX(10px) scale(.94);
+}
+.rows-move {
+  transition: transform 400ms var(--bounce-easing);
+}
+
 .avatar {
   width: 50px;
   height: 50px;
@@ -909,6 +942,24 @@ onBeforeUnmount(() => {
 .btn-registrar:hover:not(:disabled) {
   background: #7048e8;
   transform: translateY(-1px);
+}
+
+.btn-registrar:active,
+.btn-eliminar:active,
+.btn-clear-small:active,
+.btn-check:active {
+  transform: translateY(2px) scale(.92);
+  transition: transform var(--dur-fast) var(--bounce-easing);
+}
+
+.btn-registrar:hover:not(:disabled),
+.btn-check:hover:not(:disabled) {
+  animation: buttonBounce 400ms var(--bounce-easing);
+}
+
+@keyframes buttonBounce {
+  0%, 100% { transform: translateY(-1px); }
+  50% { transform: translateY(-4px) scale(1.02); }
 }
 
 .btn-registrar:disabled {
@@ -1033,6 +1084,19 @@ onBeforeUnmount(() => {
 .step.active {
   opacity: 1;
   background: #e3f2fd;
+  animation: pulseStep 550ms var(--bounce-easing);
+}
+
+@keyframes pulseStep {
+  0% { 
+    transform: scale(.88) rotate(-2deg); 
+  }
+  50% { 
+    transform: scale(1.08) rotate(1deg); 
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+  }
 }
 
 .step-number {
@@ -1072,5 +1136,13 @@ onBeforeUnmount(() => {
 .btn-modal:hover {
   background: #7048e8;
   transform: translateY(-1px);
+}
+
+/* Accesibilidad: reducir movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .rows-enter-active, .rows-leave-active, .rows-move, .step.active {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 </style>
