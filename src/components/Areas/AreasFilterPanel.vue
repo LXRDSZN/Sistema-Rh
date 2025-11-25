@@ -4,19 +4,17 @@
   ============================================
   Panel lateral de filtros con checkboxes para:
   - Título de trabajo
-  - Categoría
-  - Género
 -->
 
 <template>
-  <div class="filter-panel-container">
+  <div class="filter-panel-container" ref="containerRef">
     <!-- Botón de Filtros -->
     <button class="filter-icon-btn" @click="toggleFiltros" ref="filterButton">
       <span class="material-symbols-rounded">filter_list</span>
     </button>
     
     <!-- Panel de Filtros -->
-    <div v-if="filtrosAbiertos" class="filters-panel" :style="panelPosition">
+    <div v-if="filtrosAbiertos" class="filters-panel">
       <div class="filters-header">
         <h4>Filtros</h4>
         <button class="clear-filters-btn" @click="limpiarFiltros">
@@ -40,37 +38,20 @@
           </label>
         </div>
       </div>
-      
-      <!-- Filtro de Categoría -->
-      <div class="filter-group">
-        <label class="filter-label">Categoría</label>
-        <div class="filter-checkboxes">
-          <label v-for="cat in categorias" :key="cat" class="checkbox-label">
-            <input 
-              type="checkbox" 
-              :value="cat"
-              :checked="filtrosCategoria.includes(cat)"
-              @change="toggleFiltroCategoria(cat)"
-              class="checkbox-input"
-            />
-            <span>{{ cat }}</span>
-          </label>
-        </div>
-      </div>
-      
+
       <!-- Filtro de Género -->
       <div class="filter-group">
         <label class="filter-label">Género</label>
         <div class="filter-checkboxes">
-          <label v-for="gen in generos" :key="gen" class="checkbox-label">
+          <label v-for="genero in generos" :key="genero" class="checkbox-label">
             <input 
               type="checkbox" 
-              :value="gen"
-              :checked="filtrosGenero.includes(gen)"
-              @change="toggleFiltroGenero(gen)"
+              :value="genero"
+              :checked="filtrosGenero.includes(genero)"
+              @change="toggleFiltroGenero(genero)"
               class="checkbox-input"
             />
-            <span>{{ gen }}</span>
+            <span>{{ genero }}</span>
           </label>
         </div>
       </div>
@@ -79,13 +60,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { TITULOS, CATEGORIAS, GENEROS } from '@/constants/areas';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { TITULOS, GENEROS } from '@/constants/areas';
 
 // ============================================
 // REFS
 // ============================================
 const filterButton = ref(null);
+const containerRef = ref(null);
 
 // ============================================
 // PROPS
@@ -93,15 +75,10 @@ const filterButton = ref(null);
 const props = defineProps({
   filtrosAbiertos: Boolean,
   filtrosTitulo: Array,
-  filtrosCategoria: Array,
   filtrosGenero: Array,
   titulos: {
     type: Array,
     default: () => TITULOS
-  },
-  categorias: {
-    type: Array,
-    default: () => CATEGORIAS
   },
   generos: {
     type: Array,
@@ -110,27 +87,14 @@ const props = defineProps({
 });
 
 // ============================================
-// COMPUTED
-// ============================================
-const panelPosition = computed(() => {
-  if (!filterButton.value) return {};
-  
-  const rect = filterButton.value.getBoundingClientRect();
-  return {
-    top: `${rect.bottom + 8}px`,
-    right: `${window.innerWidth - rect.right}px`
-  };
-});
-
-// ============================================
 // EMITS
 // ============================================
 const emit = defineEmits([
   'toggleFiltros',
   'toggleFiltroTitulo',
-  'toggleFiltroCategoria',
   'toggleFiltroGenero',
-  'limpiarFiltros'
+  'limpiarFiltros',
+  'cerrarFiltros'
 ]);
 
 // ============================================
@@ -144,10 +108,6 @@ const toggleFiltroTitulo = (titulo) => {
   emit('toggleFiltroTitulo', titulo);
 };
 
-const toggleFiltroCategoria = (categoria) => {
-  emit('toggleFiltroCategoria', categoria);
-};
-
 const toggleFiltroGenero = (genero) => {
   emit('toggleFiltroGenero', genero);
 };
@@ -155,6 +115,24 @@ const toggleFiltroGenero = (genero) => {
 const limpiarFiltros = () => {
   emit('limpiarFiltros');
 };
+
+// Cerrar al hacer clic fuera
+const handleClickOutside = (event) => {
+  if (props.filtrosAbiertos && containerRef.value && !containerRef.value.contains(event.target)) {
+    emit('cerrarFiltros');
+  }
+};
+
+// ============================================
+// LIFECYCLE
+// ============================================
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -191,18 +169,19 @@ const limpiarFiltros = () => {
 
 /* Panel de Filtros */
 .filters-panel {
-  position: fixed;
-  top: auto;
-  right: 2rem;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
   background: white;
   border: 1px solid #E5E7EB;
   border-radius: 0.75rem;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   padding: 1rem;
   min-width: 250px;
-  max-height: 80vh;
+  max-height: 70vh;
   overflow-y: auto;
-  z-index: 20;
+  z-index: 50;
 }
 
 /* Header del Panel */

@@ -119,11 +119,11 @@ export const login = async (req, res) => {
     res.cookie('token', token, config.cookie);
 
     // Registrar sesión activa en la tabla sesiones_activas
-    // Usar SQL para calcular la expiración (30 minutos de inactividad)
+    // Usar SQL para calcular la expiración (5 minutos de inactividad)
     await db.query(
       `INSERT INTO sesiones_activas (usuario_id, inicio, expiracion, token)
        VALUES ($1, NOW(), NOW() + INTERVAL '5 minutes', $2)
-       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = NOW() + INTERVAL '30 minutes'`,
+       ON CONFLICT (token) DO UPDATE SET inicio = NOW(), expiracion = NOW() + INTERVAL '5 minutes'`,
       [user.usuario_id, token]
     );
 

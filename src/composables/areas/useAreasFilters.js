@@ -3,7 +3,7 @@
  * COMPOSABLE - useAreasFilters
  * ============================================
  * Gestiona el estado y lógica de filtrado para el módulo de áreas
- * Incluye filtros por área, título, categoría, género y búsqueda
+ * Incluye filtros por área, título y búsqueda
  */
 
 import { ref, computed } from 'vue';
@@ -16,7 +16,6 @@ export function useAreasFilters(empleados) {
   const areaSeleccionada = ref('Todas las Áreas');
   const busqueda = ref('');
   const filtrosTitulo = ref([]);
-  const filtrosCategoria = ref([]);
   const filtrosGenero = ref([]);
 
   // ============================================
@@ -45,19 +44,9 @@ export function useAreasFilters(empleados) {
       filtrados = filtrados.filter(emp => filtrosTitulo.value.includes(emp.titulo));
     }
     
-    // Filtrar por categoría
-    if (filtrosCategoria.value.length > 0) {
-      filtrados = filtrados.filter(emp => filtrosCategoria.value.includes(emp.categoria));
-    }
-    
-    // Filtrar por género (case-insensitive)
+    // Filtrar por género
     if (filtrosGenero.value.length > 0) {
-      filtrados = filtrados.filter(emp => {
-        const generoEmpleado = emp.genero?.toLowerCase() || '';
-        return filtrosGenero.value.some(filtro => 
-          filtro.toLowerCase() === generoEmpleado
-        );
-      });
+      filtrados = filtrados.filter(emp => filtrosGenero.value.includes(emp.genero));
     }
     
     // Filtrar por búsqueda (nombre)
@@ -102,6 +91,13 @@ export function useAreasFilters(empleados) {
   };
 
   /**
+   * Cierra el panel de filtros
+   */
+  const cerrarFiltros = () => {
+    filtrosAbiertos.value = false;
+  };
+
+  /**
    * Alterna un filtro de título
    */
   const toggleFiltroTitulo = (titulo) => {
@@ -110,18 +106,6 @@ export function useAreasFilters(empleados) {
       filtrosTitulo.value.splice(index, 1);
     } else {
       filtrosTitulo.value.push(titulo);
-    }
-  };
-
-  /**
-   * Alterna un filtro de categoría
-   */
-  const toggleFiltroCategoria = (categoria) => {
-    const index = filtrosCategoria.value.indexOf(categoria);
-    if (index > -1) {
-      filtrosCategoria.value.splice(index, 1);
-    } else {
-      filtrosCategoria.value.push(categoria);
     }
   };
 
@@ -142,7 +126,6 @@ export function useAreasFilters(empleados) {
    */
   const limpiarFiltros = () => {
     filtrosTitulo.value = [];
-    filtrosCategoria.value = [];
     filtrosGenero.value = [];
     busqueda.value = '';
     areaSeleccionada.value = 'Todas las Áreas';
@@ -163,7 +146,6 @@ export function useAreasFilters(empleados) {
     areaSeleccionada,
     busqueda,
     filtrosTitulo,
-    filtrosCategoria,
     filtrosGenero,
     
     // State - UI
@@ -179,8 +161,8 @@ export function useAreasFilters(empleados) {
     
     // Methods - Filtros
     toggleFiltros,
+    cerrarFiltros,
     toggleFiltroTitulo,
-    toggleFiltroCategoria,
     toggleFiltroGenero,
     limpiarFiltros,
     aplicarFiltros

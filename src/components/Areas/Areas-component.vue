@@ -30,16 +30,14 @@
         <AreasFilterPanel 
           :filtros-abiertos="filtrosAbiertos"
           :filtros-titulo="filtrosTitulo"
-          :filtros-categoria="filtrosCategoria"
           :filtros-genero="filtrosGenero"
           :titulos="titulos"
-          :categorias="categorias"
           :generos="generos"
           @toggle-filtros="toggleFiltros"
           @toggle-filtro-titulo="toggleFiltroTitulo"
-          @toggle-filtro-categoria="toggleFiltroCategoria"
           @toggle-filtro-genero="toggleFiltroGenero"
           @limpiar-filtros="limpiarFiltros"
+          @cerrar-filtros="cerrarFiltros"
         />
       </template>
     </AreasTable>
@@ -50,12 +48,10 @@
       :empleado="empleadoSeleccionado"
       :departamentos="areasOptions"
       :titulos="puestosOptions"
-      :categorias="categorias"
       @cerrar="cerrarModal"
       @guardar="guardarCambios"
       @actualizar-departamento="actualizarDepartamento"
       @actualizar-titulo="actualizarTitulo"
-      @actualizar-categoria="actualizarCategoria"
     />
   </div>
 </template>
@@ -63,7 +59,7 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { CATEGORIAS, GENEROS } from '@/constants/areas';
+import { GENEROS } from '@/constants/areas';
 import { useAreasData } from '@/composables/areas/useAreasData';
 import { useAreasFilters } from '@/composables/areas/useAreasFilters';
 import { useAreasExport } from '@/composables/areas/useAreasExport';
@@ -81,22 +77,22 @@ const router = useRouter();
 // ============================================
 // AUTH - Obtener rol y área del usuario actual
 // ============================================
-const { userRole, user, isAuthenticated } = useAuth();
+const { userRole, user, isAuthenticated, verifySession } = useAuth();
 
-// Redirigir al login si no está autenticado
-
-// Redirigir al login si no está autenticado o tras logout
-// Redirigir a la página principal si no está autenticado o tras logout
-watch(isAuthenticated, (newValue) => {
-  if (!newValue) {
+// Verificar sesión al entrar al componente
+onMounted(async () => {
+  const isValid = await verifySession();
+  if (!isValid) {
     router.replace('/');
-    setTimeout(() => {
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
-    }, 300);
   }
-}, { immediate: true });
+});
+
+// Solo redirigir si el usuario hace logout explícito (cambia de true a false)
+watch(isAuthenticated, (newValue, oldValue) => {
+  if (oldValue === true && newValue === false) {
+    router.replace('/');
+  }
+});
 
 // Debug: Verificar datos del usuario (solo si está autenticado)
 if (user.value) {
@@ -131,7 +127,6 @@ const departamentos = computed(() => areas.value.map(a => a.nombre));
 const areasOptions = computed(() => areas.value.map(a => a.nombre));
 const puestosOptions = computed(() => puestos.value.map(p => p.nombre));
 const titulos = puestosOptions;
-const categorias = CATEGORIAS;
 const generos = GENEROS;
 
 // ============================================
@@ -141,7 +136,6 @@ const {
   areaSeleccionada,
   busqueda,
   filtrosTitulo,
-  filtrosCategoria,
   filtrosGenero,
   areaDropdownAbierto,
   filtrosAbiertos,
@@ -149,8 +143,8 @@ const {
   toggleAreaDropdown,
   seleccionarArea,
   toggleFiltros,
+  cerrarFiltros,
   toggleFiltroTitulo,
-  toggleFiltroCategoria,
   toggleFiltroGenero,
   limpiarFiltros
 } = useAreasFilters(empleados);

@@ -35,7 +35,7 @@ export const verificarToken = async (req, res, next) => {
     try {
       await db.query(
         `UPDATE sesiones_activas 
-         SET expiracion = NOW() + INTERVAL '30 minutes'
+         SET expiracion = NOW() + INTERVAL '5 minutes'
          WHERE token = $1 AND expiracion > NOW()`,
         [token]
       );
