@@ -248,8 +248,8 @@ import jsPDF from 'jspdf'   //  IMPORT jsPDF
 const { reporteAnalitico, loading, cargarReporteAnalitico } = useAsistencias()
 
 // Estados
-// 🔄 CAMBIO: Usar octubre 2025 por defecto (mes con más probabilidad de tener datos)
-const selectedMonth = ref(10)  // Octubre
+// 🔄 CAMBIO: Usar noviembre 2025 por defecto (mes con datos reales)
+const selectedMonth = ref(11)  // Noviembre
 const selectedYear = ref(2025)
 
 // CAMBIO: ahora usamos selectedArea en vez de selectedType
