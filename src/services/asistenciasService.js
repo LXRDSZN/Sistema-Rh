@@ -80,10 +80,17 @@ export const getReporteAsistencias = async (filtros = {}) => {
     if (filtros.anio) params.append('anio', filtros.anio);
     if (filtros.area) params.append('area', filtros.area);
 
-    const response = await axios.get(`${API_URL}/asistencias/reporte?${params}`);
+    const url = `${API_URL}/asistencias/reporte?${params}`;
+    console.log('🌐 [asistenciasService] URL completa:', url);
+    console.log('🌐 [asistenciasService] Filtros:', filtros);
+    
+    const response = await axios.get(url);
+    console.log('🌐 [asistenciasService] Respuesta axios completa:', response);
+    console.log('🌐 [asistenciasService] response.data:', response.data);
+    
     return response.data;
   } catch (error) {
-    console.error('Error al obtener reporte de asistencias:', error);
+    console.error('❌ [asistenciasService] Error al obtener reporte de asistencias:', error);
     throw error;
   }
 };

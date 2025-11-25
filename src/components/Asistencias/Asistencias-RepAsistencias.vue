@@ -202,11 +202,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const {
   reporteAsistencias,
   detalleAsistencias,
-  reporteAnalitico,
   loading,
   cargarReporteAsistencias,
-  cargarDetalleAsistencias,
-  cargarReporteAnalitico
+  cargarDetalleAsistencias
 } = useAsistencias()
 
 // Estados
@@ -227,7 +225,6 @@ const mostrarMensaje = (texto, color = 'success') => {
 onMounted(async () => {
   await cargarAreas()
   await cargarDatos()
-  await cargarReporteAnaliticoDatos()
   await cargarDetalleInicial()
 })
 
@@ -247,24 +244,17 @@ const cargarDatos = async () => {
       anio: selectedYear.value,
       area: selectedArea.value !== 'todas' ? selectedArea.value : undefined
     }
+    console.log('🔍 [cargarDatos] Filtros enviados:', filtros)
     await cargarReporteAsistencias(filtros)
+    console.log('✅ [cargarDatos] reporteAsistencias.value:', reporteAsistencias.value)
+    console.log('✅ [cargarDatos] resumenAreas:', reporteAsistencias.value?.resumenAreas)
   } catch (error) {
-    console.error('Error al cargar reporte:', error)
+    console.error('❌ [cargarDatos] Error al cargar reporte:', error)
     mostrarMensaje('Error al cargar datos', 'error')
   }
 }
 
-const cargarReporteAnaliticoDatos = async () => {
-  try {
-    const filtros = {
-      mes: selectedMonth.value,
-      anio: selectedYear.value
-    }
-    await cargarReporteAnalitico(filtros)
-  } catch (error) {
-    console.error('Error al cargar reporte analítico:', error)
-  }
-}
+
 
 const cargarDetalleInicial = async () => {
   try {
@@ -295,48 +285,28 @@ const areasItems = computed(() => [
 ])
 
 const summaryData = computed(() => {
-  // Obtener datos del reporte de asistencias para total de empleados y porcentaje
-  const resumenAreas = reporteAsistencias.value?.resumenAreas || []
+  // Obtener datos del reporte de asistencias (ya incluye todos los campos necesarios)
+  // El backend retorna { success: true, data: { resumenAreas: [], periodo: '' } }
+  const resumenAreas = reporteAsistencias.value?.data?.resumenAreas || reporteAsistencias.value?.resumenAreas || []
   
-  // Obtener datos del reporte analítico para retardos, faltas justificadas e injustificadas
-  const empleadosAnalitico = reporteAnalitico.value?.empleados || []
+  console.log('📊 [summaryData] reporteAsistencias.value completo:', reporteAsistencias.value)
+  console.log('📊 [summaryData] resumenAreas recibido:', resumenAreas)
+  console.log('📊 [summaryData] Cantidad de áreas:', resumenAreas.length)
   
-  // Agrupar datos del reporte analítico por área
-  const datosPorArea = {}
-  
-  empleadosAnalitico.forEach(emp => {
-    const areaNombre = emp.area || 'Sin área'
-    if (!datosPorArea[areaNombre]) {
-      datosPorArea[areaNombre] = {
-        retardos: 0,
-        faltasJustificadas: 0,
-        faltasInjustificadas: 0
-      }
-    }
-    
-    datosPorArea[areaNombre].retardos += Number(emp.retardos) || 0
-    datosPorArea[areaNombre].faltasJustificadas += Number(emp.faltas_justificadas) || 0
-    datosPorArea[areaNombre].faltasInjustificadas += Number(emp.faltas_injustificadas) || 0
-  })
-  
-  // Combinar datos del reporte de asistencias con los datos agrupados del analítico
-  return resumenAreas.map(item => {
-    const areaNombre = item.area || 'Sin área'
-    const datosAnalitico = datosPorArea[areaNombre] || {
-      retardos: 0,
-      faltasJustificadas: 0,
-      faltasInjustificadas: 0
-    }
-    
+  // El endpoint /asistencias/reporte ya devuelve retardos, faltas_justificadas y faltas_injustificadas
+  const resultado = resumenAreas.map(item => {
     return {
       area: item.area,
       totalEmpleados: item.total_empleados || 0,
       asistencia: `${item.porcentaje_asistencia || 0}%`,
-      retardos: datosAnalitico.retardos,
-      faltJustif: datosAnalitico.faltasJustificadas,
-      faltInjustif: datosAnalitico.faltasInjustificadas
+      retardos: item.retardos || 0,
+      faltJustif: item.faltas_justificadas || 0,
+      faltInjustif: item.faltas_injustificadas || 0
     }
   })
+  
+  console.log('📊 [summaryData] resultado final:', resultado)
+  return resultado
 })
 
 const employeesData = computed(() => {
@@ -387,7 +357,6 @@ const employeesFiltered = computed(() => {
 // Watch para recargar datos cuando cambien filtros
 watch([selectedMonth, selectedYear, selectedArea], async () => {
   await cargarDatos()
-  await cargarReporteAnaliticoDatos()
   if (selectedArea.value !== 'todas') {
     const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
     if (areaObj) {

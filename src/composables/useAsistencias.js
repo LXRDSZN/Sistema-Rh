@@ -117,26 +117,31 @@ export function useAsistencias() {
     }
   };
 
-  /**
-   * Cargar reporte de asistencias
-   */
+/**
+ * Cargar reporte de asistencias
+ */
   const cargarReporteAsistencias = async (filtros = {}) => {
     loading.value = true;
     error.value = null;
     
     try {
+      console.log('📡 [useAsistencias] Llamando getReporteAsistencias con filtros:', filtros);
       const response = await asistenciasService.getReporteAsistencias(filtros);
-      reporteAsistencias.value = response.data;
+      console.log('📡 [useAsistencias] Respuesta completa del servicio:', response);
+      console.log('📡 [useAsistencias] response.data:', response.data);
+      // El backend retorna { success: true, data: { resumenAreas: [], periodo: '' } }
+      // El servicio retorna response.data, así que necesitamos acceder a .data
+      reporteAsistencias.value = response.data || response;
+      console.log('📡 [useAsistencias] reporteAsistencias.value asignado:', reporteAsistencias.value);
       return response;
     } catch (err) {
+      console.error('❌ [useAsistencias] Error:', err);
       error.value = err.response?.data?.message || 'Error al cargar reporte de asistencias';
       throw err;
     } finally {
       loading.value = false;
     }
-  };
-
-  /**
+  };  /**
    * Cargar detalle de asistencias
    */
   const cargarDetalleAsistencias = async (filtros) => {
