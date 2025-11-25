@@ -73,26 +73,34 @@ router.get('/contratos/stats', async (req, res) => {
 router.get('/contratos/empleados-destacados', async (req, res) => {
   try {
     const query = `
-      SELECT DISTINCT ON (p.id)
-          p.id AS persona_id,
-          p.foto_url AS avatar,
-          CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
-          COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
-          LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
-          COALESCE(pu.nombre, 'Sin puesto') AS puesto,
-          COALESCE(a.nombre, 'Sin área') AS area,
-          'empleado' AS tipo
-      FROM persona p
-      INNER JOIN contrato c 
-              ON c.persona_id = p.id
-             AND c.estado_id = (
-                  SELECT id FROM estado_contrato 
-                  WHERE nombre ILIKE 'ACTIVO'
-             )
-      LEFT JOIN puesto pu ON pu.id = c.puesto_id
-      LEFT JOIN area a   ON a.id = c.area_id
-      WHERE p.tipo = 'Empleado'
-      ORDER BY p.id, c.fecha_inicio DESC;
+      SELECT *
+      FROM (
+        SELECT DISTINCT ON (p.id)
+            p.id AS persona_id,
+            p.foto_url AS avatar,
+            CONCAT(p.nombre, ' ', p.apellido_paterno, ' ', COALESCE(p.apellido_materno, '')) AS nombre,
+            COALESCE(p.estado_empleado, 'SIN ESTADO') AS estado_texto,
+            LOWER(REPLACE(COALESCE(p.estado_empleado, 'sin-estado'), ' ', '-')) AS estado_clase,
+            COALESCE(pu.nombre, 'Sin puesto') AS puesto,
+            COALESCE(a.nombre, 'Sin área') AS area,
+            c.fecha_creacion,
+            'empleado' AS tipo
+        FROM persona p
+        INNER JOIN contrato c 
+                ON c.persona_id = p.id
+               AND c.estado_id = (
+                    SELECT id FROM estado_contrato 
+                    WHERE nombre ILIKE 'ACTIVO'
+               )
+        LEFT JOIN puesto pu ON pu.id = c.puesto_id
+        LEFT JOIN area a   ON a.id = c.area_id
+        WHERE p.tipo = 'Empleado'
+        -- Por cada persona, tomar su contrato ACTIVO más reciente
+        ORDER BY p.id, c.fecha_creacion DESC
+      ) t
+      -- De esos últimos contratos, mostrar los 10 más recientes
+      ORDER BY t.fecha_creacion DESC
+      LIMIT 10;
     `;
 
     const result = await pool.query(query);

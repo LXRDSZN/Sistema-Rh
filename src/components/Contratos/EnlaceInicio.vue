@@ -212,10 +212,15 @@ const onImgError = (event) => {
 // Estado local
 const searchQuery = ref('');
 
-// Separar contratos por tipo
-const empleados = computed(() =>
-    props.contratos.filter(c => !c.tipo || c.tipo === 'empleado')
-);
+// Separar contratos por tipo y ordenar empleados por fecha_creacion (más reciente primero)
+const empleados = computed(() => {
+    return [...props.contratos.filter(c => !c.tipo || c.tipo === 'empleado')]
+        .sort((a, b) => {
+            const fa = a.fecha_creacion ? new Date(a.fecha_creacion) : 0;
+            const fb = b.fecha_creacion ? new Date(b.fecha_creacion) : 0;
+            return fb - fa;
+        });
+});
 
 const aspirantes = computed(() =>
     props.contratos.filter(c => c.tipo === 'aspirante')
