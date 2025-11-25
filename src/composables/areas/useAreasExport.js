@@ -7,6 +7,19 @@
 
 export function useAreasExport() {
   /**
+   * Escapa un valor para CSV (maneja comas, comillas y saltos de línea)
+   */
+  const escaparValorCSV = (valor) => {
+    if (valor === null || valor === undefined) return '';
+    const str = String(valor);
+    // Si contiene comas, comillas o saltos de línea, envolver en comillas
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  /**
    * Exporta los datos filtrados a un archivo CSV
    * @param {Array} empleados - Lista de empleados a exportar
    */
@@ -14,21 +27,22 @@ export function useAreasExport() {
     // Crear encabezados
     const headers = ['Nombre', 'Departamento', 'Título', 'Fecha de Inicio', 'Categoría', 'Género'];
     
-    // Convertir datos a formato CSV
+    // Convertir datos a formato CSV con valores escapados
     const csvContent = [
       headers.join(','),
       ...empleados.map(emp => [
-        emp.nombre,
-        emp.departamento,
-        emp.titulo,
-        emp.fechaInicio,
-        emp.categoria,
-        emp.genero
+        escaparValorCSV(emp.nombre),
+        escaparValorCSV(emp.departamento),
+        escaparValorCSV(emp.titulo),
+        escaparValorCSV(emp.fechaInicio),
+        escaparValorCSV(emp.categoria),
+        escaparValorCSV(emp.genero)
       ].join(','))
     ].join('\n');
     
-    // Crear blob y descargar
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Agregar BOM de UTF-8 para que Excel interprete correctamente los caracteres especiales
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
