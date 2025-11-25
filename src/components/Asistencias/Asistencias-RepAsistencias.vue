@@ -202,9 +202,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const {
   reporteAsistencias,
   detalleAsistencias,
+  reporteAnalitico,
   loading,
   cargarReporteAsistencias,
-  cargarDetalleAsistencias
+  cargarDetalleAsistencias,
+  cargarReporteAnalitico
 } = useAsistencias()
 
 // Estados
@@ -225,6 +227,7 @@ const mostrarMensaje = (texto, color = 'success') => {
 onMounted(async () => {
   await cargarAreas()
   await cargarDatos()
+  await cargarReporteAnaliticoDatos()
   await cargarDetalleInicial()
 })
 
@@ -248,6 +251,18 @@ const cargarDatos = async () => {
   } catch (error) {
     console.error('Error al cargar reporte:', error)
     mostrarMensaje('Error al cargar datos', 'error')
+  }
+}
+
+const cargarReporteAnaliticoDatos = async () => {
+  try {
+    const filtros = {
+      mes: selectedMonth.value,
+      anio: selectedYear.value
+    }
+    await cargarReporteAnalitico(filtros)
+  } catch (error) {
+    console.error('Error al cargar reporte analítico:', error)
   }
 }
 
@@ -280,15 +295,48 @@ const areasItems = computed(() => [
 ])
 
 const summaryData = computed(() => {
-  if (!reporteAsistencias.value?.resumenAreas) return []
-  return reporteAsistencias.value.resumenAreas.map(item => ({
-    area: item.area,
-    totalEmpleados: item.total_empleados || 0,
-    asistencia: `${item.porcentaje_asistencia || 0}%`,
-    retardos: item.retardos || 0,
-    faltJustif: item.faltas_justificadas || 0,
-    faltInjustif: item.faltas_injustificadas || 0
-  }))
+  // Obtener datos del reporte de asistencias para total de empleados y porcentaje
+  const resumenAreas = reporteAsistencias.value?.resumenAreas || []
+  
+  // Obtener datos del reporte analítico para retardos, faltas justificadas e injustificadas
+  const empleadosAnalitico = reporteAnalitico.value?.empleados || []
+  
+  // Agrupar datos del reporte analítico por área
+  const datosPorArea = {}
+  
+  empleadosAnalitico.forEach(emp => {
+    const areaNombre = emp.area || 'Sin área'
+    if (!datosPorArea[areaNombre]) {
+      datosPorArea[areaNombre] = {
+        retardos: 0,
+        faltasJustificadas: 0,
+        faltasInjustificadas: 0
+      }
+    }
+    
+    datosPorArea[areaNombre].retardos += Number(emp.retardos) || 0
+    datosPorArea[areaNombre].faltasJustificadas += Number(emp.faltas_justificadas) || 0
+    datosPorArea[areaNombre].faltasInjustificadas += Number(emp.faltas_injustificadas) || 0
+  })
+  
+  // Combinar datos del reporte de asistencias con los datos agrupados del analítico
+  return resumenAreas.map(item => {
+    const areaNombre = item.area || 'Sin área'
+    const datosAnalitico = datosPorArea[areaNombre] || {
+      retardos: 0,
+      faltasJustificadas: 0,
+      faltasInjustificadas: 0
+    }
+    
+    return {
+      area: item.area,
+      totalEmpleados: item.total_empleados || 0,
+      asistencia: `${item.porcentaje_asistencia || 0}%`,
+      retardos: datosAnalitico.retardos,
+      faltJustif: datosAnalitico.faltasJustificadas,
+      faltInjustif: datosAnalitico.faltasInjustificadas
+    }
+  })
 })
 
 const employeesData = computed(() => {
@@ -339,6 +387,7 @@ const employeesFiltered = computed(() => {
 // Watch para recargar datos cuando cambien filtros
 watch([selectedMonth, selectedYear, selectedArea], async () => {
   await cargarDatos()
+  await cargarReporteAnaliticoDatos()
   if (selectedArea.value !== 'todas') {
     const areaObj = areas.value.find(a => a.nombre.toLowerCase() === selectedArea.value)
     if (areaObj) {
