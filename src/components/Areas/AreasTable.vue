@@ -86,6 +86,10 @@ const props = defineProps({
   userData: {
     type: [Object, null],
     default: null
+  },
+  userArea: {
+    type: String,
+    default: null
   }
 });
 
@@ -113,8 +117,18 @@ const obtenerRol = () => {
 };
 
 const obtenerArea = () => {
+  // Primero intentar usar el prop directo userArea
+  if (props.userArea) {
+    console.log('🏛️ Área desde prop userArea:', props.userArea);
+    return props.userArea;
+  }
+  
+  // Fallback: intentar obtener desde userData
   if (!props.userData) return null;
-  return typeof props.userData === 'object' && props.userData.value ? props.userData.value.area : props.userData?.area;
+  
+  const data = props.userData.value !== undefined ? props.userData.value : props.userData;
+  console.log('🏛️ Área desde userData:', data?.area);
+  return data?.area || null;
 };
 
 const esJefeModulo = () => {

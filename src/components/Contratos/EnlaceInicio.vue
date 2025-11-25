@@ -571,6 +571,8 @@ function formatRoleName(role) {
     background: white;
     border-radius: 8px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .table-header {
@@ -589,6 +591,28 @@ function formatRoleName(role) {
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
+    /* Altura para mostrar exactamente 10 filas (cada fila ~75px + gap de 1rem) */
+    max-height: calc((75px + 1rem) * 10 + 1rem);
+    overflow-y: auto;
+}
+
+/* Estilo de la barra de scroll */
+.table-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-body::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
 }
 
 .table-row {

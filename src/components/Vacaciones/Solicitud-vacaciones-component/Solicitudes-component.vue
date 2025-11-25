@@ -223,7 +223,14 @@ export default {
         ) {
           // Jefes de área y especializados: obtienen solicitudes de su área
           console.log('👥 Jefe de Área/Especializado - Cargando solicitudes de su área');
-          solicitudesResp = await vacacionesService.getSolicitudesVacacionesByArea(areaActual);
+          
+          // Validar que el área existe antes de hacer la consulta
+          if (!areaActual) {
+            console.warn('⚠️ Usuario sin área asignada, cargando todas las solicitudes');
+            solicitudesResp = await vacacionesService.getAllSolicitudesVacaciones();
+          } else {
+            solicitudesResp = await vacacionesService.getSolicitudesVacacionesByArea(areaActual);
+          }
         } else {
           // Empleado: obtiene solo sus solicitudes
           console.log('👤 Empleado - Cargando solo sus solicitudes');

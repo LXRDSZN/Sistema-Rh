@@ -53,31 +53,62 @@
       <!-- Menú desplegable de Asistencias -->
       <transition name="dropdown">
         <div v-if="isAsistenciasMenuOpen && isSidebarOpen" class="submenu-dropdown">
+          <!-- Inicio - solo para no empleados -->
+          <div v-if="userRole === 'EMPLEADO'" class="dropdown-item disabled"
+            title="No tienes permisos para ver esto">
+            <span>Inicio</span>
+          </div>
+          <RouterLink v-else to="/Asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Inicio</span>
+          </RouterLink>
+
+          <!-- Pase de lista - disponible para todos -->
+          <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Pase de lista</span>
+          </RouterLink>
+
+          <!-- Visitas - solo para no empleados -->
+          <div v-if="userRole === 'EMPLEADO'" class="dropdown-item disabled"
+            title="No tienes permisos para ver esto">
+            <span>Visitas</span>
+          </div>
+          <RouterLink v-else to="/Asistencias/registro-visita" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Visitas</span>
+          </RouterLink>
+
+          <!-- Justificantes - solo para no empleados -->
+          <div v-if="userRole === 'EMPLEADO'" class="dropdown-item disabled"
+            title="No tienes permisos para ver esto">
+            <span>Justificantes</span>
+          </div>
+          <RouterLink v-else to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Justificantes</span>
+          </RouterLink>
+
+          <!-- Informe de Asistencias - solo para no empleados -->
+          <div v-if="userRole === 'EMPLEADO'" class="dropdown-item disabled"
+            title="No tienes permisos para ver esto">
+            <span>Informe de Asistencias</span>
+          </div>
+          <RouterLink v-else to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Informe de Asistencias</span>
+          </RouterLink>
+
+          <!-- Reporte Analítico solo para roles permitidos -->
           <template v-if="userRole !== 'EMPLEADO'">
-            <RouterLink to="/Asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Inicio</span>
-            </RouterLink>
-            <RouterLink to="/Asistencias/pase-lista" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Pase de lista</span>
-             </RouterLink>
-            <RouterLink to="/Asistencias/registro-visita" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Visitas</span>
-            </RouterLink>
-            <RouterLink to="/Asistencias/justificantes" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Justificantes</span>
-            </RouterLink>
-            <RouterLink to="/Asistencias/reporte-asistencias" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Informe de Asistencias</span>
-            </RouterLink>
-            <!-- Reporte Analítico solo para roles permitidos -->
             <RouterLink v-if="canSeeAnalitico" to="/Asistencias/reporte-analitico" class="dropdown-item" @click.stop="closeAsistenciasMenu">
               <span>Informe Analítico</span>
             </RouterLink>
-            <RouterLink to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
-              <span>Informe de Visitas</span>
-            </RouterLink>
           </template>
 
+          <!-- Informe de Visitas - solo para no empleados -->
+          <div v-if="userRole === 'EMPLEADO'" class="dropdown-item disabled"
+            title="No tienes permisos para ver esto">
+            <span>Informe de Visitas</span>
+          </div>
+          <RouterLink v-else to="/Asistencias/reporte-visitas" class="dropdown-item" @click.stop="closeAsistenciasMenu">
+            <span>Informe de Visitas</span>
+          </RouterLink>
         </div>
       </transition>
 

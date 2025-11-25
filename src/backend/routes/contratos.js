@@ -92,8 +92,7 @@ router.get('/contratos/empleados-destacados', async (req, res) => {
       LEFT JOIN puesto pu ON pu.id = c.puesto_id
       LEFT JOIN area a   ON a.id = c.area_id
       WHERE p.tipo = 'Empleado'
-      ORDER BY p.id, c.fecha_inicio DESC
-      LIMIT 10;
+      ORDER BY p.id, c.fecha_inicio DESC;
     `;
 
     const result = await pool.query(query);
@@ -133,8 +132,7 @@ router.get('/contratos/aspirantes-destacados', async (req, res) => {
             LEFT JOIN puesto pu ON pu.id = al.puesto_id
             LEFT JOIN area a ON a.id = al.area_id
             WHERE p.tipo = 'Aspirante'
-            ORDER BY p.fecha_registro DESC
-            LIMIT 10
+            ORDER BY p.fecha_registro DESC;
         `;
 
         const result = await pool.query(query);
@@ -873,6 +871,32 @@ router.post('/contratos/aspirante', verificarToken, async (req, res) => {
       WHERE id = $1;
     `;
     await client.query(updatePersonaSql, [personaId]);
+
+    // 5) Crear asignación de puesto (necesario para módulos de vacaciones, asistencias, etc.)
+    // Primero verificar si ya existe una asignación activa
+    const existeAsignacion = await client.query(`
+      SELECT id FROM asignacion_puesto 
+      WHERE persona_id = $1 AND fecha_fin IS NULL
+    `, [personaId]);
+
+    if (existeAsignacion.rows.length === 0) {
+      const asignacionPuestoSql = `
+        INSERT INTO asignacion_puesto (
+          persona_id,
+          puesto_id,
+          area_id,
+          fecha_inicio,
+          es_principal
+        )
+        VALUES ($1, $2, $3, $4, true)
+      `;
+      await client.query(asignacionPuestoSql, [
+        personaId,
+        puestoId,
+        areaId,
+        fechaInicio
+      ]);
+    }
 
     await client.query('COMMIT');
 

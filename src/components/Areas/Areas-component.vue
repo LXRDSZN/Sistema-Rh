@@ -23,6 +23,7 @@
       :empleados="empleadosFiltrados"
       :user-role="userRole"
       :user-data="user"
+      :user-area="user?.area"
       @editar="abrirModal"
       @exportar="() => exportarDatos(empleadosFiltrados)"
     >
