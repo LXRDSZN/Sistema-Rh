@@ -406,39 +406,53 @@ const hayCambiosEnFormulario = () => {
 
 // ===== CARGA ASPIRANTE =====
 const cargarDatosAspirante = async () => {
-    if (props.datosAspirante) {
-        formData.value.nombre =
-            props.datosAspirante.nombreSolo || props.datosAspirante.nombre || '';
-        formData.value.apellidoPaterno = props.datosAspirante.apellidoPaterno || '';
-        formData.value.apellidoMaterno = props.datosAspirante.apellidoMaterno || '';
-        fotoUrl.value = props.datosAspirante.avatar || null;
-    }
+      if (props.datosAspirante) {
+          formData.value.nombre =
+              props.datosAspirante.nombreSolo || props.datosAspirante.nombre || '';
+          formData.value.apellidoPaterno = props.datosAspirante.apellidoPaterno || '';
+          formData.value.apellidoMaterno = props.datosAspirante.apellidoMaterno || '';
+          fotoUrl.value = props.datosAspirante.avatar || null;
+      }
 
-    const personaId =
-        props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
+      const personaId =
+          props.datosAspirante?.persona_id || props.datosAspirante?.id || null;
 
-    if (personaId) {
-        try {
-            const datos = await obtenerAspiracionLaboralAspirante(personaId);
-            if (datos) {
-                if (!formData.value.nombre) formData.value.nombre = datos.nombre || '';
-                if (!formData.value.apellidoPaterno)
-                    formData.value.apellidoPaterno = datos.apellido_paterno || '';
-                if (!formData.value.apellidoMaterno)
-                    formData.value.apellidoMaterno = datos.apellido_materno || '';
-                if (!fotoUrl.value) fotoUrl.value = datos.foto_url || null;
+      if (personaId) {
+          try {
+              const datos = await obtenerAspiracionLaboralAspirante(personaId);
+              if (datos) {
+                  if (!formData.value.nombre) formData.value.nombre = datos.nombre || '';
+                  if (!formData.value.apellidoPaterno)
+                      formData.value.apellidoPaterno = datos.apellido_paterno || '';
+                  if (!formData.value.apellidoMaterno)
+                      formData.value.apellidoMaterno = datos.apellido_materno || '';
+                  if (!fotoUrl.value) fotoUrl.value = datos.foto_url || null;
 
-                formData.value.tipoContrato = datos.tipo_contrato || '';
-                formData.value.modalidad = datos.modalidad || '';
+                  formData.value.tipoContrato = datos.tipo_contrato || '';
+                  formData.value.modalidad = datos.modalidad || '';
 
-                if (datos.fecha_disponible) {
-                    formData.value.fechaInicio = formatearFechaInput(datos.fecha_disponible);
-                }
-            }
-        } catch (error) {
-            console.warn('No se pudo cargar aspiración laboral del aspirante:', error);
-        }
-    }
+                  if (datos.fecha_disponible) {
+                      formData.value.fechaInicio = formatearFechaInput(datos.fecha_disponible);
+                  }
+              }
+          } catch (error) {
+              console.warn('No se pudo cargar aspiración laboral del aspirante:', error);
+          }
+
+          // Intentar obtener foto en base64 desde backend (funciona para Aspirante o Empleado)
+          try {
+              const { data } = await axios.get(
+                  `${API_URL}/empleados/${personaId}/foto-base64`,
+                  { withCredentials: true }
+              );
+
+              if (data.ok && data.fotoDataUrl) {
+                  fotoUrl.value = data.fotoDataUrl;
+              }
+          } catch (err) {
+              console.error('Error al obtener foto base64 (aspirante):', err);
+          }
+      }
 
     if (!formData.value.fechaGeneracion) {
         formData.value.fechaGeneracion = hoyISO;
