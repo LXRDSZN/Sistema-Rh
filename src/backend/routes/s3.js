@@ -398,13 +398,12 @@ router.get('/empleados/:personaId/foto-base64', verificarToken, async (req, res)
   try {
     const { personaId } = req.params;
 
-    // 1) Leer foto_url de la tabla persona (como en tu SELECT)
+    // 1) Leer foto_url de la tabla persona
     const result = await client.query(
       `
       SELECT foto_url
       FROM persona
       WHERE id = $1
-        AND tipo = 'Empleado'
       `,
       [personaId]
     );
