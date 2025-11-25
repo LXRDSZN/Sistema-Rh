@@ -128,17 +128,15 @@
           </div>
           
           <div class="form-group">
-            <label for="rol">Rol*</label>
-            <select id="rol" v-model="props.modelValue.rol" required>
-              <option value="">Seleccionar rol...</option>
-              <option v-if="userRole === 'ADMIN'" value="GERENTE_GENERAL">Gerente General</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_AREA">Jefe de Área</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_ASISTENCIAS">Jefe de Asistencias</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_CONTRATOS">Jefe de Contratos</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
-              <option value="EMPLEADO">Empleado</option>
-            </select>
+            <label for="rol">Rol del Sistema*</label>
+            <input 
+              type="text" 
+              id="rol" 
+              :value="formatRoleName(props.modelValue.rol)" 
+              disabled 
+              class="rol-display"
+            />
+            <small class="field-hint">El rol se asigna automáticamente según el puesto del empleado</small>
           </div>
         </div>
 
@@ -220,6 +218,49 @@ watch(() => props.modelValue.email, (val) => {
     emailError.value = 'Ingresa un correo electrónico válido (ejemplo@dominio.com)';
   } else {
     emailError.value = '';
+  }
+});
+
+// Limpiar rol cuando se deselecciona empleado
+watch(() => props.modelValue.persona_id, (personaId) => {
+  if (!personaId) {
+    props.modelValue.rol = '';
+  }
+});
+
+// Auto-asignar rol basándose en el puesto del empleado seleccionado
+watch(() => props.modelValue.puesto, (puesto) => {
+  if (!puesto) {
+    props.modelValue.rol = '';
+    return;
+  }
+  
+  // Puestos que corresponden al rol EMPLEADO
+  const puestosEmpleado = [
+    'EMPLEADO',
+    'Analista de Datos',
+    'Contador General',
+    'Desarrollador Full Stack'
+  ];
+  
+  // Puestos que corresponden directamente a roles del sistema
+  const puestosRol = [
+    'ADMIN',
+    'GERENTE_GENERAL',
+    'JEFE_AREA',
+    'JEFE_ASISTENCIAS',
+    'JEFE_CONTRATOS',
+    'JEFE_VACACIONES',
+    'JEFE_INCIDENCIAS'
+  ];
+  
+  if (puestosEmpleado.includes(puesto)) {
+    props.modelValue.rol = 'EMPLEADO';
+  } else if (puestosRol.includes(puesto)) {
+    props.modelValue.rol = puesto;
+  } else {
+    // Si es un puesto desconocido, asignar EMPLEADO por defecto
+    props.modelValue.rol = 'EMPLEADO';
   }
 });
 </script>
@@ -378,6 +419,13 @@ watch(() => props.modelValue.email, (val) => {
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s;
+}
+
+.form-group input.rol-display {
+  background-color: #F3F4F6;
+  color: #374151;
+  font-weight: 600;
+  cursor: not-allowed;
 }
 
 .form-group input:focus,
