@@ -366,16 +366,24 @@ const formData = ref({
 
 // ===== FECHAS =====
 const obtenerHoy = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-};
+      const now = new Date();
+      // Fecha local a medianoche, sin saltos de zona horaria
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  };
+  
+  const formatearFechaInput = (fecha) => {
+      const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+  };
 
-const formatearFechaInput = (fecha) => {
-    const d = new Date(fecha);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
-};
+  const parseFechaLocal = (valor) => {
+      if (!valor) return null;
+      const [year, month, day] = valor.split('-').map(Number);
+      return new Date(year, month - 1, day);
+  };
 
 const hoyDate = obtenerHoy();
 const minFechaInicio = ref(formatearFechaInput(hoyDate));
@@ -385,12 +393,12 @@ fechaMax.setMonth(fechaMax.getMonth() + 3);
 const maxFechaInicio = ref(formatearFechaInput(fechaMax));
 
 const hoyISO = minFechaInicio.value;
-
-const minFechaTermino = computed(() => {
-    if (!formData.value.fechaInicio) return '';
-    const d = new Date(formData.value.fechaInicio);
-    d.setMonth(d.getMonth() + 1);
-    return formatearFechaInput(d);
+  
+  const minFechaTermino = computed(() => {
+      if (!formData.value.fechaInicio) return '';
+      const d = parseFechaLocal(formData.value.fechaInicio);
+      d.setMonth(d.getMonth() + 1);
+      return formatearFechaInput(d);
 });
 
 // ===== DETECCIÓN DE CAMBIOS =====
@@ -589,14 +597,13 @@ const limpiarNumero = (campo) => {
     formData.value[campo] = valor;
 };
 
-const validarFechaInicio = () => {
-    if (!formData.value.fechaInicio) return;
-    const fi = new Date(formData.value.fechaInicio);
-    fi.setHours(0, 0, 0, 0);
-
-    if (fi < hoyDate || fi > fechaMax) {
-        alert('La fecha de inicio debe ser a partir de hoy y no mayor a tres meses.');
-        formData.value.fechaInicio = '';
+  const validarFechaInicio = () => {
+      if (!formData.value.fechaInicio) return;
+      const fi = parseFechaLocal(formData.value.fechaInicio);
+  
+      if (fi < hoyDate || fi > fechaMax) {
+          alert('La fecha de inicio debe ser a partir de hoy y no mayor a tres meses.');
+          formData.value.fechaInicio = '';
         return;
     }
 
@@ -619,10 +626,8 @@ const validarFechaTermino = () => {
 
     if (!formData.value.fechaTermino) return;
 
-    const fi = new Date(formData.value.fechaInicio);
-    const ft = new Date(formData.value.fechaTermino);
-    fi.setHours(0, 0, 0, 0);
-    ft.setHours(0, 0, 0, 0);
+      const fi = parseFechaLocal(formData.value.fechaInicio);
+      const ft = parseFechaLocal(formData.value.fechaTermino);
 
     const minFin = new Date(fi.getTime());
     minFin.setMonth(minFin.getMonth() + 1);
