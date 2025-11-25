@@ -150,7 +150,7 @@
               <tbody>
                 <tr v-for="(emp, empIndex) in employeesFiltered" :key="empIndex">
                   <td class="text-center fixed-column fixed-cell">{{ emp.empleado }}</td>
-                  <td class="text-center fixed-column fixed-cell">{{ emp.puesto }}</td>
+                  <td class="text-center fixed-column fixed-cell">{{ formatRoleName(emp.puesto) }}</td>
                   <td class="text-center fixed-column fixed-cell">{{ emp.area }}</td>
                   <td 
                     v-for="day in diasEnMes" 
@@ -380,6 +380,22 @@ const validarBusqueda = () => {
   }
 }
 
+// Formatear nombre de puesto
+const formatRoleName = (role) => {
+  if (!role) return 'Sin puesto';
+  const map = {
+    'ADMIN': 'Admin',
+    'EMPLEADO': 'Empleado',
+    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'JEFE_AREA': 'Jefe de Área',
+    'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
+    'JEFE_CONTRATOS': 'Jefe de Contratos',
+    'JEFE_VACACIONES': 'Jefe de Vacaciones',
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+  };
+  return map[role] || role;
+};
+
 // Botón aplicar filtros
 const aplicarFiltros = async () => {
   try {
@@ -571,7 +587,7 @@ const generarPDFGeneral = async () => {
       pdf.text(emp.empleado.substring(0, 20), xPosition + 2, yPosition + 4)
       xPosition += columnWidths[0]
 
-      pdf.text(emp.puesto.substring(0, 15), xPosition + 2, yPosition + 4)
+      pdf.text(formatRoleName(emp.puesto).substring(0, 15), xPosition + 2, yPosition + 4)
       xPosition += columnWidths[1]
 
       pdf.text(emp.area.substring(0, 10), xPosition + 2, yPosition + 4)
