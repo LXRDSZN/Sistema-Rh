@@ -125,20 +125,6 @@
             
             <div class="campos-grid">
               <div class="campo-grupo">
-                <label class="form-label">Área Visitada*</label>
-                <v-select
-                  v-model="formulario.area_visitada"
-                  :items="areasVisitadas"
-                  placeholder="Seleccione el área"
-                  class="input-custom"
-                  variant="outlined"
-                  density="comfortable"
-                  required
-                  hide-details
-                />
-              </div>
-
-              <div class="campo-grupo">
                 <label class="form-label">Persona Visitada*</label>
                 <v-autocomplete
                   v-model="formulario.persona_visitada"
@@ -151,6 +137,22 @@
                   density="comfortable"
                   required
                   hide-details
+                  @update:model-value="onPersonaSeleccionada"
+                />
+              </div>
+
+              <div class="campo-grupo">
+                <label class="form-label">Área Visitada*</label>
+                <v-select
+                  v-model="formulario.area_visitada"
+                  :items="areasVisitadas"
+                  placeholder="Se seleccionará automáticamente al elegir la persona"
+                  class="input-custom"
+                  variant="outlined"
+                  density="comfortable"
+                  required
+                  hide-details
+                  readonly
                 />
               </div>
 
@@ -468,10 +470,20 @@ const cargarDatosIniciales = async () => {
     })
     
     const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
-    empleados.value = empleadosData.map(emp => ({
-      id: emp.id,
-      nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim()
-    }))
+    empleados.value = empleadosData.map(emp => {
+      // El backend devuelve 'nombre' como nombre completo formateado (apellido_paterno apellido_materno nombre)
+      // Si no existe, intentar construirlo desde campos individuales
+      let nombreCompleto = emp.nombre
+      if (!nombreCompleto && (emp.apellido_paterno || emp.nombre || emp.apellido_materno)) {
+        nombreCompleto = `${emp.apellido_paterno || ''} ${emp.apellido_materno || ''} ${emp.nombre || ''}`.trim()
+      }
+      
+      return {
+        id: emp.id,
+        nombre_completo: nombreCompleto || 'Sin nombre',
+        area_id: emp.area_id || null
+      }
+    })
 
     // Cargar áreas
     const responseAreas = await axios.get(`${API_URL}/areas`, { 
@@ -589,6 +601,25 @@ const registrarSalida = async (visita) => {
 
 const aplicarFiltros = () => {
   mostrarMensaje('Filtros aplicados correctamente')
+}
+
+// Función para actualizar el área cuando se selecciona una persona
+const onPersonaSeleccionada = (personaId) => {
+  if (!personaId) {
+    formulario.value.area_visitada = null
+    return
+  }
+
+  // Buscar el empleado seleccionado
+  const empleadoSeleccionado = empleados.value.find(emp => emp.id === personaId)
+  
+  if (empleadoSeleccionado && empleadoSeleccionado.area_id) {
+    // Actualizar el área visitada con el área del empleado
+    formulario.value.area_visitada = empleadoSeleccionado.area_id
+  } else {
+    // Si no tiene área asignada, limpiar el campo
+    formulario.value.area_visitada = null
+  }
 }
 
 const limpiarFormulario = () => {

@@ -41,10 +41,6 @@
             <span class="alerta-icon">🔔</span>
             <span class="alerta-text">Retardos críticos hoy: {{ dashboardData?.alertas?.retardosCriticos || 0 }}</span>
           </div>
-          <div class="alerta alerta-info">
-            <span class="alerta-icon">ℹ️</span>
-            <span class="alerta-text">Ausencias/Permisos pendientes: {{ dashboardData?.alertas?.permisosPendientes || 0 }}</span>
-          </div>
           <div class="alerta alerta-gray">
             <span class="alerta-icon">🚫</span>
             <span class="alerta-text">Acceso de empleado inactivo: {{ dashboardData?.alertas?.accesoInactivos || 0 }}</span>
