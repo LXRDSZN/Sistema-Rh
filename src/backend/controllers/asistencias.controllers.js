@@ -188,13 +188,22 @@ export const getJustificantes = async (req, res) => {
         j.motivo,
         j.archivo_justificante,
         j.estado,
-        a.nombre as area,
+        COALESCE(a.nombre, 'Sin área') as area,
         j.fecha_creacion
       FROM justificantes j
       INNER JOIN persona p ON j.persona_id = p.id
       INNER JOIN tipo_incidencia ti ON j.tipo_incidencia_id = ti.id
-      LEFT JOIN asignacion_puesto ap ON p.id = ap.persona_id AND ap.fecha_fin IS NULL
-      LEFT JOIN area a ON ap.area_id = a.id
+      LEFT JOIN LATERAL (
+        SELECT c.* 
+        FROM contrato c
+        INNER JOIN estado_contrato ec ON c.estado_id = ec.id
+        WHERE c.persona_id = p.id
+          AND ec.nombre ILIKE 'ACTIVO'
+          AND (c.fecha_fin IS NULL OR c.fecha_fin >= CURRENT_DATE)
+        ORDER BY c.fecha_inicio DESC
+        LIMIT 1
+      ) c ON TRUE
+      LEFT JOIN area a ON c.area_id = a.id
       WHERE 1=1
     `;
 

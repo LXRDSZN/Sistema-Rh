@@ -15,11 +15,14 @@
             <v-col cols="12" sm="6" md="3">
               <div class="form-header">Área*</div>
             </v-col>
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="form-header">Fecha de Inicio*</div>
             </v-col>
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <div class="form-header">Fecha de Fin*</div>
+            </v-col>
+            <v-col cols="12" sm="6" md="2">
+              <div class="form-header">Tipo de Incidencia*</div>
             </v-col>
           </v-row>
 
@@ -56,7 +59,7 @@
                 placeholder="Seleccione un empleado"
               />
             </v-col>
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <v-text-field
                 v-model="formulario.fecha_inicio"
                 type="date"
@@ -67,11 +70,24 @@
                 hide-details
               />
             </v-col>
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <v-text-field
                 v-model="formulario.fecha_fin"
                 type="date"
                 placeholder="dd/mm/aaaa"
+                class="input-white"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" sm="6" md="2">
+              <v-select
+                v-model="formulario.tipo_incidencia_id"
+                :items="tiposIncidencia"
+                item-title="nombre"
+                item-value="id"
+                placeholder="Seleccione tipo"
                 class="input-white"
                 variant="outlined"
                 density="compact"
@@ -245,7 +261,7 @@
               </tr>
               <tr v-for="(item, index) in registroJustificacionesFiltradas" :key="item.id || index" v-else>
                 <td class="text-center">{{ item.empleado || 'N/A' }}</td>
-                <td class="text-center">{{ item.area || 'N/A' }}</td>
+                <td class="text-center">{{ obtenerAreaEmpleado(item) }}</td>
                 <td class="text-center">{{ formatearFecha(item.fecha_creacion) }}</td>
                 <td class="text-center">{{ item.motivo }}</td>
                 <td class="text-center">
@@ -379,6 +395,9 @@ const busquedaEmpleado = ref('')
 // Mapa idArchivo -> nombreArchivo
 const archivoNombres = ref({})
 
+// Mapa empleado_id -> nombreArea
+const areasEmpleados = ref({})
+
 // Snackbar
 const snackbar = ref({
   show: false,
@@ -410,6 +429,7 @@ const formulario = ref({
   area_id: null,
   fecha_inicio: '',
   fecha_fin: '',
+  tipo_incidencia_id: null,
   motivo: ''
 })
 
@@ -428,6 +448,7 @@ onMounted(async () => {
     console.log('Tipos de incidencia cargados:', tiposIncidencia.value)
     await cargarJustificantes()
     await cargarNombresArchivos()
+    await cargarAreasEmpleados()
   } catch (error) {
     console.error('Error al cargar datos iniciales:', error)
   }
@@ -443,6 +464,9 @@ const cargarDatosIniciales = async () => {
     
     const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
     empleados.value = empleadosData.map(emp => {
+      // La API devuelve 'departamento' como nombre del área, no 'area_nombre'
+      const areaNombre = emp.departamento || emp.area || emp.area_nombre || 'Sin área'
+      
       if (emp.nombre && !emp.apellido_paterno) {
         const partes = emp.nombre.split(' ')
         return {
@@ -452,13 +476,13 @@ const cargarDatosIniciales = async () => {
           apellido_materno: partes[2] || '',
           nombre_completo: emp.nombre,
           area_id: emp.area_id,
-          area_nombre: emp.area_nombre || 'Sin área'
+          area_nombre: areaNombre
         }
       }
       return {
         ...emp,
         nombre_completo: `${emp.nombre} ${emp.apellido_paterno} ${emp.apellido_materno || ''}`.trim(),
-        area_nombre: emp.area_nombre || 'Sin área'
+        area_nombre: areaNombre
       }
     })
 
@@ -513,23 +537,32 @@ const actualizarAreaPorEmpleado = (empleadoId) => {
   }
 
   const empleadoSeleccionado = empleados.value.find(emp => emp.id === empleadoId)
+  
   if (empleadoSeleccionado) {
-    // Si el empleado ya tiene el nombre del área en sus datos
-    if (empleadoSeleccionado.area_nombre) {
+    console.log('Empleado seleccionado:', {
+      id: empleadoSeleccionado.id,
+      nombre: empleadoSeleccionado.nombre_completo,
+      area_id: empleadoSeleccionado.area_id,
+      area_nombre: empleadoSeleccionado.area_nombre
+    })
+    
+    // Si el empleado tiene área asignada
+    if (empleadoSeleccionado.area_id && empleadoSeleccionado.area_nombre) {
       areaEmpleadoSeleccionado.value = empleadoSeleccionado.area_nombre
       formulario.value.area_id = empleadoSeleccionado.area_id
     } 
-    // Si no, buscar el nombre del área en el mapa
+    // Si tiene area_id pero no area_nombre, buscar en el mapa
     else if (empleadoSeleccionado.area_id && areasMap.value[empleadoSeleccionado.area_id]) {
       areaEmpleadoSeleccionado.value = areasMap.value[empleadoSeleccionado.area_id]
       formulario.value.area_id = empleadoSeleccionado.area_id
     } 
-    // Si no se encuentra el área
+    // Si no tiene área asignada
     else {
-      areaEmpleadoSeleccionado.value = 'Sin área asignada'
+      areaEmpleadoSeleccionado.value = 'Sin área'
       formulario.value.area_id = null
     }
   } else {
+    console.warn('No se encontró el empleado con ID:', empleadoId)
     areaEmpleadoSeleccionado.value = ''
     formulario.value.area_id = null
   }
@@ -603,11 +636,81 @@ const cargarNombresArchivos = async () => {
   }
 }
 
+// Cargar áreas de empleados que no tienen área en los justificantes
+const cargarAreasEmpleados = async () => {
+  try {
+    const items = justificantes.value || []
+    
+    // Identificar empleados que no tienen área o tienen "Sin área" o "N/A"
+    const empleadosSinArea = items
+      .filter(item => {
+        const area = item.area
+        return !area || area === 'Sin área' || area === 'N/A' || area === null
+      })
+      .map(item => item.empleado_id)
+      .filter(Boolean)
+    
+    // Obtener IDs únicos
+    const empleadosIdsUnicos = [...new Set(empleadosSinArea)]
+    
+    if (empleadosIdsUnicos.length === 0) {
+      return
+    }
+
+    console.log('Cargando áreas para empleados:', empleadosIdsUnicos.length)
+
+    // Cargar empleados desde la API
+    const responseEmpleados = await axios.get(`${API_URL}/empleados`, { 
+      withCredentials: true 
+    })
+    
+    const empleadosData = responseEmpleados.data.data || responseEmpleados.data.empleados || []
+    
+    // Crear mapa de áreas por empleado_id
+    empleadosData.forEach(emp => {
+      if (emp.id && empleadosIdsUnicos.includes(emp.id)) {
+        const areaNombre = emp.departamento || emp.area || emp.area_nombre || 'Sin área'
+        areasEmpleados.value[emp.id] = areaNombre
+      }
+    })
+
+    // Actualizar los justificantes con las áreas obtenidas
+    items.forEach(item => {
+      if (item.empleado_id && areasEmpleados.value[item.empleado_id]) {
+        item.area = areasEmpleados.value[item.empleado_id]
+      }
+    })
+
+    console.log('Áreas cargadas:', areasEmpleados.value)
+  } catch (error) {
+    console.error('Error al cargar áreas de empleados:', error)
+  }
+}
+
 // Función para que la tabla muestre el nombre del archivo
 const obtenerNombreArchivoTabla = (item) => {
   const id = item.archivo_justificante || item.archivo_id
   if (!id) return ''
   return archivoNombres.value[id] || id
+}
+
+// Función para obtener el área del empleado (usa el mapa si está disponible)
+const obtenerAreaEmpleado = (item) => {
+  // Si el área viene como "Sin área", "N/A" o null, intentar obtenerla del mapa
+  const areaOriginal = item.area
+  if (!areaOriginal || areaOriginal === 'Sin área' || areaOriginal === 'N/A') {
+    // Intentar obtener del mapa de áreas
+    if (item.empleado_id && areasEmpleados.value[item.empleado_id]) {
+      return areasEmpleados.value[item.empleado_id]
+    }
+    // Si no está en el mapa, buscar en el array de empleados cargados
+    const empleado = empleados.value.find(emp => emp.id === item.empleado_id)
+    if (empleado && empleado.area_nombre) {
+      return empleado.area_nombre
+    }
+    return 'Sin área'
+  }
+  return areaOriginal
 }
 
 // Funciones de utilidad
@@ -697,7 +800,7 @@ const limpiarArchivo = () => {
 const guardarJustificacion = async () => {
   try {
     // Validaciones
-    if (!formulario.value.empleado_id || !formulario.value.area_id || 
+    if (!formulario.value.empleado_id || !formulario.value.tipo_incidencia_id || 
         !formulario.value.fecha_inicio || !formulario.value.motivo) {
       mostrarMensaje('Por favor complete todos los campos obligatorios', 'warning')
       return
@@ -729,19 +832,21 @@ const guardarJustificacion = async () => {
 
     const datosJustificante = {
       empleado_id: formulario.value.empleado_id,
-      area_id: formulario.value.area_id,
+      tipo_incidencia_id: formulario.value.tipo_incidencia_id,
       fecha_inicio: formulario.value.fecha_inicio,
       fecha_fin: formulario.value.fecha_fin || formulario.value.fecha_inicio,
       motivo: formulario.value.motivo,
       archivo_justificante: archivoId
     }
 
+    console.log('Datos a enviar:', datosJustificante)
     await crearJustificante(datosJustificante)
 
     mostrarMensaje('Justificación guardada correctamente')
     limpiarFormulario()
     await cargarJustificantes()
     await cargarNombresArchivos()
+    await cargarAreasEmpleados()
     
   } catch (error) {
     console.error('Error al guardar justificante:', error)
@@ -757,6 +862,7 @@ const limpiarFormulario = () => {
     area_id: null,
     fecha_inicio: '',
     fecha_fin: '',
+    tipo_incidencia_id: null,
     motivo: ''
   }
   busquedaEmpleado.value = ''
@@ -810,9 +916,10 @@ const verArchivoRegistro = async (item) => {
   }
 }
 
-// Cuando cambien los justificantes, volver a buscar nombres de archivos nuevos
+// Cuando cambien los justificantes, volver a buscar nombres de archivos nuevos y áreas
 watch(justificantes, () => {
   cargarNombresArchivos()
+  cargarAreasEmpleados()
 })
 </script>
 
