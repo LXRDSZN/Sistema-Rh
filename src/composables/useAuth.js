@@ -194,10 +194,10 @@ export function useAuth() {
   });
 
   /**
-   * Verificar si el usuario es jefe de RH
+   * Verificar si el usuario es gerente general
    */
-  const isJefeRH = computed(() => {
-    return user.value?.rol === 'JEFE_RH';
+  const isGerenteGeneral = computed(() => {
+    return user.value?.rol === 'GERENTE_GENERAL';
   });
 
   /**
@@ -266,7 +266,7 @@ export function useAuth() {
     
     // Computed properties
     isAdmin,
-    isJefeRH,
+    isGerenteGeneral,
     isJefeArea,
     isEmpleado,
     userName,

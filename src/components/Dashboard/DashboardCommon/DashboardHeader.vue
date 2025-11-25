@@ -38,13 +38,16 @@ defineEmits(['openRegisterModal', 'logout']);
 function formatRoleName(role) {
   const map = {
     'ADMIN': 'ADMIN',
-    'JEFE_RH': 'JEFE RH',
+    'GERENTE_GENERAL': 'GERENTE GENERAL',
     'JEFE_AREA': 'JEFE ÁREA',
     'JEFE_ASISTENCIAS': 'JEFE ASISTENCIAS',
     'JEFE_CONTRATOS': 'JEFE CONTRATOS',
     'JEFE_VACACIONES': 'JEFE VACACIONES',
     'JEFE_INCIDENCIAS': 'JEFE INCIDENCIAS',
-    'EMPLEADO': 'EMPLEADO'
+    'EMPLEADO': 'EMPLEADO',
+    'Analista de Datos': 'ANALISTA DE DATOS',
+    'Contador General': 'CONTADOR GENERAL',
+    'Desarrollador Full Stack': 'DESARROLLADOR'
   };
   return map[role] || role;
 }
@@ -92,7 +95,7 @@ const roleBadgeClass = computed(() => {
   color: #DC2626;
 }
 
-.role-badge.jefe_rh {
+.role-badge.gerente_general {
   background: #DBEAFE;
   color: #2563EB;
 }

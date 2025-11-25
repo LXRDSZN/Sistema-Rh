@@ -313,7 +313,7 @@ const puestosHastaJefeArea = computed(() => {
         if (todosLosJefes.includes(puesto.nombre)) {
             return nombreArea && jefesPorArea[nombreArea] === puesto.nombre;
         }
-        // Mostrar todos los demás roles (ADMIN, EMPLEADO, JEFE_RH, y roles generales)
+        // Mostrar todos los demás roles (ADMIN, EMPLEADO, GERENTE_GENERAL, y roles generales)
         return true;
     });
 });
@@ -333,7 +333,10 @@ const formatRoleName = (role) => {
         'JEFE_CONTRATOS': 'Jefe de Contratos',
         'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
         'JEFE_AREA': 'Jefe de Área',
-        'JEFE_RH': 'Jefe de Recursos Humanos'
+        'GERENTE_GENERAL': 'Gerente General',
+        'Analista de Datos': 'Analista de Datos',
+        'Contador General': 'Contador General',
+        'Desarrollador Full Stack': 'Desarrollador Full Stack'
     };
     return map[role] || role;
 };

@@ -19,7 +19,7 @@ export const RANGOS_EDAD_INICIAL = [
 
 export const ROLES = {
   ADMIN: 'ADMIN',
-  JEFE_RH: 'JEFE_RH',
+  GERENTE_GENERAL: 'GERENTE_GENERAL',
   JEFE_AREA: 'JEFE_AREA',
   JEFE_ASISTENCIAS: 'JEFE_ASISTENCIAS',
   JEFE_CONTRATOS: 'JEFE_CONTRATOS',
@@ -34,11 +34,11 @@ export const SEXO_OPTIONS = [
 ];
 
 export const ROL_OPTIONS = [
-  { label: 'Jefe de Recursos Humanos', value: 'JEFE_RH', requiredRole: 'ADMIN' },
-  { label: 'Jefe de Área', value: 'JEFE_AREA', requiredRole: ['ADMIN', 'JEFE_RH'] },
-  { label: 'Jefe de Asistencias', value: 'JEFE_ASISTENCIAS', requiredRole: ['ADMIN', 'JEFE_RH'] },
-  { label: 'Jefe de Contratos', value: 'JEFE_CONTRATOS', requiredRole: ['ADMIN', 'JEFE_RH'] },
-  { label: 'Jefe de Vacaciones', value: 'JEFE_VACACIONES', requiredRole: ['ADMIN', 'JEFE_RH'] },
-  { label: 'Jefe de Incidencias', value: 'JEFE_INCIDENCIAS', requiredRole: ['ADMIN', 'JEFE_RH'] },
+  { label: 'Gerente General', value: 'GERENTE_GENERAL', requiredRole: 'ADMIN' },
+  { label: 'Jefe de Área', value: 'JEFE_AREA', requiredRole: ['ADMIN', 'GERENTE_GENERAL'] },
+  { label: 'Jefe de Asistencias', value: 'JEFE_ASISTENCIAS', requiredRole: ['ADMIN', 'GERENTE_GENERAL'] },
+  { label: 'Jefe de Contratos', value: 'JEFE_CONTRATOS', requiredRole: ['ADMIN', 'GERENTE_GENERAL'] },
+  { label: 'Jefe de Vacaciones', value: 'JEFE_VACACIONES', requiredRole: ['ADMIN', 'GERENTE_GENERAL'] },
+  { label: 'Jefe de Incidencias', value: 'JEFE_INCIDENCIAS', requiredRole: ['ADMIN', 'GERENTE_GENERAL'] },
   { label: 'Empleado', value: 'EMPLEADO', requiredRole: null }
 ];

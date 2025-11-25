@@ -131,12 +131,12 @@
             <label for="rol">Rol*</label>
             <select id="rol" v-model="props.modelValue.rol" required>
               <option value="">Seleccionar rol...</option>
-              <option v-if="userRole === 'ADMIN'" value="JEFE_RH">Jefe de Recursos Humanos</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_AREA">Jefe de Área</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_ASISTENCIAS">Jefe de Asistencias</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_CONTRATOS">Jefe de Contratos</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
-              <option v-if="userRole === 'ADMIN' || userRole === 'JEFE_RH'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
+              <option v-if="userRole === 'ADMIN'" value="GERENTE_GENERAL">Gerente General</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_AREA">Jefe de Área</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_ASISTENCIAS">Jefe de Asistencias</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_CONTRATOS">Jefe de Contratos</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_VACACIONES">Jefe de Vacaciones</option>
+              <option v-if="userRole === 'ADMIN' || userRole === 'GERENTE_GENERAL'" value="JEFE_INCIDENCIAS">Jefe de Incidencias</option>
               <option value="EMPLEADO">Empleado</option>
             </select>
           </div>
@@ -200,12 +200,15 @@ const formatRoleName = (role) => {
   const map = {
     'ADMIN': 'Admin',
     'EMPLEADO': 'Empleado',
-    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'GERENTE_GENERAL': 'Gerente General',
     'JEFE_AREA': 'Jefe de Área',
     'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
     'JEFE_CONTRATOS': 'Jefe de Contratos',
     'JEFE_VACACIONES': 'Jefe de Vacaciones',
-    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+    'Analista de Datos': 'Analista de Datos',
+    'Contador General': 'Contador General',
+    'Desarrollador Full Stack': 'Desarrollador Full Stack'
   };
   return map[role] || role;
 };

@@ -62,7 +62,7 @@ import { useAuth } from '@/composables/useAuth';
 // =====================
 // PERMISOS POR ROL
 // =====================
-const { userRole, isAdmin, isJefeRH, isJefeArea } = useAuth();
+const { userRole, isAdmin, isGerenteGeneral, isJefeArea } = useAuth();
 
 const isJefeModulo = computed(() => {
   // Jefe de área o jefe de contratos tiene acceso total
@@ -72,7 +72,7 @@ const isJefeModulo = computed(() => {
     'JEFE_ASISTENCIAS',
     'JEFE_VACACIONES',
     'JEFE_INCIDENCIAS',
-    'JEFE_RH',
+    'GERENTE_GENERAL',
     'ADMIN'
   ].includes(userRole.value);
 });

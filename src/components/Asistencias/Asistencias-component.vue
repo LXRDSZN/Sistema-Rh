@@ -46,7 +46,7 @@ const { userRole } = useAuth();
 // Roles que pueden ver el reporte analítico
 const analiticoRoles = [
   'ADMIN',
-  'JEFE_RH',
+  'GERENTE_GENERAL',
   'JEFE_ASISTENCIAS',
   'JEFE_CONTRATOS'
 ];

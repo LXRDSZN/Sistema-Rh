@@ -100,7 +100,7 @@ const router = createRouter({
       component: () => import('../views/Vacaciones/Solicitudes/SolicitudesView.vue'),
       meta: { requiredRoles: [
         'ADMIN',
-        'JEFE_RH',
+        'GERENTE_GENERAL',
         'JEFE_AREA',
         'JEFE_ASISTENCIAS',
         'JEFE_CONTRATOS',

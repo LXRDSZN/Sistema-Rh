@@ -193,7 +193,7 @@ import { useSidebar } from '@/composables/useSidebar';
 // Roles que pueden ver el reporte analítico
 const analiticoRoles = [
   'ADMIN',
-  'JEFE_RH',
+  'GERENTE_GENERAL',
   'JEFE_ASISTENCIAS',
   'JEFE_CONTRATOS'
 ];
@@ -215,7 +215,7 @@ const canSeeAnalitico = computed(() => analiticoRoles.includes(userRole.value));
 const formattedRole = computed(() => {
   const roleMap = {
     'ADMIN': 'Administrador',
-    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'GERENTE_GENERAL': 'Gerente General',
     'JEFE_AREA': 'Jefe de Área',
     'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
     'JEFE_CONTRATOS': 'Jefe de Contratos',
@@ -231,7 +231,7 @@ const canAccessSolicitudes = computed(() => {
   const { hasRole } = useAuth();
   return (
     hasRole('ADMIN') ||
-    hasRole('JEFE_RH') ||
+    hasRole('GERENTE_GENERAL') ||
     hasRole('JEFE_AREA') ||
     hasRole('JEFE_ASISTENCIAS') ||
     hasRole('JEFE_CONTRATOS') ||

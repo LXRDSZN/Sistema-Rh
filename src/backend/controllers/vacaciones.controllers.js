@@ -410,7 +410,7 @@ export const getAllSolicitudesVacaciones = async (req, res) => {
       `;
       params.push(personaId);
       paramCount++;
-    } else if (userRole && userRole !== 'ADMIN' && userRole !== 'JEFE_RH') {
+    } else if (userRole && userRole !== 'ADMIN' && userRole !== 'GERENTE_GENERAL') {
       // Si es empleado regular, no puede ver el listado general
       return res.status(403).json({
         success: false,

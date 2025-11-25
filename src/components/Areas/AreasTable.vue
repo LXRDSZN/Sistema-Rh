@@ -163,8 +163,8 @@ const mostrarBotonAcciones = (empleado) => {
   // EMPLEADO: No puede usar el botón de acciones
   if (rol === 'EMPLEADO') return false;
   
-  // ADMIN o JEFE_RH: Pueden usar el botón para todos
-  if (rol === 'ADMIN' || rol === 'JEFE_RH') return true;
+  // ADMIN o GERENTE_GENERAL: Pueden usar el botón para todos
+  if (rol === 'ADMIN' || rol === 'GERENTE_GENERAL') return true;
   
   // JEFE_AREA: Solo puede usar el botón para empleados (no jefes) de su área
   if (rol === 'JEFE_AREA') {

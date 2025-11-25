@@ -431,7 +431,7 @@ const sexosFiltrados = computed(() => {
         if (todosLosJefes.includes(puesto.nombre)) {
           return nombreArea && jefesPorArea[nombreArea] === puesto.nombre;
         }
-        // Mostrar todos los demás roles (ADMIN, EMPLEADO, JEFE_RH, y roles generales)
+        // Mostrar todos los demás roles (ADMIN, EMPLEADO, GERENTE_GENERAL, y roles generales)
         return true;
       })
       .map(puesto => ({
@@ -445,12 +445,15 @@ const formatearNombrePuesto = (nombre) => {
   const mapa = {
     'ADMIN': 'Admin',
     'EMPLEADO': 'Empleado',
-    'JEFE_RH': 'Jefe de Recursos Humanos',
+    'GERENTE_GENERAL': 'Gerente General',
     'JEFE_AREA': 'Jefe de Área',
     'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
     'JEFE_CONTRATOS': 'Jefe de Contratos',
     'JEFE_VACACIONES': 'Jefe de Vacaciones',
-    'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+    'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+    'Analista de Datos': 'Analista de Datos',
+    'Contador General': 'Contador General',
+    'Desarrollador Full Stack': 'Desarrollador Full Stack'
   };
   return mapa[nombre] || nombre;
 };

@@ -19,16 +19,20 @@ export const DEPARTAMENTOS = [
 
 /**
  * Lista de títulos/puestos laborales
+ * Estos deben coincidir con los nombres en la tabla 'puesto' de la BD
  */
 export const TITULOS = [
-  'Jefe de área',
-  'Jefe de Asistencias',
-  'Jefe de Contratos',
-  'Jefe de Vacaciones',
-  'Jefe de Incidencias',
-  'Empleado',
-  'Supervisor',
-  'Gerente'
+  'ADMIN',
+  'GERENTE_GENERAL',
+  'JEFE_AREA',
+  'JEFE_ASISTENCIAS',
+  'JEFE_CONTRATOS',
+  'JEFE_VACACIONES',
+  'JEFE_INCIDENCIAS',
+  'EMPLEADO',
+  'Analista de Datos',
+  'Contador General',
+  'Desarrollador Full Stack'
 ];
 
 /**

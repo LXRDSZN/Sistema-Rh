@@ -209,10 +209,10 @@ export default {
 
         let solicitudesResp;
 
-        // Verificar rol del usuario (nombres en mayúsculas: ADMIN, JEFE_RH, JEFE_AREA, EMPLEADO)
-        if (hasRole('ADMIN') || hasRole('JEFE_RH')) {
-          // Admin y Jefe RH: obtienen TODAS las solicitudes
-          console.log('👤 Jefe RH/Admin - Cargando TODAS las solicitudes');
+        // Verificar rol del usuario (nombres en mayúsculas: ADMIN, GERENTE_GENERAL, JEFE_AREA, EMPLEADO)
+        if (hasRole('ADMIN') || hasRole('GERENTE_GENERAL')) {
+          // Admin y Gerente General: obtienen TODAS las solicitudes
+          console.log('👤 Gerente General/Admin - Cargando TODAS las solicitudes');
           solicitudesResp = await vacacionesService.getAllSolicitudesVacaciones();
         } else if (
           hasRole('JEFE_AREA') ||

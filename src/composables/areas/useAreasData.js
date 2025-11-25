@@ -61,11 +61,14 @@ export function useAreasData() {
       'ADMIN': 'Admin',
       'EMPLEADO': 'Empleado',
       'JEFE_AREA': 'Jefe de Área',
-      'JEFE_RH': 'Jefe de Recursos Humanos',
+      'GERENTE_GENERAL': 'Gerente General',
       'JEFE_ASISTENCIAS': 'Jefe de Asistencias',
       'JEFE_CONTRATOS': 'Jefe de Contratos',
       'JEFE_VACACIONES': 'Jefe de Vacaciones',
-      'JEFE_INCIDENCIAS': 'Jefe de Incidencias'
+      'JEFE_INCIDENCIAS': 'Jefe de Incidencias',
+      'Analista de Datos': 'Analista de Datos',
+      'Contador General': 'Contador General',
+      'Desarrollador Full Stack': 'Desarrollador Full Stack'
     };
     return formato[nombre] || nombre;
   };
