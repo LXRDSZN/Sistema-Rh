@@ -272,7 +272,13 @@ const cargarRegistrosHoy = async () => {
       }));
     }
   } catch (error) {
-    console.error('Error al cargar checadas de hoy:', error);
+    if (error.response?.status === 401) {
+      console.warn('Sesión expirada, redirigiendo a login...');
+      // El interceptor de axios ya redirigirá automáticamente
+    } else {
+      console.error('Error al cargar checadas de hoy:', error);
+      mostrarError('Error al cargar el historial de asistencias. Intente nuevamente.');
+    }
   }
 };
 
