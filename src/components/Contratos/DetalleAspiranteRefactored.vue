@@ -34,11 +34,27 @@
 
             <ProcesoSeleccionTab v-if="tabActual === 'proceso'" :aspirante="aspirante"
                 :aspiracion-laboral="aspiracionLaboral" @etapa-actualizada="actualizarEtapaLocal"
-                @comentario-enviado="guardarComentarioAspiracion" />
+                @comentario-enviado="guardarComentarioAspiracion" @ir-a-documentacion="cambiarADocumentacion" />
 
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" :documentos="documentos"
                 @subir-documento="handleSubirDocumento" @eliminar-documento="handleEliminarDocumento"
                 @ver-documento="handleVerDocumento" @descargar-documento="handleDescargarDocumento" />
+
+            <!-- Notificación de Contratación Lista (permanece visible al cambiar de pestaña) -->
+            <transition name="slide-fade">
+                <div v-if="mostrarNotificacionContratacion" class="notificacion-contratacion">
+                    <div class="notificacion-contenido">
+                        <span class="material-symbols-rounded icono-success">check_circle</span>
+                        <div class="notificacion-texto">
+                            <h3>¡Aspirante listo para contratar!</h3>
+                            <p>{{ nombreCompletoAspirante }} ha completado todas las etapas del proceso de selección y está listo para ser contratado.</p>
+                        </div>
+                        <button class="btn-cerrar-notificacion" @click="cerrarNotificacionContratacion">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
+                </div>
+            </transition>
 
         </template>
     </div>
@@ -46,7 +62,7 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 import { useS3Files } from '@/composables/useS3Files';
 import { useDocumentosPersona } from '@/composables/useDocumentosPersona';
@@ -91,6 +107,7 @@ const error = ref(null);
 const documentos = ref([]);
 const CODIGOS_DOCS_ADJUNTOS = ['CURP', 'INE', 'COMPROB_DOM', 'CV'];
 const tabActual = ref('datos');
+const mostrarNotificacionContratacion = ref(false);
 
 const tabs = [
     { id: 'datos', label: 'Datos Personales y Contacto' },
@@ -225,6 +242,21 @@ const guardarComentarioAspiracion = async (comentarioTexto) => {
     }
 };
 
+const cambiarADocumentacion = () => {
+    tabActual.value = 'documentacion';
+    mostrarNotificacionContratacion.value = true;
+};
+
+const cerrarNotificacionContratacion = () => {
+    mostrarNotificacionContratacion.value = false;
+};
+
+const nombreCompletoAspirante = computed(() => {
+    if (!aspirante.value) return '';
+    // El campo 'nombre' ya contiene el nombre completo
+    return aspirante.value.nombre || '';
+});
+
 const extraerS3KeyDeDocumento = (doc) => {
     // 1) Preferimos storage_url (lo que tienes en la tabla archivo)
     let value = doc.storage_url || doc.nombre_archivo;
@@ -267,7 +299,7 @@ const handleSubirDocumento = async (doc) => {
     try {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'application/pdf,image/*';
+        input.accept = 'application/pdf';
         input.click();
 
         input.onchange = async () => {
@@ -593,4 +625,84 @@ onMounted(() => {
         font-size: 0.9rem;
     }
 }
+
+/* Notificación de Contratación */
+.notificacion-contratacion {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-left: 5px solid #27ae60;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 32px rgba(39, 174, 96, 0.2);
+    max-width: 450px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.notificacion-contenido {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.icono-success {
+    color: #27ae60;
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.notificacion-texto h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.notificacion-texto p {
+    margin: 0;
+    font-size: 14px;
+    color: #5a6c7d;
+    line-height: 1.5;
+}
+
+.btn-cerrar-notificacion {
+    background: none;
+    border: none;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.btn-cerrar-notificacion:hover {
+    color: #7f8c8d;
+}
+
+.btn-cerrar-notificacion .material-symbols-rounded {
+    font-size: 20px;
+}
+
+/* Animación slide-fade */
+.slide-fade-enter-active {
+    transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+    transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+.slide-fade-leave-to {
+    transform: translateY(-10px);
+    opacity: 0;
+}
 </style>
+

@@ -102,29 +102,13 @@
                 </button>
             </div>
         </div>
-
-        <!-- Notificación de Contratación Lista -->
-        <transition name="slide-fade">
-            <div v-if="mostrarNotificacionContratacion" class="notificacion-contratacion">
-                <div class="notificacion-contenido">
-                    <span class="material-symbols-rounded icono-success">check_circle</span>
-                    <div class="notificacion-texto">
-                        <h3>¡Aspirante listo para contratar!</h3>
-                        <p>{{ nombreCompleto }} ha completado todas las etapas del proceso de selección y está listo para ser contratado.</p>
-                    </div>
-                    <button class="btn-cerrar-notificacion" @click="cerrarNotificacion">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-            </div>
-        </transition>
     </div>
 </template>
 
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue';
 
-const emit = defineEmits(['etapa-actualizada', 'comentario-enviado']);
+const emit = defineEmits(['etapa-actualizada', 'comentario-enviado', 'ir-a-documentacion']);
 
 const props = defineProps({
     aspirante: {
@@ -141,14 +125,8 @@ const etapasOrdenadas = ['Registro', 'Revisión', 'Entrevista', 'Evaluación', '
 
 const etapaLocal = ref(props.aspirante.estadoProceso || 'Registro');
 const comentario = ref('');
-const mostrarNotificacionContratacion = ref(false);
 
 const comentarioActual = computed(() => props.aspiracionLaboral?.comentario || '');
-
-const nombreCompleto = computed(() => {
-    const { nombre, apellidoPaterno, apellidoMaterno } = props.aspirante;
-    return `${nombre || ''} ${apellidoPaterno || ''} ${apellidoMaterno || ''}`.trim();
-});
 
 // Verificar si está en etapa de contratación al montar
 onMounted(() => {
@@ -165,11 +143,8 @@ watch(
 
 const verificarEtapaContratacion = () => {
     if (etapaLocal.value === 'Contratación') {
-        mostrarNotificacionContratacion.value = true;
-        // Auto-cerrar después de 8 segundos
-        setTimeout(() => {
-            mostrarNotificacionContratacion.value = false;
-        }, 8000);
+        // Emitir evento para cambiar a pestaña de documentación
+        emit('ir-a-documentacion');
     }
 };
 
@@ -224,14 +199,6 @@ const moverSiguienteEtapa = () => {
     const siguienteEtapa = etapasOrdenadas[actualIndex + 1];
     etapaLocal.value = siguienteEtapa;
     emit('etapa-actualizada', siguienteEtapa);
-    
-    // Mostrar notificación si llegó a Contratación
-    if (siguienteEtapa === 'Contratación') {
-        mostrarNotificacionContratacion.value = true;
-        setTimeout(() => {
-            mostrarNotificacionContratacion.value = false;
-        }, 8000);
-    }
 };
 
 const enviarComentario = () => {
@@ -240,10 +207,6 @@ const enviarComentario = () => {
     }
     emit('comentario-enviado', comentario.value.trim());
     comentario.value = '';
-};
-
-const cerrarNotificacion = () => {
-    mostrarNotificacionContratacion.value = false;
 };
 </script>
 

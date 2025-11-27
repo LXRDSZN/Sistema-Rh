@@ -210,7 +210,7 @@ const handleSubirDocumento = async (doc) => {
     try {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'application/pdf,image/*';
+        input.accept = 'application/pdf';
         input.click();
 
         input.onchange = async () => {
