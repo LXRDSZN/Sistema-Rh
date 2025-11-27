@@ -346,21 +346,23 @@ router.get('/aspirantes/:personaId/documentos', verificarToken, async (req, res)
     const sql = `
       SELECT
         dt.id                               AS documento_tipo_id,
+        dt.codigo                           AS codigo,          -- 👈 NUEVO
         dt.nombre                           AS tipo_documento,
         COALESCE(dp.estado, 'Pendiente')    AS estado,
         dp.fecha_subida,
-        dp.id                             AS documento_persona_id,
+        dp.id                               AS documento_persona_id,
         a.id                                AS archivo_id,
         a.nombre                            AS nombre_archivo,
         a.storage_url
       FROM documento_tipo dt
       LEFT JOIN documento_persona dp
         ON dp.documento_tipo_id = dt.id
-       AND dp.persona_id = $1
+        AND dp.persona_id = $1
       LEFT JOIN archivo a
         ON a.id = dp.archivo_id
       ORDER BY dt.nombre;
     `;
+
 
     const { rows } = await client.query(sql, [personaId]);
 
