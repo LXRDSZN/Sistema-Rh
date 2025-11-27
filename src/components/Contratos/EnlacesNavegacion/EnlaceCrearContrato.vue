@@ -245,6 +245,33 @@
             </div>
         </div>
     </transition>
+
+    <!-- Modal de Vista Previa del Contrato -->
+    <transition name="modal-fade">
+        <div v-if="mostrarModalContrato" class="modal-overlay" @click.self="cerrarModalContrato">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Vista Previa - Contrato Laboral</h2>
+                    <button class="btn-close-modal" @click="cerrarModalContrato">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <iframe v-if="pdfContratoPreviewUrl" :src="pdfContratoPreviewUrl" class="pdf-preview"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-confirmar" @click="confirmarGuardarContrato">
+                        <span class="material-symbols-rounded">check_circle</span>
+                        Confirmar y Guardar
+                    </button>
+                    <button class="btn-cancelar" @click="cerrarModalContrato">
+                        <span class="material-symbols-rounded">close</span>
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition>
 </template>
 
 
@@ -792,6 +819,11 @@ const mostrarModalAcuerdo = ref(false);
 const pdfPreviewUrl = ref(null);
 let pdfBlobActual = null;
 
+// Estados para vista previa del contrato
+const mostrarModalContrato = ref(false);
+const pdfContratoPreviewUrl = ref(null);
+let pdfContratoBlobActual = null;
+
 const generarAcuerdoConfidencialidad = () => {
     // Obtener datos del formulario
     const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
@@ -938,6 +970,276 @@ const cerrarModalAcuerdo = () => {
     }
 };
 
+// ===== GENERAR PDF DEL CONTRATO =====
+const generarPdfContrato = async () => {
+    // Obtener datos del formulario
+    const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
+    const puestoObj = puestos.value.find(p => p.id === formData.value.puesto);
+    const puesto = puestoObj ? formatRoleName(puestoObj.nombre) : '';
+    const area = areas.value.find(a => a.id === formData.value.area)?.nombre || '';
+    const jornada = jornadas.value.find(j => j.id === formData.value.jornadaLaboral)?.nombre || '';
+    const plantilla = plantillas.value.find(pl => pl.id === formData.value.plantillaContrato)?.nombre || '';
+    
+    // Formatear fechas
+    const fechaInicio = formData.value.fechaInicio ? new Date(formData.value.fechaInicio + 'T00:00:00') : null;
+    const fechaTermino = formData.value.fechaTermino ? new Date(formData.value.fechaTermino + 'T00:00:00') : null;
+    
+    const formatoFechaLarga = (fecha) => {
+        if (!fecha) return '';
+        const dia = fecha.getDate();
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const mes = meses[fecha.getMonth()];
+        const anio = fecha.getFullYear();
+        return `${dia} de ${mes} de ${anio}`;
+    };
+
+    // Crear el documento PDF
+    const pdf = new jsPDF('p', 'mm', 'letter');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+    
+    // Función auxiliar para agregar nueva página si es necesario
+    const verificarEspacio = (espacioNecesario) => {
+        if (yPosition + espacioNecesario > pageHeight - margin) {
+            pdf.addPage();
+            return margin;
+        }
+        return yPosition;
+    };
+    
+    // Título
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('CONTRATO LABORAL', pageWidth / 2, 25, { align: 'center' });
+    pdf.setFontSize(11);
+    pdf.text(plantilla.toUpperCase(), pageWidth / 2, 32, { align: 'center' });
+    
+    // Fecha y lugar
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    let yPosition = 45;
+    const fecha = new Date();
+    pdf.text(`Morelos, a ${formatoFechaLarga(fecha)}`, margin, yPosition);
+    
+    // Sección: Partes del contrato
+    yPosition += 12;
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('LAS PARTES', margin, yPosition);
+    
+    yPosition += 8;
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    
+    const parrafoPartes = `Por una parte, la empresa CORPORATIVO RRHH, con domicilio en Morelos, México, representada por el Ing. Alberto Miguel Flores Flores en su carácter de Gerente General, quien en lo sucesivo se denominará "EL EMPLEADOR", y por la otra parte, el/la C. ${nombreCompleto}, quien en lo sucesivo se denominará "EL TRABAJADOR", acuerdan celebrar el presente contrato de trabajo bajo las siguientes:`;
+    
+    const lineasPartes = pdf.splitTextToSize(parrafoPartes, maxWidth);
+    pdf.text(lineasPartes, margin, yPosition);
+    yPosition += lineasPartes.length * 4 + 8;
+    
+    // CLÁUSULAS
+    yPosition = verificarEspacio(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('CLÁUSULAS', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 10;
+    
+    pdf.setFontSize(9);
+    
+    // Cláusula Primera: Puesto y Funciones
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('PRIMERA. PUESTO Y FUNCIONES', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    const clausula1 = `EL TRABAJADOR se compromete a prestar sus servicios personales subordinados a EL EMPLEADOR, desempeñando el puesto de ${puesto} en el área de ${area}. Las funciones específicas del puesto incluyen todas aquellas actividades inherentes al cargo y aquellas que le sean asignadas por su superior inmediato, comprometiéndose a realizarlas con la diligencia y profesionalismo requeridos.`;
+    
+    const lineas1 = pdf.splitTextToSize(clausula1, maxWidth);
+    pdf.text(lineas1, margin, yPosition);
+    yPosition += lineas1.length * 4 + 8;
+    
+    // Cláusula Segunda: Vigencia del Contrato
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('SEGUNDA. VIGENCIA DEL CONTRATO', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    let textoVigencia = '';
+    if (formData.value.tipoContrato === 'Indefinido') {
+        textoVigencia = `El presente contrato es por tiempo INDEFINIDO, iniciando el ${formatoFechaLarga(fechaInicio)}, y continuará vigente hasta que alguna de las partes decida darlo por terminado conforme a lo establecido en la legislación laboral aplicable.`;
+    } else if (formData.value.tipoContrato === 'Temporal') {
+        textoVigencia = `El presente contrato es de carácter TEMPORAL, con vigencia desde el ${formatoFechaLarga(fechaInicio)} hasta el ${formatoFechaLarga(fechaTermino)}. Al término de este período, el contrato podrá renovarse previo acuerdo de ambas partes.`;
+    } else if (formData.value.tipoContrato === 'Por Proyecto') {
+        const proyecto = formData.value.proyecto || '(nombre del proyecto)';
+        textoVigencia = `El presente contrato es POR PROYECTO, específicamente para el proyecto "${proyecto}", con vigencia desde el ${formatoFechaLarga(fechaInicio)} hasta el ${formatoFechaLarga(fechaTermino)} o hasta la conclusión satisfactoria del proyecto, lo que ocurra primero.`;
+    }
+    
+    const lineas2 = pdf.splitTextToSize(textoVigencia, maxWidth);
+    pdf.text(lineas2, margin, yPosition);
+    yPosition += lineas2.length * 4 + 8;
+    
+    // Cláusula Tercera: Jornada de Trabajo
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('TERCERA. JORNADA DE TRABAJO', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    const clausula3 = `La jornada de trabajo será de tipo ${jornada}, con horario de entrada a las ${formData.value.entrada} horas y salida a las ${formData.value.salida} horas. EL TRABAJADOR se compromete a cumplir puntualmente con el horario establecido y a registrar su asistencia conforme a los procedimientos institucionales.`;
+    
+    const lineas3 = pdf.splitTextToSize(clausula3, maxWidth);
+    pdf.text(lineas3, margin, yPosition);
+    yPosition += lineas3.length * 4 + 8;
+    
+    // Cláusula Cuarta: Remuneración
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('CUARTA. REMUNERACIÓN', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    const sueldoFormateado = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN'
+    }).format(formData.value.sueldoMensual);
+    
+    const clausula4 = `EL EMPLEADOR pagará a EL TRABAJADOR un salario mensual de ${sueldoFormateado} (${formData.value.sueldoMensual} pesos mexicanos), más las prestaciones de ley correspondientes. El pago se realizará de manera quincenal mediante depósito bancario en la cuenta proporcionada por EL TRABAJADOR.`;
+    
+    const lineas4 = pdf.splitTextToSize(clausula4, maxWidth);
+    pdf.text(lineas4, margin, yPosition);
+    yPosition += lineas4.length * 4 + 8;
+    
+    // Cláusula Quinta: Modalidad de Trabajo
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('QUINTA. MODALIDAD DE TRABAJO', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    let textoModalidad = '';
+    if (formData.value.modalidad === 'Presencial') {
+        textoModalidad = 'La modalidad de trabajo será PRESENCIAL, por lo que EL TRABAJADOR deberá desempeñar sus funciones en las instalaciones de EL EMPLEADOR ubicadas en Morelos, México.';
+    } else if (formData.value.modalidad === 'Remota') {
+        textoModalidad = 'La modalidad de trabajo será REMOTA, permitiendo a EL TRABAJADOR desempeñar sus funciones desde un lugar distinto a las instalaciones de EL EMPLEADOR, debiendo contar con los equipos y conectividad necesarios.';
+    } else if (formData.value.modalidad === 'Híbrida') {
+        textoModalidad = 'La modalidad de trabajo será HÍBRIDA, combinando días de trabajo presencial en las instalaciones de EL EMPLEADOR y días de trabajo remoto, conforme al calendario que establezca el área correspondiente.';
+    }
+    
+    const lineas5 = pdf.splitTextToSize(textoModalidad, maxWidth);
+    pdf.text(lineas5, margin, yPosition);
+    yPosition += lineas5.length * 4 + 8;
+    
+    // Cláusula Sexta: Obligaciones del Trabajador
+    yPosition = verificarEspacio(30);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('SEXTA. OBLIGACIONES DEL TRABAJADOR', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    const clausula6 = 'EL TRABAJADOR se obliga a: (a) Cumplir con las políticas, reglamentos y procedimientos establecidos por EL EMPLEADOR; (b) Guardar confidencialidad sobre la información privilegiada a la que tenga acceso; (c) Utilizar adecuadamente los recursos y herramientas proporcionados; (d) Mantener una conducta profesional y respetuosa con compañeros, superiores y clientes; (e) Notificar oportunamente cualquier ausencia o incapacidad.';
+    
+    const lineas6 = pdf.splitTextToSize(clausula6, maxWidth);
+    pdf.text(lineas6, margin, yPosition);
+    yPosition += lineas6.length * 4 + 8;
+    
+    // Cláusula Séptima: Causas de Terminación
+    yPosition = verificarEspacio(25);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('SÉPTIMA. CAUSAS DE TERMINACIÓN', margin, yPosition);
+    yPosition += 6;
+    pdf.setFont('helvetica', 'normal');
+    
+    const clausula7 = 'El presente contrato podrá darse por terminado por: (a) Mutuo consentimiento de las partes; (b) Renuncia voluntaria de EL TRABAJADOR con preaviso de 15 días; (c) Conclusión del período o proyecto establecido; (d) Causas justificadas establecidas en la Ley Federal del Trabajo; (e) Incumplimiento grave de las obligaciones contractuales.';
+    
+    const lineas7 = pdf.splitTextToSize(clausula7, maxWidth);
+    pdf.text(lineas7, margin, yPosition);
+    yPosition += lineas7.length * 4 + 8;
+    
+    // Observaciones adicionales (si existen)
+    if (formData.value.observaciones && formData.value.observaciones.trim()) {
+        yPosition = verificarEspacio(25);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('OCTAVA. OBSERVACIONES ADICIONALES', margin, yPosition);
+        yPosition += 6;
+        pdf.setFont('helvetica', 'normal');
+        
+        const lineas8 = pdf.splitTextToSize(formData.value.observaciones, maxWidth);
+        pdf.text(lineas8, margin, yPosition);
+        yPosition += lineas8.length * 4 + 8;
+    }
+    
+    // Aceptación y Firmas
+    yPosition = verificarEspacio(50);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    
+    const textoFinal = 'Leído que fue el presente contrato y enteradas las partes de su contenido y alcance legal, lo firman de conformidad en la ciudad de Morelos, México.';
+    const lineasFinal = pdf.splitTextToSize(textoFinal, maxWidth);
+    pdf.text(lineasFinal, margin, yPosition);
+    yPosition += lineasFinal.length * 4 + 15;
+    
+    // Líneas de firma
+    yPosition = verificarEspacio(40);
+    const col1X = margin + 20;
+    const col2X = pageWidth - margin - 60;
+    
+    pdf.line(col1X, yPosition, col1X + 50, yPosition);
+    pdf.line(col2X, yPosition, col2X + 50, yPosition);
+    
+    yPosition += 5;
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('EL EMPLEADOR', col1X + 25, yPosition, { align: 'center' });
+    pdf.text('EL TRABAJADOR', col2X + 25, yPosition, { align: 'center' });
+    
+    yPosition += 4;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Ing. Alberto Miguel Flores Flores', col1X + 25, yPosition, { align: 'center' });
+    pdf.text(nombreCompleto, col2X + 25, yPosition, { align: 'center' });
+    
+    yPosition += 4;
+    pdf.text('Gerente General', col1X + 25, yPosition, { align: 'center' });
+    pdf.text(puesto, col2X + 25, yPosition, { align: 'center' });
+    
+    return pdf;
+};
+
+const mostrarVistaPrevia = async () => {
+    // Validar antes de mostrar vista previa
+    const errores = obtenerErroresValidacion();
+
+    if (errores.length > 0) {
+        alert(
+            'No se puede generar la vista previa por los siguientes motivos:\n\n- ' +
+            errores.join('\n- ')
+        );
+        return;
+    }
+
+    try {
+        const pdf = await generarPdfContrato();
+        pdfContratoBlobActual = pdf.output('blob');
+        const url = URL.createObjectURL(pdfContratoBlobActual);
+        pdfContratoPreviewUrl.value = url;
+        mostrarModalContrato.value = true;
+    } catch (error) {
+        console.error('Error al generar vista previa del contrato:', error);
+        alert('Error al generar la vista previa del contrato.');
+    }
+};
+
+const cerrarModalContrato = () => {
+    mostrarModalContrato.value = false;
+    if (pdfContratoPreviewUrl.value) {
+        URL.revokeObjectURL(pdfContratoPreviewUrl.value);
+        pdfContratoPreviewUrl.value = null;
+    }
+};
+
 // ===== SALIR CON CONFIRMACIÓN =====
 const confirmarSalida = () => {
     const hayCambios = hayCambiosEnFormulario();
@@ -953,7 +1255,15 @@ const confirmarSalida = () => {
 
 // ===== GUARDAR CONTRATO =====
 const guardarContrato = async () => {
-    // 1) Validaciones de formulario
+    // Mostrar vista previa en lugar de guardar directamente
+    await mostrarVistaPrevia();
+};
+
+const confirmarGuardarContrato = async () => {
+    // Cerrar modal de vista previa
+    cerrarModalContrato();
+    
+    // 1) Validaciones de formulario (ya se validaron en mostrarVistaPrevia, pero por seguridad)
     const errores = obtenerErroresValidacion();
 
     if (errores.length > 0) {
@@ -978,47 +1288,14 @@ const guardarContrato = async () => {
         return;
     }
 
-    // 3) Helper: generar captura del contrato en PDF
-    const generarPdfContrato = async () => {
-        const elemento = document.getElementById('contrato-preview'); // <-- ajusta el id si usas otro
-
-        if (!elemento) {
-            throw new Error('No se encontró el contenedor #contrato-preview para generar el PDF');
+    // 3) Helper: convertir blob del PDF del contrato en File
+    const obtenerPdfContratoFile = () => {
+        if (!pdfContratoBlobActual) {
+            throw new Error('No hay PDF del contrato generado');
         }
 
-        // Configurar html2canvas para capturar correctamente imágenes base64 y CORS
-        const canvas = await html2canvas(elemento, { 
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-        });
-        const imgData = canvas.toDataURL('image/png');
-
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgRatio = imgProps.height / imgProps.width;
-
-        let imgWidth = pdfWidth;
-        let imgHeight = imgWidth * imgRatio;
-
-        if (imgHeight > pdfHeight) {
-            imgHeight = pdfHeight;
-            imgWidth = imgHeight / imgRatio;
-        }
-
-        const x = (pdfWidth - imgWidth) / 2;
-        const y = 10;
-
-        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-
-        const blob = pdf.output('blob');
         const nombreArchivo = `Contrato-${new Date().toISOString().slice(0, 10)}.pdf`;
-
-        return new File([blob], nombreArchivo, { type: 'application/pdf' });
+        return new File([pdfContratoBlobActual], nombreArchivo, { type: 'application/pdf' });
     };
 
     // 4) Helper: abrir PDF desde S3 con URL firmada (7 días)
@@ -1074,8 +1351,8 @@ const guardarContrato = async () => {
             }
         }
 
-        // 6) Generar PDF del CONTRATO (captura) y subirlo a S3
-        const archivoContratoFile = await generarPdfContrato();
+        // 6) Obtener PDF del CONTRATO (ya generado en vista previa) y subirlo a S3
+        const archivoContratoFile = obtenerPdfContratoFile();
         const respContrato = await subirArchivo(archivoContratoFile);
         if (!respContrato?.ok || !respContrato.archivo) {
             throw new Error(respContrato?.error || 'No se recibió información del PDF de contrato');
@@ -1626,6 +1903,25 @@ onMounted(async () => {
 .btn-descargar-pdf:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-confirmar {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-confirmar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
 .btn-cancelar {
