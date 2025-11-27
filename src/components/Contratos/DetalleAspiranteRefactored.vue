@@ -327,6 +327,16 @@ const handleSubirDocumento = async (doc) => {
                 JSON.parse(JSON.stringify(documentos.value))
             );
 
+            // 5) Si el documento es CV, actualizar también el cvUrl
+            if (doc.codigo === 'CV' || doc.tipo_documento === 'Curriculum Vitae') {
+                try {
+                    cvUrl.value = await obtenerCvAspirante(aspirante.value.id);
+                    console.log('CV URL actualizado:', cvUrl.value);
+                } catch (cvError) {
+                    console.warn('No se pudo actualizar CV URL:', cvError);
+                    cvUrl.value = null;
+                }
+            }
 
             console.log('--- handleSubirDocumento FIN ---');
         };
@@ -386,6 +396,17 @@ const handleEliminarDocumento = async (doc) => {
             'Documentos después de refrescar (eliminar, filtrados):',
             JSON.parse(JSON.stringify(documentos.value))
         );
+
+        // Si el documento eliminado era CV, actualizar también el cvUrl
+        if (doc.codigo === 'CV' || doc.tipo_documento === 'Curriculum Vitae') {
+            try {
+                cvUrl.value = await obtenerCvAspirante(aspirante.value.id);
+                console.log('CV URL actualizado después de eliminar:', cvUrl.value);
+            } catch (cvError) {
+                console.warn('No se pudo actualizar CV URL:', cvError);
+                cvUrl.value = null;
+            }
+        }
 
 
         console.log('--- handleEliminarDocumento FIN ---');

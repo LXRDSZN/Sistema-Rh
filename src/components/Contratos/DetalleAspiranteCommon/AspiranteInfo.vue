@@ -113,28 +113,23 @@ const { obtenerCvAspirante } = useAspirantesContratos();
 
 const abrirCV = async () => {
     try {
-        // 1) Si ya viene la URL por prop, úsala directo
-        let url = props.cvUrl;
+        const personaId = props.aspirante.persona_id || props.aspirante.id;
 
-        // 2) Si no hay URL, la pedimos al backend
-        if (!url) {
-            const personaId = props.aspirante.persona_id || props.aspirante.id;
-
-            if (!personaId) {
-                alert('No se encontró el identificador del aspirante.');
-                return;
-            }
-
-            url = await obtenerCvAspirante(personaId);
+        if (!personaId) {
+            alert('No se encontró el identificador del aspirante.');
+            return;
         }
 
-        // 3) Validar resultado
+        // SIEMPRE pedir una nueva URL firmada al backend para evitar que expire
+        const url = await obtenerCvAspirante(personaId);
+
+        // Validar resultado
         if (!url) {
             alert('Este aspirante no tiene CV cargado.');
             return;
         }
 
-        // 4) Abrir el PDF en una pestaña nueva
+        // Abrir el PDF en una pestaña nueva
         window.open(url, '_blank');
     } catch (error) {
         console.error('Error al abrir el CV del aspirante:', error);

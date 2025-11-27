@@ -2,6 +2,10 @@
 import express from 'express';
 import pool from '../models/db.js';
 import { verificarToken } from '../middleware/authMiddleware.js'; 
+import { s3 } from '../aws/s3Client.js';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import config from '../config/config.js';
 
 const router = express.Router();
 
@@ -75,7 +79,7 @@ router.get('/aspirantes/:personaId/datos-personales', async (req, res) => {
  * GET /api/aspirantes/:personaId/cv
  * 
  * Devuelve:
- *  - URL del CV (storage_url)
+ *  - URL firmada del CV (válida por 7 días)
  */
 router.get('/aspirantes/:personaId/cv', async (req, res) => {
   try {
@@ -102,9 +106,40 @@ router.get('/aspirantes/:personaId/cv', async (req, res) => {
       });
     }
 
+    const storageUrl = result.rows[0].storage_url;
+
+    // Extraer la key (path) del storage_url
+    let s3Key = storageUrl;
+    
+    // Si es una URL completa, extraer solo la key
+    if (storageUrl.startsWith('http')) {
+      try {
+        const url = new URL(storageUrl);
+        s3Key = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+        
+        // Remover el nombre del bucket si está en el path
+        const parts = s3Key.split('/');
+        if (parts[0] === config.aws.bucket) {
+          s3Key = parts.slice(1).join('/');
+        }
+      } catch (e) {
+        console.warn('Error al parsear storage_url:', e);
+      }
+    }
+
+    // Generar URL firmada fresca
+    const getParams = {
+      Bucket: config.aws.bucket,
+      Key: s3Key
+    };
+
+    const signedUrl = await getSignedUrl(s3, new GetObjectCommand(getParams), {
+      expiresIn: 604800  // 7 días
+    });
+
     res.json({
       ok: true,
-      cvUrl: result.rows[0].storage_url
+      cvUrl: signedUrl
     });
 
   } catch (error) {
