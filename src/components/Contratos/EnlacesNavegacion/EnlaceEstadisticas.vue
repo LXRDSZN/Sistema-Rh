@@ -288,7 +288,8 @@ const errorReporte = ref(null);
 // Example events: { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 }
 const calendarEvents = ref([
     { date: '2025-11-22', type: 'vencimiento', title: 'Contrato vence', contratoId: 123 },
-    { date: '2025-11-25', type: 'personal', title: 'Reunión RH', note: 'Revisar documentos' }
+    { date: '2025-11-25', type: 'personal', title: 'Reunión RH', note: 'Revisar documentos' },
+    { date: '2025-11-27', type: 'personal', title: 'Entregar Proyecto', note: 'Primero dios :)' }
 ]);
 
 function prevMonth() {
