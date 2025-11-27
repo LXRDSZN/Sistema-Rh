@@ -141,11 +141,11 @@ const volverInicio = () => {
 
 const formatDate = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
+    const d = new Date(date);
+    const dia = String(d.getUTCDate()).padStart(2, '0');
+    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const anio = d.getUTCFullYear();
+    return `${dia}/${mes}/${anio}`;
 };
 
 // ✅ Filtrado computado

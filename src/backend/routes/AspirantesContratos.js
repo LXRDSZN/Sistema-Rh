@@ -344,9 +344,9 @@ router.get('/aspirantes/:personaId/documentos', verificarToken, async (req, res)
     const { personaId } = req.params;
 
     const sql = `
-      SELECT
+      SELECT DISTINCT ON (dt.id)
         dt.id                               AS documento_tipo_id,
-        dt.codigo                           AS codigo,          -- 👈 NUEVO
+        dt.codigo                           AS codigo,
         dt.nombre                           AS tipo_documento,
         COALESCE(dp.estado, 'Pendiente')    AS estado,
         dp.fecha_subida,
@@ -360,7 +360,7 @@ router.get('/aspirantes/:personaId/documentos', verificarToken, async (req, res)
         AND dp.persona_id = $1
       LEFT JOIN archivo a
         ON a.id = dp.archivo_id
-      ORDER BY dt.nombre;
+      ORDER BY dt.id, dp.fecha_subida DESC NULLS LAST;
     `;
 
 

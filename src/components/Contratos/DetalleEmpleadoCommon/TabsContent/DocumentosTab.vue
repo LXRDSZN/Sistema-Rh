@@ -77,15 +77,17 @@ const emit = defineEmits([
     'descargar-documento'
 ]);
 
-// Formatear fecha a dd/mm/aaaa
+// Formatear fecha a dd/mm/aaaa (usando UTC para evitar desfase de zona horaria)
 const formatearFecha = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return d.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    
+    // Usar UTC para evitar que la fecha se muestre con un día de diferencia
+    const dia = String(d.getUTCDate()).padStart(2, '0');
+    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const anio = d.getUTCFullYear();
+    
+    return `${dia}/${mes}/${anio}`;
 };
 
 // Normaliza para la vista, pero conserva el objeto original en _original

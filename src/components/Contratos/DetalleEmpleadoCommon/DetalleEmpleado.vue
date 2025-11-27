@@ -447,13 +447,13 @@ const formatearHora = (hora) => {
     return hora;
 };
 
-// Función para formatear fechas
+// Función para formatear fechas (usando UTC para evitar desfase de zona horaria)
 const formatearFecha = (fecha) => {
     if (!fecha) return 'INDEFINIDO';
     const d = new Date(fecha);
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const anio = d.getFullYear();
+    const dia = String(d.getUTCDate()).padStart(2, '0');
+    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const anio = d.getUTCFullYear();
     return `${dia}/${mes}/${anio}`;
 };
 

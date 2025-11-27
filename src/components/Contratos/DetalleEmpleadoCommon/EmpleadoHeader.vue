@@ -79,18 +79,18 @@ const onImgError = (event) => {
     event.target.src = defaultAvatar;
 };
 
-// Función para formatear fecha
+// Función para formatear fecha (usando UTC para evitar desfase de zona horaria)
 const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2023';
 
     // Si ya viene en formato DD/MM/YYYY, retornarla tal cual
-    if (fecha.includes('/')) return fecha;
+    if (typeof fecha === 'string' && fecha.includes('/')) return fecha;
 
-    // Si viene como objeto Date o string ISO, formatear
+    // Si viene como objeto Date o string ISO, formatear con UTC
     const date = new Date(fecha);
-    const dia = String(date.getDate()).padStart(2, '0');
-    const mes = String(date.getMonth() + 1).padStart(2, '0');
-    const anio = date.getFullYear();
+    const dia = String(date.getUTCDate()).padStart(2, '0');
+    const mes = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const anio = date.getUTCFullYear();
     return `${dia}/${mes}/${anio}`;
 };
 </script>
