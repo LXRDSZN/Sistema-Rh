@@ -53,11 +53,16 @@ export const crearSolicitud = async (formulario) => {
       })
     });
 
+    const data = await response.json();
+
+    // Si la respuesta no es exitosa, lanzar error con el mensaje del servidor
     if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`);
+      const error = new Error(data.message || `Error: ${response.statusText}`);
+      error.status = response.status;
+      error.data = data;
+      throw error;
     }
 
-    const data = await response.json();
     return data;
 
   } catch (error) {

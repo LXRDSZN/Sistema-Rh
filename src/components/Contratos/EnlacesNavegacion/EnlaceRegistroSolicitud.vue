@@ -1,5 +1,23 @@
 <template>
   <div class="registro-solicitud-container">
+    <!-- Notificación Toast -->
+    <transition name="slide-fade">
+      <div v-if="mostrarNotificacion" class="toast-notification" :class="tipoNotificacion">
+        <div class="toast-content">
+          <span class="material-symbols-rounded toast-icon">
+            {{ tipoNotificacion === 'success' ? 'check_circle' : tipoNotificacion === 'error' ? 'error' : 'info' }}
+          </span>
+          <div class="toast-message">
+            <strong>{{ tituloNotificacion }}</strong>
+            <p>{{ mensajeNotificacion }}</p>
+          </div>
+          <button class="toast-close" @click="cerrarNotificacion">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+      </div>
+    </transition>
+
     <!-- Header con botón atrás -->
     <div class="registro-header">
       <button class="btn-back" @click="volver">
@@ -10,13 +28,7 @@
 
     <!-- Contenido principal -->
     <form @submit.prevent="enviarSolicitud" class="registro-form">
-      <!-- Mensajes de error y éxito -->
-      <div v-if="error" class="alert alert-error">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span>{{ error }}</span>
-          <button type="button" @click="cargarCatalogos" style="padding: 5px 15px; background: #c33; border: none; color: white; border-radius: 4px; cursor: pointer;">Reintentar</button>
-        </div>
-      </div>
+      <!-- Mensajes de éxito (mantener solo para compatibilidad) -->
       <div v-if="exito" class="alert alert-success">
         ¡Solicitud enviada correctamente! Redirigiendo...
       </div>
@@ -318,6 +330,29 @@ const cargando = ref(false);
 const error = ref(null);
 const exito = ref(false);
 
+// Estado de notificaciones
+const mostrarNotificacion = ref(false);
+const tipoNotificacion = ref('error'); // 'success', 'error', 'warning', 'info'
+const tituloNotificacion = ref('');
+const mensajeNotificacion = ref('');
+
+// Función para mostrar notificación
+const mostrarNotif = (tipo, titulo, mensaje, duracion = 5000) => {
+  tipoNotificacion.value = tipo;
+  tituloNotificacion.value = titulo;
+  mensajeNotificacion.value = mensaje;
+  mostrarNotificacion.value = true;
+  
+  // Auto cerrar después de la duración especificada
+  setTimeout(() => {
+    mostrarNotificacion.value = false;
+  }, duracion);
+};
+
+const cerrarNotificacion = () => {
+  mostrarNotificacion.value = false;
+};
+
 // Estado de errores de validación por campo
 const erroresValidacion = ref({
   nombres: '',
@@ -392,11 +427,11 @@ const cargarCatalogos = async () => {
     if (response.success) {
       catalogos.value = response.catalogos;
     } else {
-      error.value = response.message || 'Error al cargar los datos';
+      mostrarNotif('error', '❌ Error de Carga', response.message || 'Error al cargar los datos');
     }
   } catch (err) {
     console.error('Error al cargar catálogos:', err);
-    error.value = 'Error al cargar los datos. Por favor recarga la página.';
+    mostrarNotif('error', '❌ Error de Carga', 'Error al cargar los datos. Por favor recarga la página.');
   }
 };
 
@@ -677,7 +712,7 @@ const removerExperiencia = (index) => {
 
 const enviarSolicitud = async () => {
   if (!formulario.value.confirmacionDatos || !formulario.value.aceptoPrivacidad) {
-    error.value = 'Debe aceptar las confirmaciones antes de enviar.';
+    mostrarNotif('error', '⚠️ Confirmación Requerida', 'Debe aceptar las confirmaciones antes de enviar.');
     return;
   }
 
@@ -687,13 +722,12 @@ const enviarSolicitud = async () => {
   if (validacion.tieneErrores) {
     // Actualizar erroresValidacion con todos los errores encontrados
     Object.assign(erroresValidacion.value, validacion.errores);
-    error.value = 'Por favor corrige los errores en el formulario antes de enviar.';
+    mostrarNotif('error', '⚠️ Errores en el Formulario', 'Por favor corrige los errores en el formulario antes de enviar.');
     console.log('Errores encontrados:', validacion.errores);
     return;
   }
 
   cargando.value = true;
-  error.value = null;
 
   try {
     // Función auxiliar para obtener el ID de tipo de documento por nombre
@@ -743,7 +777,7 @@ const enviarSolicitud = async () => {
         }
       } catch (err) {
         console.error('Error en foto:', err);
-        error.value = 'Error al subir la foto. Continuando sin foto...';
+        mostrarNotif('warning', '⚠️ Error en Foto', 'Error al subir la foto. Continuando sin foto...', 4000);
         formulario.value.fotoUrl = null;
       }
     }
@@ -762,7 +796,7 @@ const enviarSolicitud = async () => {
         }
       } catch (err) {
         console.error('Error en CURP:', err);
-        error.value = 'Error al subir CURP. Continuando...';
+        mostrarNotif('warning', '⚠️ Error en CURP', 'Error al subir CURP. Continuando...', 4000);
       }
     }
 
@@ -780,7 +814,7 @@ const enviarSolicitud = async () => {
         }
       } catch (err) {
         console.error('Error en INE:', err);
-        error.value = 'Error al subir INE. Continuando...';
+        mostrarNotif('warning', '⚠️ Error en INE', 'Error al subir INE. Continuando...', 4000);
       }
     }
 
@@ -798,7 +832,7 @@ const enviarSolicitud = async () => {
         }
       } catch (err) {
         console.error('Error en Comprobante de Domicilio:', err);
-        error.value = 'Error al subir comprobante de domicilio. Continuando...';
+        mostrarNotif('warning', '⚠️ Error en Domicilio', 'Error al subir comprobante de domicilio. Continuando...', 4000);
       }
     }
 
@@ -816,7 +850,7 @@ const enviarSolicitud = async () => {
         }
       } catch (err) {
         console.error('Error en CV:', err);
-        error.value = 'Error al subir CV. Continuando...';
+        mostrarNotif('warning', '⚠️ Error en CV', 'Error al subir CV. Continuando...', 4000);
       }
     }
 
@@ -873,7 +907,15 @@ const enviarSolicitud = async () => {
     }
   } catch (err) {
     console.error('Error al enviar solicitud:', err);
-    error.value = 'Error al enviar la solicitud. Por favor intenta nuevamente.';
+    
+    // Manejar error de duplicado (409 Conflict)
+    if (err.status === 409) {
+      mostrarNotif('error', '⚠️ Registro Duplicado', err.message || 'Ya existe un registro con estos datos de identificación (RFC, CURP o NSS).', 7000);
+    } else if (err.status === 400) {
+      mostrarNotif('error', '❌ Datos Inválidos', err.message || 'Por favor verifica los campos del formulario.', 5000);
+    } else {
+      mostrarNotif('error', '❌ Error al Enviar', err.message || 'Error al enviar la solicitud. Por favor intenta nuevamente.', 5000);
+    }
   } finally {
     cargando.value = false;
   }
@@ -1308,4 +1350,119 @@ const volver = () => {
     transform: translateY(0);
   }
 }
+
+/* Toast Notification Styles */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 320px;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  overflow: hidden;
+  border-left: 4px solid;
+}
+
+.toast-notification.error {
+  border-left-color: #e74c3c;
+}
+
+.toast-notification.success {
+  border-left-color: #27ae60;
+}
+
+.toast-notification.warning {
+  border-left-color: #f39c12;
+}
+
+.toast-notification.info {
+  border-left-color: #3498db;
+}
+
+.toast-content {
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.toast-content .material-symbols-rounded {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-notification.error .material-symbols-rounded {
+  color: #e74c3c;
+}
+
+.toast-notification.success .material-symbols-rounded {
+  color: #27ae60;
+}
+
+.toast-notification.warning .material-symbols-rounded {
+  color: #f39c12;
+}
+
+.toast-notification.info .material-symbols-rounded {
+  color: #3498db;
+}
+
+.toast-message {
+  flex: 1;
+}
+
+.toast-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.toast-message p {
+  margin: 0;
+  font-size: 14px;
+  color: #5a6c7d;
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #95a5a6;
+  cursor: pointer;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: #7f8c8d;
+}
+
+/* Slide Fade Transition */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
 </style>
+

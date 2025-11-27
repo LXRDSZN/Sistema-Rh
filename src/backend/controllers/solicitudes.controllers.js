@@ -59,7 +59,45 @@ export const crearSolicitud = async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 1. Insertar Persona (aspirante)
+    // 1. Validar si el RFC, CURP o NSS ya existen en el sistema
+    if (curp || rfc || nss) {
+      const checkQuery = `
+        SELECT 
+          p.nombre, 
+          p.apellido_paterno, 
+          p.apellido_materno,
+          ip.curp, 
+          ip.rfc, 
+          ip.nss
+        FROM identidad_persona ip
+        JOIN persona p ON p.id = ip.persona_id
+        WHERE ($1::text IS NOT NULL AND ip.curp = $1)
+           OR ($2::text IS NOT NULL AND ip.rfc = $2)
+           OR ($3::text IS NOT NULL AND ip.nss = $3)
+        LIMIT 1
+      `;
+      
+      const existingIdentity = await client.query(checkQuery, [curp || null, rfc || null, nss || null]);
+      
+      if (existingIdentity.rows.length > 0) {
+        const existing = existingIdentity.rows[0];
+        const nombreCompleto = `${existing.nombre} ${existing.apellido_paterno} ${existing.apellido_materno || ''}`.trim();
+        
+        let camposDuplicados = [];
+        if (curp && existing.curp === curp) camposDuplicados.push('CURP');
+        if (rfc && existing.rfc === rfc) camposDuplicados.push('RFC');
+        if (nss && existing.nss === nss) camposDuplicados.push('NSS');
+        
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: `Ya existe un registro con ${camposDuplicados.join(', ')}: ${nombreCompleto}`,
+          duplicatedFields: camposDuplicados
+        });
+      }
+    }
+
+    // 2. Insertar Persona (aspirante)
     const personaResult = await client.query(
       `INSERT INTO persona (
         id, tipo, nombre, apellido_paterno, apellido_materno,
@@ -86,7 +124,7 @@ export const crearSolicitud = async (req, res) => {
 
     const personaId = personaResult.rows[0].id;
 
-    // 2. Insertar Identidad Persona (validar formatos)
+    // 3. Insertar Identidad Persona (validar formatos)
     if (curp || rfc || nss) {
       // Validar formatos
       const curpRegex = /^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$/;
@@ -111,7 +149,7 @@ export const crearSolicitud = async (req, res) => {
       );
     }
 
-    // 3. Insertar Contacto Persona
+    // 4. Insertar Contacto Persona
     if (telefonoCelular || correoElectronico || domicilio) {
       await client.query(
         `INSERT INTO contacto_persona (id, persona_id, telefono, correo, domicilio)
@@ -120,7 +158,7 @@ export const crearSolicitud = async (req, res) => {
       );
     }
 
-    // 4. Insertar Formación Académica (múltiples registros)
+    // 5. Insertar Formación Académica (múltiples registros)
     if (formacionesAcademicas && Array.isArray(formacionesAcademicas)) {
       for (const formacion of formacionesAcademicas) {
         await client.query(
@@ -138,7 +176,7 @@ export const crearSolicitud = async (req, res) => {
       }
     }
 
-    // 5. Insertar Experiencia Laboral (múltiples registros)
+    // 6. Insertar Experiencia Laboral (múltiples registros)
     if (experienciasLaborales && Array.isArray(experienciasLaborales)) {
       for (const experiencia of experienciasLaborales) {
         await client.query(
@@ -156,7 +194,7 @@ export const crearSolicitud = async (req, res) => {
       }
     }
 
-    // 6. Insertar Aspiración Laboral
+    // 7. Insertar Aspiración Laboral
     if (areaId || puestoId) {
       await client.query(
         `INSERT INTO aspiracion_laboral (id, persona_id, area_id, puesto_id, jornada_id, tipo_contrato, modalidad, pretension_salarial, fecha_disponible)
@@ -174,7 +212,7 @@ export const crearSolicitud = async (req, res) => {
       );
     }
 
-    // 7. Insertar Documentos
+    // 8. Insertar Documentos
     if (documentos && Array.isArray(documentos)) {
       for (const documento of documentos) {
         // Insertar archivo
@@ -211,11 +249,14 @@ export const crearSolicitud = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error al crear solicitud:', error);
+    console.error('❌ Error al crear solicitud:', error);
+    console.error('📝 Stack trace:', error.stack);
+    console.error('📋 Datos recibidos:', JSON.stringify(req.body, null, 2));
     res.status(500).json({
       success: false,
       message: 'Error al crear la solicitud',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   } finally {
     client.release();
