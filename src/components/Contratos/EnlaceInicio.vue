@@ -2,9 +2,9 @@
     <div class="inicio-view">
         <!-- Encabezado simplificado -->
         <div class="header">
-            <div>
-                <h1>Contratos/Inicio</h1>
-                <div class="header-sub">Resumen y accesos rápidos</div>
+            <div class="header-content">
+                <h1>Contratos</h1>
+                <div class="header-sub">Panel de control y administración</div>
             </div>
         </div>
 
@@ -322,27 +322,44 @@ function formatRoleName(role) {
 
 /* Header - Separado */
 .header {
-    background-color: transparent;
-    padding: 2rem 2rem 1.5rem 2rem;
-    margin-bottom: 0;
+    background: white;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border-left: 6px solid #667eea;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .header h1 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #000;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1f2937;
     margin: 0;
+}
+
+.header-sub {
+    color: #6b7280;
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 500;
 }
 
 /* Search Container - En línea */
 .search-container {
     background-color: white;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 2rem;
-    margin: 0 2rem 1rem 2rem;
+    margin: 0 2rem 1.5rem 2rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .search-box {
@@ -353,16 +370,24 @@ function formatRoleName(role) {
 .search-box input {
     width: 100%;
     padding: 1rem 3rem 1rem 1.5rem;
-    border: none;
-    border-radius: 30px;
-    background-color: #e8e8f0;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    background-color: white;
     font-size: 1rem;
     outline: none;
-    color: #666;
+    color: #1f2937;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    border-color: #667eea;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .search-box input::placeholder {
-    color: #999;
+    color: #6b7280;
+    font-weight: 500;
 }
 
 .search-icon {
@@ -441,90 +466,158 @@ function formatRoleName(role) {
 .stat-card {
     background: white;
     padding: 2.2rem 2.4rem;
-    border-radius: 14px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover::before {
+    transform: scaleX(1);
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card.activos {
-    background-color: #d4edda;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.stat-card.activos::before {
+    background: linear-gradient(90deg, #34d399, #10b981);
 }
 
 .stat-card.proximos {
-    background-color: #fff3cd;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.stat-card.proximos::before {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
 }
 
 .stat-card.vencidos {
-    background-color: #f8d7da;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.stat-card.vencidos::before {
+    background: linear-gradient(90deg, #f87171, #ef4444);
 }
 
 .stat-card.proceso {
-    background-color: #d1ecf1;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.stat-card.proceso::before {
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
 }
 
 .stat-label {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 800;
     line-height: 1.3;
     text-transform: uppercase;
     margin-bottom: 1rem;
+    color: #6b7280;
+    letter-spacing: 1px;
 }
 
 .stat-card.activos .stat-label {
-    color: #333;
     text-align: center;
 }
 
 .stat-card.proximos .stat-label {
-    color: #000000;
     text-align: center;
 }
 
 .stat-card.vencidos .stat-label {
-    color: #000000;
     text-align: center;
 }
 
 .stat-card.proceso .stat-label {
-    color: #000000;
     text-align: center;
 }
 
 .stat-value {
     font-size: 2.6rem;
-    font-weight: 800;
+    font-weight: 900;
     text-align: center;
 }
 
 .stat-card.activos .stat-value {
-    color: #000000;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-card.proximos .stat-value {
-    color: #000000;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-card.vencidos .stat-value {
-    color: #000000;
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-card.proceso .stat-value {
-    color: #000000;
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Icon box inside stat cards */
 .stat-value-with-icon { display:flex; align-items:center; justify-content:center; gap:18px; }
-.icon-box { width:56px; height:56px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 -6px 12px rgba(255,255,255,0.25); }
-.stat-card.activos .icon-box { background: rgba(16,185,129,0.12); border: 2px solid rgba(16,185,129,0.18); color: #059669; }
-.stat-card.proximos .icon-box { background: rgba(221,200,81,0.12); border: 2px solid rgba(221,200,81,0.18); color: #b88600; }
-.stat-card.vencidos .icon-box { background: rgba(220,53,69,0.08); border: 2px solid rgba(220,53,69,0.14); color: #b91c1c; }
-.stat-card.proceso .icon-box { background: rgba(23,162,184,0.08); border: 2px solid rgba(23,162,184,0.14); color: #0e7490; }
+.icon-box { 
+    width:65px; 
+    height:65px; 
+    border-radius:16px; 
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    transition: all 0.3s ease;
+}
+.stat-card:hover .icon-box { 
+    transform: rotate(5deg) scale(1.1); 
+}
+.stat-card.activos .icon-box { 
+    background: linear-gradient(135deg, #34d399, #10b981); 
+    color: white; 
+}
+.stat-card.proximos .icon-box { 
+    background: linear-gradient(135deg, #fbbf24, #f59e0b); 
+    color: white; 
+}
+.stat-card.vencidos .icon-box { 
+    background: linear-gradient(135deg, #f87171, #ef4444); 
+    color: white; 
+}
+.stat-card.proceso .icon-box { 
+    background: linear-gradient(135deg, #60a5fa, #3b82f6); 
+    color: white; 
+}
 
 .stat-label { text-align:center; font-size:0.85rem; letter-spacing: 0.6px; }
 .stat-value { display:flex; align-items:center; justify-content:center; gap:12px; }
@@ -533,19 +626,32 @@ function formatRoleName(role) {
 /* Destacados Header */
 .destacados-header {
     background-color: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin: 0 2rem 1rem 2rem;
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin: 0 2rem 1.5rem 2rem;
     text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .destacados-header h2 {
     font-size: 1.75rem;
-    font-weight: 700;
-    color: #7b68ee;
+    font-weight: 800;
+    color: #1f2937;
     margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    position: relative;
+    display: inline-block;
+}
+
+.destacados-header h2::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 2px;
 }
 
 /* Columns Container */
@@ -558,37 +664,45 @@ function formatRoleName(role) {
 
 .column-section {
     background-color: white;
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .column-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #333;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1f2937;
     margin: 0 0 1.5rem 0;
-    text-align: center;
+    text-align: left;
+    padding-left: 1rem;
+    border-left: 5px solid;
+    border-image: linear-gradient(180deg, #667eea, #764ba2) 1;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 /* Table Container */
 .table-container {
     background: white;
-    border-radius: 8px;
+    border-radius: 16px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 120px;
-    padding: 1rem 1rem 1rem 2.5rem;
-    background-color: #f0f0f0;
-    font-weight: 700;
-    color: #000000;
-    font-size: 0.9rem;
+    padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    font-weight: 800;
+    color: #6b7280;
+    font-size: 0.75rem;
     text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
 .table-body {
@@ -596,28 +710,20 @@ function formatRoleName(role) {
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
-    /* Altura para mostrar exactamente 10 filas (cada fila ~75px + gap de 1rem) */
-    max-height: calc((75px + 1rem) * 10 + 1rem);
+    /* Altura para mostrar exactamente 8 filas (cada fila ~75px + gap de 1rem) */
+    max-height: calc((75px + 1rem) * 8 + 1rem);
     overflow-y: auto;
 }
 
-/* Estilo de la barra de scroll */
+/* Ocultar scrollbar pero mantener funcionalidad */
 .table-body::-webkit-scrollbar {
-    width: 8px;
+    width: 0px;
+    display: none;
 }
 
-.table-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.table-body::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-.table-body::-webkit-scrollbar-thumb:hover {
-    background: #a1a1a1;
+.table-body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .table-row {
@@ -630,29 +736,66 @@ function formatRoleName(role) {
 }
 
 .empleado-row {
-    border: 2px solid #e2e2e2;
-    background-color: #f8fff9;
+    border: 2px solid #d1fae5;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    position: relative;
+}
+
+.empleado-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.empleado-row:hover::before {
+    opacity: 1;
 }
 
 .empleado-row:hover {
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+    transform: translateY(-3px);
+    border-color: #10b981;
 }
 
 .aspirante-row {
-    border: 2px solid #e2e2e2;
-    background-color: #f0fbff;
+    border: 2px solid #dbeafe;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    position: relative;
+}
+
+.aspirante-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.aspirante-row:hover::before {
+    opacity: 1;
 }
 
 .aspirante-row:hover {
-    box-shadow: 0 4px 12px rgba(0, 188, 212, 0.2);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+    transform: translateY(-3px);
+    border-color: #3b82f6;
 }
 
 .col-datos {
     display: flex;
     align-items: center;
     gap: 1rem;
+    color: #000;
 }
 
 .avatar {
@@ -713,35 +856,53 @@ function formatRoleName(role) {
 }
 
 .btn-revisar {
-    padding: 0.6rem 1.5rem;
-    border: 2px solid;
-    border-radius: 8px;
+    padding: 0.7rem 1.75rem;
+    border: none;
+    border-radius: 12px;
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
-    background-color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-revisar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: left 0.3s ease;
+}
+
+.btn-revisar:hover::before {
+    left: 100%;
 }
 
 .btn-revisar.empleado {
-    color: #669571;
-    border-color: #669571;
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-revisar.empleado:hover {
-    background-color: #28a745;
-    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .btn-revisar.aspirante {
-    color: #75a1a7;
-    border-color: #abcace;
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-revisar.aspirante:hover {
-    background-color: #00bcd4;
-    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* Responsive */
