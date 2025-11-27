@@ -137,7 +137,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Plantilla Contrato</label>
-                        <select v-model="formData.plantillaContrato" class="form-select">
+                        <select v-model="formData.plantillaContrato" class="form-select" :disabled="!!formData.tipoContrato">
                             <option value="">Seleccione</option>
                             <option v-for="pl in plantillas" :key="pl.id" :value="pl.id">
                                 {{ pl.nombre }}
@@ -683,6 +683,17 @@ watch(
         if (nuevo === 'Indefinido') {
             formData.value.fechaTermino = '';
         }
+        
+        // Seleccionar automáticamente la plantilla según el tipo de contrato
+        if (nuevo && plantillas.value.length > 0) {
+            const plantillaCorrespondiente = plantillas.value.find(pl => 
+                pl.nombre.toLowerCase().includes(nuevo.toLowerCase())
+            );
+            
+            if (plantillaCorrespondiente) {
+                formData.value.plantillaContrato = plantillaCorrespondiente.id;
+            }
+        }
     }
 );
 
@@ -784,7 +795,8 @@ let pdfBlobActual = null;
 const generarAcuerdoConfidencialidad = () => {
     // Obtener datos del formulario
     const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
-    const puesto = puestos.value.find(p => p.id === formData.value.puesto)?.nombre || '';
+    const puestoObj = puestos.value.find(p => p.id === formData.value.puesto);
+    const puesto = puestoObj ? formatRoleName(puestoObj.nombre) : '';
     const area = areas.value.find(a => a.id === formData.value.area)?.nombre || '';
     
     if (!nombreCompleto || nombreCompleto === '') {
@@ -1340,6 +1352,14 @@ onMounted(async () => {
 .form-select {
     cursor: pointer;
     color: #666;
+}
+
+.form-select:disabled,
+.form-input:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .form-textarea {
