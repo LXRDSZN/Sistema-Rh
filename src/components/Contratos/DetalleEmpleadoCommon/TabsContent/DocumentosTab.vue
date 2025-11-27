@@ -5,123 +5,111 @@
         <!-- Tabla de documentos -->
         <div class="documentos-table">
             <div class="table-header">
-                <div class="col-nombre"></div>
+                <div class="col-nombre">Tipo</div>
                 <div class="col-estado">Estado</div>
                 <div class="col-fecha">Fecha de subida</div>
                 <div class="col-acciones">Acciones</div>
             </div>
 
-            <div v-for="doc in documentos" :key="doc.id" class="table-row">
+            <div v-for="doc in documentosNormalizados" :key="doc.documento_tipo_id || doc.id" class="table-row">
                 <div class="col-nombre">
                     <span class="material-symbols-rounded doc-icon">description</span>
                     <span>{{ doc.nombre }}</span>
                 </div>
+
                 <div class="col-estado">
-                    <span class="badge" :class="doc.estadoClase">{{ doc.estado }}</span>
+                    <span class="badge" :class="doc.estadoClase">
+                        {{ doc.estado }}
+                    </span>
                 </div>
-                <div class="col-fecha">{{ doc.fechaSubida }}</div>
+
+                <div class="col-fecha">
+                    {{ doc.fechaFormateada }}
+                </div>
+
                 <div class="col-acciones">
-                    <button class="btn-icon btn-upload" @click="$emit('subir-reemplazo', doc)" title="Subir archivo">
+                    <!-- Subir / Reemplazar archivo -->
+                    <button class="btn-icon btn-upload" @click="$emit('subir-documento', doc._original)"
+                        title="Subir o reemplazar archivo">
                         <span class="material-symbols-rounded">upload</span>
                     </button>
-                    <button class="btn-icon btn-view" @click="$emit('ver', doc)" title="Ver">
+
+                    <!-- Ver -->
+                    <button class="btn-icon btn-view" @click="$emit('ver-documento', doc._original)" title="Ver">
                         <span class="material-symbols-rounded">visibility</span>
                     </button>
-                    <button class="btn-icon btn-download" @click="$emit('descargar', doc)" title="Descargar">
+
+                    <!-- Descargar -->
+                    <button class="btn-icon btn-download" @click="$emit('descargar-documento', doc._original)"
+                        title="Descargar">
                         <span class="material-symbols-rounded">download</span>
                     </button>
-                    <button class="btn-icon btn-delete" @click="$emit('eliminar', doc)" title="Eliminar">
+
+                    <!-- Eliminar -->
+                    <button class="btn-icon btn-delete" @click="$emit('eliminar-documento', doc._original)"
+                        title="Eliminar">
                         <span class="material-symbols-rounded">delete</span>
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Sección de subir documento -->
-        <div class="upload-section">
-            <div class="upload-form">
-                <div class="form-group">
-                    <label>Tipo de Documento</label>
-                    <select v-model="tipoDocumento" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option value="contrato">Contrato firmado</option>
-                        <option value="anexos">Anexos</option>
-                        <option value="recibos">Recibos</option>
-                        <option value="constancias">Constancias</option>
-                        <option value="cartas">Cartas</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Subir documento (PDF)</label>
-                    <div class="file-input-wrapper">
-                        <input type="file" ref="fileInput" @change="handleFileSelect" accept=".pdf" class="file-input"
-                            id="fileUpload" />
-                        <label for="fileUpload" class="file-input-label">
-                            <span class="material-symbols-rounded">upload_file</span>
-                            <span>{{ nombreArchivo || 'Seleccionar archivo' }}</span>
-                        </label>
-                    </div>
-                </div>
-
-                <button class="btn-submit" @click="subirDocumento">
-                    Subir
-                </button>
+            <div v-if="!documentosNormalizados.length" class="sin-documentos">
+                <p>No hay tipos de documentos configurados para este empleado.</p>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     documentos: {
         type: Array,
-        required: true
+        default: () => []
     }
 });
 
-const emit = defineEmits(['subir-reemplazo', 'ver', 'descargar', 'eliminar', 'subir']);
+const emit = defineEmits([
+    'subir-documento',
+    'eliminar-documento',
+    'ver-documento',
+    'descargar-documento'
+]);
 
-const tipoDocumento = ref('');
-const archivoSeleccionado = ref(null);
-const nombreArchivo = ref('');
-const fileInput = ref(null);
-
-const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        if (file.type !== 'application/pdf') {
-            alert('Por favor seleccione solo archivos PDF');
-            event.target.value = '';
-            return;
-        }
-        archivoSeleccionado.value = file;
-        nombreArchivo.value = file.name;
-    }
-};
-
-const subirDocumento = () => {
-    if (!tipoDocumento.value || !archivoSeleccionado.value) {
-        alert('Por favor seleccione el tipo de documento y el archivo');
-        return;
-    }
-
-    emit('subir', {
-        tipo: tipoDocumento.value,
-        archivo: archivoSeleccionado.value
+// Formatear fecha a dd/mm/aaaa
+const formatearFecha = (fecha) => {
+    if (!fecha) return '—';
+    const d = new Date(fecha);
+    return d.toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
     });
-
-    // Limpiar campos
-    tipoDocumento.value = '';
-    archivoSeleccionado.value = null;
-    nombreArchivo.value = '';
-    if (fileInput.value) {
-        fileInput.value.value = '';
-    }
 };
+
+// Normaliza para la vista, pero conserva el objeto original en _original
+// para que el padre reciba todos los campos reales (documento_persona_id, storage_url, etc.)
+const documentosNormalizados = computed(() =>
+    props.documentos.map((doc) => {
+        const tieneArchivo =
+            !!doc.documento_persona_id &&
+            !!(doc.storage_url || doc.nombre_archivo || doc.storageUrl);
+
+        const fecha = doc.fecha_subida || doc.fechaSubida || doc.created_at;
+
+        return {
+            ...doc,
+            _original: doc,
+            nombre: doc.tipo_documento || doc.nombre || doc.descripcion || 'Documento',
+            estado: tieneArchivo ? 'Subido' : 'Pendiente',
+            estadoClase: tieneArchivo ? 'estado-subido' : 'estado-pendiente',
+            fechaFormateada: fecha ? formatearFecha(fecha) : '—'
+        };
+    })
+);
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap');
