@@ -34,7 +34,14 @@
                     <span class="icono-label">CV</span>
                 </div>
 
-                <div class="icono-card" @click="verContrato" role="button" tabindex="0">
+                <div 
+                    class="icono-card" 
+                    :class="{ 'disabled': !contratoHabilitado }" 
+                    @click="contratoHabilitado && verContrato()" 
+                    :title="contratoHabilitado ? 'Ver o crear contrato' : 'El aspirante debe estar en etapa de Contratación'"
+                    role="button" 
+                    :tabindex="contratoHabilitado ? 0 : -1"
+                >
                     <span class="material-symbols-rounded">description</span>
                     <span class="icono-label">Contrato</span>
                 </div>
@@ -56,6 +63,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useAspirantesContratos } from '@/composables/useAspirantesContratos';
 
 const props = defineProps({
@@ -75,6 +83,13 @@ const emit = defineEmits(['crear-contrato']);
 // Avatar por defecto
 const defaultAvatar = '/src/assets/default-user.png';
 
+// Computed para verificar si el contrato debe estar habilitado
+const contratoHabilitado = computed(() => {
+    // El botón se habilita solo cuando la etapa es "Contratación"
+    const etapa = props.aspirante.etapa || props.aspirante.estadoProceso || '';
+    return etapa.toLowerCase().includes('contratación') || etapa.toLowerCase().includes('contratacion');
+});
+
 const onImgError = (event) => {
     event.target.onerror = null;
     event.target.src = defaultAvatar;
@@ -82,12 +97,16 @@ const onImgError = (event) => {
 
 const formatearFecha = (fecha) => {
     if (!fecha) return '16/08/2025';
+    
+    // Si ya viene en formato DD/MM/YYYY, retornarla tal cual
+    if (typeof fecha === 'string' && fecha.includes('/')) return fecha;
+    
+    // Si viene como objeto Date o string ISO, formatear con UTC
     const date = new Date(fecha);
-    return date.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    const dia = String(date.getUTCDate()).padStart(2, '0');
+    const mes = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const anio = date.getUTCFullYear();
+    return `${dia}/${mes}/${anio}`;
 };
 
 const { obtenerCvAspirante } = useAspirantesContratos();
@@ -218,8 +237,15 @@ const verContrato = () => {
 }
 
 .icono-card.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    background-color: #f5f5f5;
+    pointer-events: none;
+}
+
+.icono-card.disabled .material-symbols-rounded,
+.icono-card.disabled .icono-label {
+    color: #9e9e9e !important;
 }
 
 

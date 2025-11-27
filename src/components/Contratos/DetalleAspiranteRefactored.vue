@@ -168,7 +168,8 @@ const cargarDatos = async () => {
             correo: datosPersonales.correo,
             domicilio: datosPersonales.domicilio,
 
-            // Estado del proceso
+            // Estado del proceso (ambas propiedades para compatibilidad)
+            etapa: datosPersonales.etapa || 'Registro',
             estadoProceso: datosPersonales.etapa || 'Registro',
             fechaRegistro: datosPersonales.fecha_registro
         };
@@ -203,8 +204,9 @@ const actualizarEtapaLocal = async (nuevaEtapa) => {
     if (!aspirante.value) return;
     try {
         const proceso = await actualizarEtapaAspirante(aspirante.value.id, nuevaEtapa);
-        // Actualiza estado local rápidamente
+        // Actualiza estado local rápidamente (ambas propiedades)
         aspirante.value.estadoProceso = proceso.etapa;
+        aspirante.value.etapa = proceso.etapa;
         // Refresca todos los datos desde el backend para asegurarse
         await cargarDatos();
     } catch (error) {
