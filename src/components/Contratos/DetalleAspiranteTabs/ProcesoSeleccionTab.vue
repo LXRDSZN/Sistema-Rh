@@ -94,11 +94,27 @@
                 <button class="btn-mover" @click="moverSiguienteEtapa">Mover a siguiente etapa</button>
             </div>
         </div>
+
+        <!-- Notificación de Contratación Lista -->
+        <transition name="slide-fade">
+            <div v-if="mostrarNotificacionContratacion" class="notificacion-contratacion">
+                <div class="notificacion-contenido">
+                    <span class="material-symbols-rounded icono-success">check_circle</span>
+                    <div class="notificacion-texto">
+                        <h3>¡Aspirante listo para contratar!</h3>
+                        <p>{{ nombreCompleto }} ha completado todas las etapas del proceso de selección y está listo para ser contratado.</p>
+                    </div>
+                    <button class="btn-cerrar-notificacion" @click="cerrarNotificacion">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 
 const emit = defineEmits(['etapa-actualizada', 'comentario-enviado']);
 
@@ -117,15 +133,37 @@ const etapasOrdenadas = ['Registro', 'Revisión', 'Entrevista', 'Evaluación', '
 
 const etapaLocal = ref(props.aspirante.estadoProceso || 'Registro');
 const comentario = ref('');
+const mostrarNotificacionContratacion = ref(false);
 
 const comentarioActual = computed(() => props.aspiracionLaboral?.comentario || '');
+
+const nombreCompleto = computed(() => {
+    const { nombre, apellidoPaterno, apellidoMaterno } = props.aspirante;
+    return `${nombre || ''} ${apellidoPaterno || ''} ${apellidoMaterno || ''}`.trim();
+});
+
+// Verificar si está en etapa de contratación al montar
+onMounted(() => {
+    verificarEtapaContratacion();
+});
 
 watch(
     () => props.aspirante.estadoProceso,
     (nueva) => {
         etapaLocal.value = nueva || 'Registro';
+        verificarEtapaContratacion();
     }
 );
+
+const verificarEtapaContratacion = () => {
+    if (etapaLocal.value === 'Contratación') {
+        mostrarNotificacionContratacion.value = true;
+        // Auto-cerrar después de 8 segundos
+        setTimeout(() => {
+            mostrarNotificacionContratacion.value = false;
+        }, 8000);
+    }
+};
 
 const etapaActual = computed(() => etapaLocal.value);
 
@@ -157,6 +195,14 @@ const moverSiguienteEtapa = () => {
     const siguienteEtapa = etapasOrdenadas[actualIndex + 1];
     etapaLocal.value = siguienteEtapa;
     emit('etapa-actualizada', siguienteEtapa);
+    
+    // Mostrar notificación si llegó a Contratación
+    if (siguienteEtapa === 'Contratación') {
+        mostrarNotificacionContratacion.value = true;
+        setTimeout(() => {
+            mostrarNotificacionContratacion.value = false;
+        }, 8000);
+    }
 };
 
 const enviarComentario = () => {
@@ -165,6 +211,10 @@ const enviarComentario = () => {
     }
     emit('comentario-enviado', comentario.value.trim());
     comentario.value = '';
+};
+
+const cerrarNotificacion = () => {
+    mostrarNotificacionContratacion.value = false;
 };
 </script>
 
@@ -361,6 +411,125 @@ const enviarComentario = () => {
 .btn-mover:hover {
     background-color: #7c4dff;
     color: white;
+}
+
+/* Notificación de Contratación */
+.notificacion-contratacion {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 9999;
+    max-width: 450px;
+    animation: slideInRight 0.5s ease-out;
+}
+
+.notificacion-contenido {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.icono-success {
+    font-size: 48px;
+    color: #4ade80;
+    flex-shrink: 0;
+}
+
+.notificacion-texto h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.notificacion-texto p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    opacity: 0.95;
+}
+
+.btn-cerrar-notificacion {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-cerrar-notificacion:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-cerrar-notificacion .material-symbols-rounded {
+    font-size: 20px;
+}
+
+/* Animaciones */
+@keyframes slideInRight {
+    0% {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.slide-fade-enter-active {
+    transition: all 0.5s ease-out;
+}
+
+.slide-fade-leave-active {
+    transition: all 0.3s ease-in;
+}
+
+.slide-fade-enter-from {
+    transform: translateX(400px);
+    opacity: 0;
+}
+
+.slide-fade-leave-to {
+    transform: translateX(400px);
+    opacity: 0;
+}
+
+@media (max-width: 768px) {
+    .notificacion-contratacion {
+        right: 1rem;
+        left: 1rem;
+        max-width: none;
+    }
+    
+    .notificacion-contenido {
+        padding: 1rem;
+    }
+    
+    .icono-success {
+        font-size: 36px;
+    }
+    
+    .notificacion-texto h3 {
+        font-size: 1rem;
+    }
+    
+    .notificacion-texto p {
+        font-size: 0.875rem;
+    }
 }
 
 @media (max-width: 1024px) {

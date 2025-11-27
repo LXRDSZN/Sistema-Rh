@@ -20,12 +20,9 @@
                 <div class="form-row">
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
-                            <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
-                                    @error="onImgError" />
-                            </div>
-                            <div v-else class="photo-box">
-                                <span class="material-symbols-rounded">person</span>
+                            <div class="photo-box-with-image">
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto empleado" class="aspirante-foto"
+                                    @error="onImgError" crossorigin="anonymous" />
                             </div>
                         </div>
                     </div>
@@ -183,7 +180,14 @@
 
                     <div class="form-group">
                         <label>Subir documento (PDF)</label>
-                        <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
+                        <div class="upload-group">
+                            <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
+                            <button type="button" class="btn-generar-acuerdo" @click="generarAcuerdoConfidencialidad" 
+                                title="Generar Acuerdo de Confidencialidad">
+                                <span class="material-symbols-rounded">description</span>
+                                Generar Acuerdo
+                            </button>
+                        </div>
                         <p v-if="formData.documento" class="file-name">
                             Archivo seleccionado: {{ formData.documento }}
                         </p>
@@ -198,7 +202,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Fecha de Generación</label>
-                        <input type="date" v-model="formData.fechaGeneracion" class="form-input" />
+                        <input type="date" v-model="formData.fechaGeneracion" class="form-input" readonly />
                     </div>
                 </div>
             </div>
@@ -215,6 +219,32 @@
             </button>
         </div>
     </div>
+
+    <!-- Modal de Vista Previa del Acuerdo -->
+    <transition name="modal-fade">
+        <div v-if="mostrarModalAcuerdo" class="modal-overlay" @click.self="cerrarModalAcuerdo">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Vista Previa - Acuerdo de Confidencialidad</h2>
+                    <button class="btn-close-modal" @click="cerrarModalAcuerdo">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <iframe v-if="pdfPreviewUrl" :src="pdfPreviewUrl" class="pdf-preview"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-descargar-pdf" @click="descargarAcuerdo">
+                        <span class="material-symbols-rounded">download</span>
+                        Descargar PDF
+                    </button>
+                    <button class="btn-cancelar" @click="cerrarModalAcuerdo">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition>
 </template>
 
 
@@ -252,10 +282,11 @@ const props = defineProps({
 
 const emit = defineEmits(['volver-inicio']);
 
-// Avatar por defecto
-const defaultAvatar = '/src/assets/default-user.png';
+// Avatar por defecto - usar una imagen de placeholder simple
+const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23e0e0e0" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="80" fill="%23999"%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E';
 
 const onImgError = (event) => {
+    console.warn('Error al cargar imagen, usando avatar por defecto');
     event.target.onerror = null;
     event.target.src = defaultAvatar;
 };
@@ -344,6 +375,37 @@ const formatRoleName = (role) => {
 const fotoUrl = ref(null);
 const archivoPdf = ref(null); // aquí guardamos el File
 
+// ===== FECHAS - DECLARAR FUNCIONES PRIMERO =====
+const obtenerHoy = () => {
+    const now = new Date();
+    // Fecha local a medianoche, sin saltos de zona horaria
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const formatearFechaInput = (fecha) => {
+    // Si ya es un string en formato ISO, devolverlo directamente
+    if (typeof fecha === 'string' && fecha.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return fecha.split('T')[0]; // Tomar solo la parte de fecha
+    }
+    
+    // Si es un objeto Date o un timestamp
+    const d = fecha instanceof Date ? fecha : new Date(fecha);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const parseFechaLocal = (valor) => {
+    if (!valor) return null;
+    const [year, month, day] = valor.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
+
+// Fecha de hoy en formato ISO para inicialización
+const hoyDate = obtenerHoy();
+const hoyISO = formatearFechaInput(hoyDate);
+
 const formData = ref({
     nombre: '',
     apellidoPaterno: '',
@@ -364,38 +426,14 @@ const formData = ref({
     salida: '',
     tipoDocumento: '',
     documento: '', // nombre del archivo seleccionado
-    fechaGeneracion: ''
+    fechaGeneracion: hoyISO  // Inicializar automáticamente con fecha de hoy
 });
 
-// ===== FECHAS =====
-const obtenerHoy = () => {
-      const now = new Date();
-      // Fecha local a medianoche, sin saltos de zona horaria
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  };
-  
-  const formatearFechaInput = (fecha) => {
-      const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-  };
-
-  const parseFechaLocal = (valor) => {
-      if (!valor) return null;
-      const [year, month, day] = valor.split('-').map(Number);
-      return new Date(year, month - 1, day);
-  };
-
-const hoyDate = obtenerHoy();
 const minFechaInicio = ref(formatearFechaInput(hoyDate));
 
 const fechaMax = new Date(hoyDate.getTime());
 fechaMax.setMonth(fechaMax.getMonth() + 3);
 const maxFechaInicio = ref(formatearFechaInput(fechaMax));
-
-const hoyISO = minFechaInicio.value;
   
   const minFechaTermino = computed(() => {
       if (!formData.value.fechaInicio) return '';
@@ -465,10 +503,6 @@ const cargarDatosAspirante = async () => {
           }
       }
 
-    if (!formData.value.fechaGeneracion) {
-        formData.value.fechaGeneracion = hoyISO;
-    }
-
     actualizarEstadoInicial();
 };
 
@@ -514,11 +548,6 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
-        // Fecha de generación = hoy si no tiene
-        if (!formData.value.fechaGeneracion) {
-            formData.value.fechaGeneracion = hoyISO;
-        }
-
         // 2) Obtener FOTO en base64 desde backend
         try {
             const { data } = await axios.get(
@@ -526,14 +555,19 @@ const cargarDatosEmpleadoRenovacion = async () => {
                 { withCredentials: true }
             );
 
+            console.log('Respuesta foto base64:', data);
+
             if (data.ok && data.fotoDataUrl) {
                 // data:image/...;base64,...
                 fotoUrl.value = data.fotoDataUrl;
+                console.log('Foto cargada correctamente en base64');
             } else {
+                console.warn('No se recibió fotoDataUrl válida');
                 fotoUrl.value = defaultAvatar;
             }
         } catch (err) {
             console.error('Error al obtener foto base64:', err);
+            // Intentar cargar avatar por defecto
             fotoUrl.value = defaultAvatar;
         }
 
@@ -742,6 +776,156 @@ const onFileChange = (event) => {
     formData.value.documento = file ? file.name : '';
 };
 
+// ===== GENERAR ACUERDO DE CONFIDENCIALIDAD =====
+const mostrarModalAcuerdo = ref(false);
+const pdfPreviewUrl = ref(null);
+let pdfBlobActual = null;
+
+const generarAcuerdoConfidencialidad = () => {
+    // Obtener datos del formulario
+    const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
+    const puesto = puestos.value.find(p => p.id === formData.value.puesto)?.nombre || '';
+    const area = areas.value.find(a => a.id === formData.value.area)?.nombre || '';
+    
+    if (!nombreCompleto || nombreCompleto === '') {
+        alert('Por favor completa el nombre del aspirante/empleado antes de generar el acuerdo.');
+        return;
+    }
+
+    // Obtener fecha actual en formato largo
+    const fecha = new Date();
+    const dia = fecha.getDate();
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const mes = meses[fecha.getMonth()];
+    const anio = fecha.getFullYear();
+
+    // Crear el documento PDF
+    const pdf = new jsPDF('p', 'mm', 'letter');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+    
+    // Título
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('ACUERDO DE CONFIDENCIALIDAD', pageWidth / 2, 25, { align: 'center' });
+    
+    // Fecha y lugar
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    let yPosition = 40;
+    pdf.text(`Morelos, a ${dia} de ${mes} de ${anio}.`, margin, yPosition);
+    
+    yPosition += 10;
+    pdf.text('Ing. Alberto Miguel Flores Flores', margin, yPosition);
+    yPosition += 5;
+    pdf.text('Departamento de Documentación y Contratos', margin, yPosition);
+    yPosition += 5;
+    pdf.text('P r e s e n t e', margin, yPosition);
+    
+    // Cuerpo del documento
+    yPosition += 10;
+    pdf.setFontSize(9);
+    
+    const parrafo1 = `El que suscribe C. ${nombreCompleto}, adscrito a ${area || '(Unidad Administrativa: Departamento de Documentación y Contratos)'} y de conformidad con el artículo 42 de la Ley General de Protección de Datos Personales en Posesión de Sujetos Obligados; acepta las condiciones de resguardo, reserva, custodia y protección de la seguridad y confidencialidad de la información, datos personales y de todo tipo de documentos propiedad de la Dirección o Área correspondiente, o de la que tenga conocimiento, con motivo del trabajo, empleo, comisión o actividades asignadas.`;
+    
+    const lineasP1 = pdf.splitTextToSize(parrafo1, maxWidth);
+    pdf.text(lineasP1, margin, yPosition);
+    yPosition += lineasP1.length * 4 + 5;
+    
+    const parrafo2 = 'El presente deber de confidencialidad me responsabiliza respecto de la información que me sea proporcionada, ya sea de forma oral, escrita, impresa, sonora, visual, electrónica, informática u holográfica, contenida en cualquier tipo de documento, que puede consistir en: expedientes, reportes, estudios, actas, resoluciones, oficios, correspondencia, acuerdos, directrices, circulares, contratos, convenios, nómina, estadísticas o cualquier otro registro que documente el ejercicio de las facultades, funciones y competencias de la Unidad Administrativa.';
+    
+    const lineasP2 = pdf.splitTextToSize(parrafo2, maxWidth);
+    pdf.text(lineasP2, margin, yPosition);
+    yPosition += lineasP2.length * 4 + 5;
+    
+    const parrafo3 = 'La información que me sea proporcionada podría ser considerada, según el caso, como reservada, privilegiada y confidencial, en los términos del artículo 116 de la Ley General de Transparencia y Acceso a la Información Pública y el artículo 113 de la Ley Federal de Transparencia y Acceso a la Información, salvo aquella información que sea pública o que se autorice expresamente su divulgación, siempre que no cause daño o perjuicio a sus propietarios. Me obligo a protegerla, reservarla, resguardarla y no divulgarla, utilizándola única y exclusivamente para cumplir con las actividades y obligaciones que me sean conferidas.';
+    
+    const lineasP3 = pdf.splitTextToSize(parrafo3, maxWidth);
+    
+    // Verificar si necesitamos nueva página
+    if (yPosition + lineasP3.length * 4 + 50 > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+    }
+    
+    pdf.text(lineasP3, margin, yPosition);
+    yPosition += lineasP3.length * 4 + 5;
+    
+    const parrafo4 = 'Me responsabilizo de no reproducir, hacer pública o divulgar a terceros la información objeto de esta Carta, y de cumplir con las medidas de seguridad aprobadas por la Unidad Administrativa.';
+    
+    const lineasP4 = pdf.splitTextToSize(parrafo4, maxWidth);
+    pdf.text(lineasP4, margin, yPosition);
+    yPosition += lineasP4.length * 4 + 5;
+    
+    const parrafo5 = 'De omitirse lo expresado se podrá hacer acreedor a las sanciones previstas en el Título Décimo Primero, Capítulo II de la Ley General de Protección de Datos Personales en Posesión de Sujetos Obligados, así como a otras responsabilidades administrativas correspondientes.';
+    
+    const lineasP5 = pdf.splitTextToSize(parrafo5, maxWidth);
+    pdf.text(lineasP5, margin, yPosition);
+    yPosition += lineasP5.length * 4 + 10;
+    
+    // Verificar espacio para firma
+    if (yPosition + 45 > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+    }
+    
+    // Firma
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('A t e n t a m e n t e', pageWidth / 2, yPosition, { align: 'center' });
+    
+    yPosition += 20;
+    pdf.setFontSize(9);
+    pdf.text('Nombre completo:', margin, yPosition);
+    pdf.line(margin + 30, yPosition, pageWidth - margin, yPosition);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(nombreCompleto, margin + 32, yPosition - 1);
+    
+    yPosition += 10;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Firma:', margin, yPosition);
+    pdf.line(margin + 30, yPosition, pageWidth - margin, yPosition);
+    
+    yPosition += 10;
+    pdf.text('Puesto:', margin, yPosition);
+    pdf.line(margin + 30, yPosition, pageWidth - margin, yPosition);
+    if (puesto) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(puesto, margin + 32, yPosition - 1);
+    }
+    
+    // Generar Blob para vista previa
+    pdfBlobActual = pdf.output('blob');
+    const url = URL.createObjectURL(pdfBlobActual);
+    pdfPreviewUrl.value = url;
+    mostrarModalAcuerdo.value = true;
+};
+
+const descargarAcuerdo = () => {
+    if (!pdfBlobActual) return;
+    
+    const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
+    const nombreArchivo = `Acuerdo_Confidencialidad_${nombreCompleto.replace(/\s+/g, '_')}.pdf`;
+    
+    const link = document.createElement('a');
+    link.href = pdfPreviewUrl.value;
+    link.download = nombreArchivo;
+    link.click();
+    
+    alert('Acuerdo descargado. Ahora puedes subirlo en el campo "Subir documento (PDF)".');
+};
+
+const cerrarModalAcuerdo = () => {
+    mostrarModalAcuerdo.value = false;
+    if (pdfPreviewUrl.value) {
+        URL.revokeObjectURL(pdfPreviewUrl.value);
+        pdfPreviewUrl.value = null;
+    }
+};
+
 // ===== SALIR CON CONFIRMACIÓN =====
 const confirmarSalida = () => {
     const hayCambios = hayCambiosEnFormulario();
@@ -790,7 +974,13 @@ const guardarContrato = async () => {
             throw new Error('No se encontró el contenedor #contrato-preview para generar el PDF');
         }
 
-        const canvas = await html2canvas(elemento, { scale: 2 });
+        // Configurar html2canvas para capturar correctamente imágenes base64 y CORS
+        const canvas = await html2canvas(elemento, { 
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        });
         const imgData = canvas.toDataURL('image/png');
 
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -984,10 +1174,14 @@ const enviarLimpiar = () => {
             return;
         }
 
+        // NO limpiar la fecha de generación (siempre debe ser la fecha actual)
+        if (key === 'fechaGeneracion') {
+            return;
+        }
+
         formData.value[key] = '';
     });
 
-    formData.value.fechaGeneracion = hoyISO;
     formData.value.documento = '';
     archivoPdf.value = null;
 
@@ -1227,6 +1421,54 @@ onMounted(async () => {
     color: #1a5dc1;
 }
 
+/* Upload group con botón generar */
+.upload-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.upload-group input[type="file"] {
+    flex: 1;
+}
+
+.btn-generar-acuerdo {
+    padding: 0.6rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-generar-acuerdo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-generar-acuerdo:active {
+    transform: translateY(0);
+}
+
+.btn-generar-acuerdo .material-symbols-rounded {
+    font-size: 20px;
+}
+
+.file-name {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #4caf50;
+    font-weight: 500;
+}
+
 
 .btn-guardar,
 .btn-limpiar {
@@ -1264,6 +1506,150 @@ onMounted(async () => {
     font-size: 20px;
 }
 
+/* Modal de Vista Previa */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.btn-close-modal {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-close-modal:hover {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.modal-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+.pdf-preview {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    border: none;
+    border-radius: 8px;
+    background: white;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-descargar-pdf {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-descargar-pdf:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-cancelar {
+    padding: 0.75rem 1.5rem;
+    background: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancelar:hover {
+    background: #d0d0d0;
+}
+
+/* Animaciones del Modal */
+.modal-fade-enter-active {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-fade-leave-active {
+    animation: modalFadeOut 0.2s ease-in;
+}
+
+@keyframes modalFadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes modalFadeOut {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .form-row {
@@ -1291,6 +1677,38 @@ onMounted(async () => {
     .btn-guardar,
     .btn-enviar {
         width: 100%;
+    }
+    
+    .upload-group {
+        flex-direction: column;
+    }
+    
+    .btn-generar-acuerdo {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .modal-container {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .pdf-preview {
+        min-height: 400px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .btn-descargar-pdf,
+    .btn-cancelar {
+        width: 100%;
+        justify-content: center;
     }
 }
 </style>
