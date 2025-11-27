@@ -20,12 +20,9 @@
                 <div class="form-row">
                     <div class="form-group" style="grid-column: 1 / 2;">
                         <div class="photo-placeholder">
-                            <div v-if="fotoUrl" class="photo-box-with-image">
-                                <img :src="fotoUrl || defaultAvatar" alt="Foto aspirante" class="aspirante-foto"
-                                    @error="onImgError" />
-                            </div>
-                            <div v-else class="photo-box">
-                                <span class="material-symbols-rounded">person</span>
+                            <div class="photo-box-with-image">
+                                <img :src="fotoUrl || defaultAvatar" alt="Foto empleado" class="aspirante-foto"
+                                    @error="onImgError" crossorigin="anonymous" />
                             </div>
                         </div>
                     </div>
@@ -198,7 +195,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Fecha de Generación</label>
-                        <input type="date" v-model="formData.fechaGeneracion" class="form-input" />
+                        <input type="date" v-model="formData.fechaGeneracion" class="form-input" readonly />
                     </div>
                 </div>
             </div>
@@ -252,10 +249,11 @@ const props = defineProps({
 
 const emit = defineEmits(['volver-inicio']);
 
-// Avatar por defecto
-const defaultAvatar = '/src/assets/default-user.png';
+// Avatar por defecto - usar una imagen de placeholder simple
+const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23e0e0e0" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="80" fill="%23999"%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E';
 
 const onImgError = (event) => {
+    console.warn('Error al cargar imagen, usando avatar por defecto');
     event.target.onerror = null;
     event.target.src = defaultAvatar;
 };
@@ -344,6 +342,37 @@ const formatRoleName = (role) => {
 const fotoUrl = ref(null);
 const archivoPdf = ref(null); // aquí guardamos el File
 
+// ===== FECHAS - DECLARAR FUNCIONES PRIMERO =====
+const obtenerHoy = () => {
+    const now = new Date();
+    // Fecha local a medianoche, sin saltos de zona horaria
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const formatearFechaInput = (fecha) => {
+    // Si ya es un string en formato ISO, devolverlo directamente
+    if (typeof fecha === 'string' && fecha.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return fecha.split('T')[0]; // Tomar solo la parte de fecha
+    }
+    
+    // Si es un objeto Date o un timestamp
+    const d = fecha instanceof Date ? fecha : new Date(fecha);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const parseFechaLocal = (valor) => {
+    if (!valor) return null;
+    const [year, month, day] = valor.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
+
+// Fecha de hoy en formato ISO para inicialización
+const hoyDate = obtenerHoy();
+const hoyISO = formatearFechaInput(hoyDate);
+
 const formData = ref({
     nombre: '',
     apellidoPaterno: '',
@@ -364,38 +393,14 @@ const formData = ref({
     salida: '',
     tipoDocumento: '',
     documento: '', // nombre del archivo seleccionado
-    fechaGeneracion: ''
+    fechaGeneracion: hoyISO  // Inicializar automáticamente con fecha de hoy
 });
 
-// ===== FECHAS =====
-const obtenerHoy = () => {
-      const now = new Date();
-      // Fecha local a medianoche, sin saltos de zona horaria
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  };
-  
-  const formatearFechaInput = (fecha) => {
-      const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-  };
-
-  const parseFechaLocal = (valor) => {
-      if (!valor) return null;
-      const [year, month, day] = valor.split('-').map(Number);
-      return new Date(year, month - 1, day);
-  };
-
-const hoyDate = obtenerHoy();
 const minFechaInicio = ref(formatearFechaInput(hoyDate));
 
 const fechaMax = new Date(hoyDate.getTime());
 fechaMax.setMonth(fechaMax.getMonth() + 3);
 const maxFechaInicio = ref(formatearFechaInput(fechaMax));
-
-const hoyISO = minFechaInicio.value;
   
   const minFechaTermino = computed(() => {
       if (!formData.value.fechaInicio) return '';
@@ -465,10 +470,6 @@ const cargarDatosAspirante = async () => {
           }
       }
 
-    if (!formData.value.fechaGeneracion) {
-        formData.value.fechaGeneracion = hoyISO;
-    }
-
     actualizarEstadoInicial();
 };
 
@@ -514,11 +515,6 @@ const cargarDatosEmpleadoRenovacion = async () => {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
 
-        // Fecha de generación = hoy si no tiene
-        if (!formData.value.fechaGeneracion) {
-            formData.value.fechaGeneracion = hoyISO;
-        }
-
         // 2) Obtener FOTO en base64 desde backend
         try {
             const { data } = await axios.get(
@@ -526,14 +522,19 @@ const cargarDatosEmpleadoRenovacion = async () => {
                 { withCredentials: true }
             );
 
+            console.log('Respuesta foto base64:', data);
+
             if (data.ok && data.fotoDataUrl) {
                 // data:image/...;base64,...
                 fotoUrl.value = data.fotoDataUrl;
+                console.log('Foto cargada correctamente en base64');
             } else {
+                console.warn('No se recibió fotoDataUrl válida');
                 fotoUrl.value = defaultAvatar;
             }
         } catch (err) {
             console.error('Error al obtener foto base64:', err);
+            // Intentar cargar avatar por defecto
             fotoUrl.value = defaultAvatar;
         }
 
@@ -790,7 +791,13 @@ const guardarContrato = async () => {
             throw new Error('No se encontró el contenedor #contrato-preview para generar el PDF');
         }
 
-        const canvas = await html2canvas(elemento, { scale: 2 });
+        // Configurar html2canvas para capturar correctamente imágenes base64 y CORS
+        const canvas = await html2canvas(elemento, { 
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        });
         const imgData = canvas.toDataURL('image/png');
 
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -984,10 +991,14 @@ const enviarLimpiar = () => {
             return;
         }
 
+        // NO limpiar la fecha de generación (siempre debe ser la fecha actual)
+        if (key === 'fechaGeneracion') {
+            return;
+        }
+
         formData.value[key] = '';
     });
 
-    formData.value.fechaGeneracion = hoyISO;
     formData.value.documento = '';
     archivoPdf.value = null;
 
