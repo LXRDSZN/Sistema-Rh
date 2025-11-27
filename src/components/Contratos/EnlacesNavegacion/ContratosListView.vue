@@ -5,23 +5,25 @@
             <button class="btn-volver" @click="volverInicio">
                 <span class="material-symbols-rounded">arrow_back</span>
             </button>
-            <h1>{{ headerTitle }}</h1>
+            <div class="header-content">
+                <h1>{{ headerTitle }}</h1>
+            </div>
         </div>
 
-        <!-- Barra de búsqueda con avatar -->
+        <!-- Barra de búsqueda -->
         <div class="search-section">
             <div class="search-box">
-                <input type="text" placeholder="Buscar" v-model="searchQuery">
                 <span class="material-symbols-rounded search-icon">search</span>
-            </div>
-            <div class="user-avatar" :style="{ background: avatarGradient }">
-                <span class="material-symbols-rounded">person</span>
+                <input type="text" placeholder="Buscar empleado, área o puesto..." v-model="searchQuery">
             </div>
         </div>
 
         <!-- Título de sección -->
         <div class="section-title">
-            <h2 :style="{ color: primaryColor }">{{ sectionTitle }}</h2>
+            <h2 :style="{ color: primaryColor }">
+                {{ sectionTitle }}
+                <span class="underline" :style="{ background: primaryColor }"></span>
+            </h2>
         </div>
 
         <!-- Filtros -->
@@ -236,115 +238,133 @@ const volverInicio = () => {
 }
 
 .top-header {
+    background: white;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .btn-volver {
-    background: none;
+    background: #f3f4f6;
     border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     cursor: pointer;
-    padding: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
 }
 
 .btn-volver:hover {
+    background: #e5e7eb;
     transform: translateX(-4px);
 }
 
 .btn-volver .material-symbols-rounded {
-    font-size: 2rem;
-    color: #333;
+    font-size: 1.5rem;
+    color: #1f2937;
+}
+
+.header-content {
+    flex: 1;
 }
 
 .top-header h1 {
     font-size: 1.75rem;
-    font-weight: 600;
-    color: #000;
+    font-weight: 800;
+    color: #1f2937;
     margin: 0;
 }
 
 .search-section {
     background-color: white;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 2rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .search-box {
     position: relative;
-    flex: 1;
+    width: 100%;
 }
 
 .search-box input {
     width: 100%;
-    padding: 1rem 3rem 1rem 1.5rem;
-    border: none;
-    border-radius: 30px;
-    background-color: #e8e8f0;
+    padding: 1rem 1.5rem 1rem 3.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    background-color: white;
     font-size: 1rem;
     outline: none;
-    color: #666;
+    color: #1f2937;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-box input::placeholder {
+    color: #6b7280;
 }
 
 .search-icon {
     position: absolute;
-    right: 1.5rem;
+    left: 1.25rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #666;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.user-avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.user-avatar .material-symbols-rounded {
-    font-size: 40px;
-    color: white;
+    color: #9ca3af;
+    font-size: 22px;
+    pointer-events: none;
 }
 
 .section-title {
     background-color: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .section-title h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.75rem;
+    font-weight: 800;
     margin: 0;
-    text-align: center;
     text-transform: uppercase;
     letter-spacing: 2px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 1rem;
+}
+
+.section-title .underline {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    border-radius: 2px;
 }
 
 .filters-container {
     background-color: white;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    /* Poner columnas */
     gap: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .filter-group {
@@ -354,18 +374,20 @@ const volverInicio = () => {
 }
 
 .filter-group label {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #333;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .filter-select {
     padding: 0.875rem 1.25rem;
-    border: 2px solid;
-    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
     background-color: white;
     font-size: 0.95rem;
-    color: #999;
+    color: #1f2937;
     cursor: pointer;
     outline: none;
     transition: all 0.3s ease;
@@ -376,29 +398,54 @@ const volverInicio = () => {
 }
 
 .filter-select:hover {
-    opacity: 0.8;
+    border-color: #667eea;
 }
 
 .filter-select:focus {
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Estilos para input fecha */
+.filter-group input[type="date"] {
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: white;
+    font-size: 0.95rem;
+    color: #1f2937;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.filter-group input[type="date"]:hover {
+    border-color: #667eea;
+}
+
+.filter-group input[type="date"]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .contratos-table {
     background-color: white;
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .table-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 150px;
-    padding: 1rem;
-    background-color: #f0f0f0;
-    border-radius: 8px;
-    font-weight: 700;
-    color: #555;
-    font-size: 0.9rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    font-size: 0.75rem;
     text-transform: uppercase;
+    letter-spacing: 1px;
     margin-bottom: 1rem;
 }
 
@@ -413,14 +460,32 @@ const volverInicio = () => {
     grid-template-columns: 2fr 1fr 1fr 150px;
     padding: 1.5rem;
     border: 2px solid;
-    border-radius: 12px;
+    border-radius: 16px;
     align-items: center;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.table-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.table-row:hover::before {
+    opacity: 1;
 }
 
 .table-row:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
 }
 
 .col-datos {
@@ -434,6 +499,8 @@ const volverInicio = () => {
     height: 55px;
     border-radius: 50%;
     object-fit: cover;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .datos-info {
@@ -461,20 +528,39 @@ const volverInicio = () => {
 }
 
 .btn-revisar {
-    padding: 0.6rem 1.5rem;
-    background-color: white;
+    padding: 0.75rem 1.75rem;
+    background: white;
     border: 2px solid;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-revisar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: left 0.3s ease;
+}
+
+.btn-revisar:hover::before {
+    left: 100%;
 }
 
 .btn-revisar:hover {
     background-color: currentColor;
     color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 1024px) {
