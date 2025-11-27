@@ -89,7 +89,7 @@ const aspiracionLaboral = ref(null);
 const cargando = ref(false);
 const error = ref(null);
 const documentos = ref([]);
-
+const CODIGOS_DOCS_ADJUNTOS = ['CURP', 'INE', 'COMPROB_DOM', 'CV'];
 const tabActual = ref('datos');
 
 const tabs = [
@@ -110,7 +110,27 @@ const formatearFecha = (fecha) => {
         year: 'numeric'
     });
 };
+const filtrarDocumentosAdjuntos = (docs = []) => {
+    return docs.filter(d => {
+        // ✅ Si ya traes `codigo` desde el backend (recomendado)
+        if (d.codigo) {
+            return CODIGOS_DOCS_ADJUNTOS.includes(d.codigo);
+        }
 
+        // ✅ fallback por nombre, por si todavía no agregas `codigo`
+        if (d.tipo_documento) {
+            const NOMBRES_PERMITIDOS = [
+                'CURP',
+                'Identificación Oficial INE',
+                'Comprobante de Domicilio',
+                'Curriculum Vitae'
+            ];
+            return NOMBRES_PERMITIDOS.includes(d.tipo_documento);
+        }
+
+        return false;
+    });
+};
 // Cargar datos del aspirante
 const cargarDatos = async () => {
     cargando.value = true;
@@ -154,7 +174,10 @@ const cargarDatos = async () => {
         };
 
         // 👇 aquí traemos los documentos
-        documentos.value = await obtenerDocumentosAspirante(props.personaId);
+        const docsBackend = await obtenerDocumentosAspirante(props.personaId);
+        documentos.value = filtrarDocumentosAdjuntos(docsBackend);
+        console.log('Documentos (filtrados) al cargar:', JSON.parse(JSON.stringify(documentos.value)));
+
 
         try {
             cvUrl.value = await obtenerCvAspirante(props.personaId);
@@ -295,8 +318,13 @@ const handleSubirDocumento = async (doc) => {
             }
 
             // 4) Refrescar lista
-            documentos.value = await obtenerDocumentosAspirante(aspirante.value.id);
-            console.log('Documentos después de refrescar:', documentos.value);
+            const docsRefrescados = await obtenerDocumentosAspirante(aspirante.value.id);
+            documentos.value = filtrarDocumentosAdjuntos(docsRefrescados);
+            console.log(
+                'Documentos después de refrescar (filtrados):',
+                JSON.parse(JSON.stringify(documentos.value))
+            );
+
 
             console.log('--- handleSubirDocumento FIN ---');
         };
@@ -350,8 +378,13 @@ const handleEliminarDocumento = async (doc) => {
             'Refrescando documentos de persona después de eliminar:',
             aspirante.value.id
         );
-        documentos.value = await obtenerDocumentosAspirante(aspirante.value.id);
-        console.log('Documentos después de refrescar (eliminar):', documentos.value);
+        const docsRefrescados = await obtenerDocumentosAspirante(aspirante.value.id);
+        documentos.value = filtrarDocumentosAdjuntos(docsRefrescados);
+        console.log(
+            'Documentos después de refrescar (eliminar, filtrados):',
+            JSON.parse(JSON.stringify(documentos.value))
+        );
+
 
         console.log('--- handleEliminarDocumento FIN ---');
     } catch (error) {
