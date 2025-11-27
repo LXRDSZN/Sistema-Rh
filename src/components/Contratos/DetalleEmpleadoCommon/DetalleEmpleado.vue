@@ -171,7 +171,7 @@ onMounted(async () => {
             fechaInicioFin: `${formatearFecha(contrato.fecha_inicio)} - ${formatearFecha(contrato.fecha_fin)}`, // Manejar indefinido
             salarioBase: formatearMoneda(contrato.salario_mensual),
             jornadaLaboral: contrato.jornada || '----',
-            horario: `${contrato.hora_entrada} - ${contrato.hora_salida}` || '----',
+            horario: `${formatearHora(contrato.hora_entrada)} - ${formatearHora(contrato.hora_salida)}` || '----',
             estadoFirma: contrato.estado_firma || '----'
         };
 
@@ -181,6 +181,17 @@ onMounted(async () => {
         loading.value = false;
     }
 });
+
+// Función para formatear horas (HH:MM)
+const formatearHora = (hora) => {
+    if (!hora) return '----';
+    // Si ya viene en formato HH:MM:SS, extraer solo HH:MM
+    if (typeof hora === 'string' && hora.includes(':')) {
+        const partes = hora.split(':');
+        return `${partes[0]}:${partes[1]}`;
+    }
+    return hora;
+};
 
 // Función para formatear fechas
 const formatearFecha = (fecha) => {
