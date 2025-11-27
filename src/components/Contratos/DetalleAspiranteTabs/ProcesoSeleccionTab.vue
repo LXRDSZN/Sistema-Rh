@@ -91,7 +91,15 @@
 
             <!-- Botones de Acción -->
             <div class="proceso-acciones">
-                <button class="btn-mover" @click="moverSiguienteEtapa">Mover a siguiente etapa</button>
+                <button 
+                    class="btn-mover" 
+                    :class="{ 'disabled': enContratacion }"
+                    :disabled="enContratacion"
+                    @click="moverSiguienteEtapa"
+                    :title="enContratacion ? 'El proceso ha finalizado' : 'Mover a la siguiente etapa'"
+                >
+                    Mover a siguiente etapa
+                </button>
             </div>
         </div>
 
@@ -167,7 +175,28 @@ const verificarEtapaContratacion = () => {
 
 const etapaActual = computed(() => etapaLocal.value);
 
-const fechaRegistro = computed(() => props.aspirante.fechaRegistro || '');
+const fechaRegistro = computed(() => {
+    const fecha = props.aspirante.fechaRegistro;
+    if (!fecha) return '—';
+    
+    // Si ya viene en formato DD/MM/YYYY, retornarla tal cual
+    if (typeof fecha === 'string' && fecha.includes('/')) return fecha;
+    
+    // Formatear con UTC para evitar desfase de zona horaria
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return '—';
+    
+    const dia = String(d.getUTCDate()).padStart(2, '0');
+    const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const anio = d.getUTCFullYear();
+    
+    return `${dia}/${mes}/${anio}`;
+});
+
+// Verificar si el proceso está en Contratación (última etapa)
+const enContratacion = computed(() => {
+    return etapaActual.value === 'Contratación';
+});
 
 const indiceEtapa = (nombreEtapa) => etapasOrdenadas.indexOf(nombreEtapa);
 
@@ -408,9 +437,22 @@ const cerrarNotificacion = () => {
     color: #7c4dff;
 }
 
-.btn-mover:hover {
+.btn-mover:hover:not(.disabled) {
     background-color: #7c4dff;
     color: white;
+}
+
+.btn-mover.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f5f5f5;
+    border-color: #ccc;
+    color: #999;
+}
+
+.btn-mover.disabled:hover {
+    background-color: #f5f5f5;
+    color: #999;
 }
 
 /* Notificación de Contratación */
