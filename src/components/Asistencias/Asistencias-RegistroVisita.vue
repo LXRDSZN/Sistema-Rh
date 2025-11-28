@@ -22,6 +22,8 @@
                   density="comfortable"
                   required
                   hide-details
+                  @keydown="validarSoloLetras"
+                  @input="limpiarYCapitalizarNombre('nombre')"
                 />
               </div>
 
@@ -35,6 +37,8 @@
                   density="comfortable"
                   required
                   hide-details
+                  @keydown="validarSoloLetras"
+                  @input="limpiarYCapitalizarNombre('apellido_paterno')"
                 />
               </div>
 
@@ -47,6 +51,8 @@
                   variant="outlined"
                   density="comfortable"
                   hide-details
+                  @keydown="validarSoloLetras"
+                  @input="limpiarYCapitalizarNombre('apellido_materno')"
                 />
               </div>
 
@@ -60,6 +66,7 @@
                   density="comfortable"
                   required
                   hide-details
+                  @input="limpiarYCapitalizarNombre('cargo')"
                 />
               </div>
 
@@ -73,6 +80,9 @@
                   density="comfortable"
                   required
                   hide-details
+                  @keydown="validarAlfanumerico"
+                  @input="limpiarIdentificacion"
+                  maxlength="20"
                 />
               </div>
 
@@ -80,13 +90,16 @@
                 <label class="form-label">Teléfono*</label>
                 <v-text-field
                   v-model="formulario.telefono"
-                  placeholder="Número de teléfono"
+                  placeholder="Número de teléfono (10 dígitos)"
                   class="input-custom"
                   variant="outlined"
                   density="comfortable"
                   required
                   hide-details
                   type="tel"
+                  @keydown="validarSoloNumeros"
+                  @input="limpiarTelefono"
+                  maxlength="10"
                 />
               </div>
 
@@ -100,6 +113,8 @@
                   density="comfortable"
                   hide-details
                   type="email"
+                  @keydown="validarEmail"
+                  @input="limpiarEmail"
                 />
               </div>
 
@@ -410,6 +425,107 @@ const motivosVisita = ref([
 
 const empleados = ref([])
 
+// Funciones de validación de caracteres
+const validarSoloLetras = (event) => {
+  const key = event.key;
+  const teclasPermitidas = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+                            'Home', 'End', 'Tab', 'Enter', 'Escape'];
+  
+  if (teclasPermitidas.includes(key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+  
+  const regexLetra = /^[a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s]$/;
+  if (!regexLetra.test(key)) {
+    event.preventDefault();
+  }
+};
+
+const validarSoloNumeros = (event) => {
+  const key = event.key;
+  const teclasPermitidas = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+                            'Home', 'End', 'Tab', 'Enter', 'Escape'];
+  
+  if (teclasPermitidas.includes(key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+  
+  if (!/^[0-9]$/.test(key)) {
+    event.preventDefault();
+  }
+};
+
+const validarAlfanumerico = (event) => {
+  const key = event.key;
+  const teclasPermitidas = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+                            'Home', 'End', 'Tab', 'Enter', 'Escape'];
+  
+  if (teclasPermitidas.includes(key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+  
+  if (!/^[a-zA-Z0-9]$/.test(key)) {
+    event.preventDefault();
+  }
+};
+
+const limpiarYCapitalizarNombre = (campo) => {
+  let valor = formulario.value[campo] || '';
+  valor = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s]/g, '');
+  valor = valor.replace(/\s+/g, ' ');
+  valor = valor.replace(/^\s+/, '');
+  
+  const palabras = valor.split(' ');
+  const palabrasCapitalizadas = palabras.map(palabra => {
+    if (palabra.length === 0) return palabra;
+    return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+  });
+  
+  formulario.value[campo] = palabrasCapitalizadas.join(' ');
+};
+
+const limpiarTelefono = () => {
+  let valor = formulario.value.telefono || '';
+  valor = valor.replace(/[^0-9]/g, '');
+  if (valor.length > 10) {
+    valor = valor.substring(0, 10);
+  }
+  formulario.value.telefono = valor;
+};
+
+const limpiarIdentificacion = () => {
+  let valor = formulario.value.identificacion || '';
+  valor = valor.replace(/[^a-zA-Z0-9]/g, '');
+  if (valor.length > 20) {
+    valor = valor.substring(0, 20);
+  }
+  formulario.value.identificacion = valor.toUpperCase();
+};
+
+const validarEmail = (event) => {
+  const key = event.key;
+  const teclasPermitidas = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+                            'Home', 'End', 'Tab', 'Enter', 'Escape', '.', '@', '_', '-'];
+  
+  if (teclasPermitidas.includes(key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+  
+  // Permitir solo letras, números, punto, arroba, guión bajo y guión
+  if (!/^[a-zA-Z0-9@._-]$/.test(key)) {
+    event.preventDefault();
+  }
+};
+
+const limpiarEmail = () => {
+  let valor = formulario.value.email || '';
+  // Permitir solo caracteres válidos para email
+  valor = valor.replace(/[^a-zA-Z0-9@._-]/g, '');
+  // Convertir a minúsculas
+  valor = valor.toLowerCase();
+  formulario.value.email = valor;
+};
+
 // Visitas registradas
 const visitasRegistradas = ref([])
 
@@ -538,6 +654,15 @@ const registrarIngreso = async () => {
     if (!formularioValido) {
       mostrarMensaje('Por favor complete todos los campos obligatorios', 'error')
       return
+    }
+
+    // Validar formato de email si está presente
+    if (formulario.value.email && formulario.value.email.trim().length > 0) {
+      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+      if (!emailRegex.test(formulario.value.email)) {
+        mostrarMensaje('Por favor ingrese un email válido (ejemplo: usuario@dominio.com)', 'error')
+        return
+      }
     }
 
     if (formulario.value.motivo === 'Otro' && !formulario.value.motivo_especifico) {
