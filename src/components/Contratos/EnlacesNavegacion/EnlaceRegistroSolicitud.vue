@@ -237,8 +237,8 @@
             <label>Modalidad</label>
             <select v-model="formulario.modalidad" @change="handleInputModalidad">
               <option value="">Seleccionar</option>
-              <option value="Remoto">Remota</option>
-              <option value="Híbrido">Híbrida</option>
+              <option value="Remota">Remota</option>
+              <option value="Híbrida">Híbrida</option>
               <option value="Presencial">Presencial</option>
             </select>
             <span v-if="erroresValidacion.modalidad" class="error-message">{{ erroresValidacion.modalidad }}</span>

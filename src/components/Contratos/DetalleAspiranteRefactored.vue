@@ -648,7 +648,7 @@ onMounted(() => {
 /* Notificación de Contratación */
 .notificacion-contratacion {
     position: fixed;
-    bottom: 20px;
+    top: 20px;
     right: 20px;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     border-left: 5px solid #27ae60;

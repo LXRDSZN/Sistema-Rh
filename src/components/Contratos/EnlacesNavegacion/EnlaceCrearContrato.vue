@@ -272,6 +272,22 @@
             </div>
         </div>
     </transition>
+
+    <!-- Toast Notification -->
+    <transition name="slide-fade">
+        <div v-if="mostrarNotificacion" class="toast-notification" :class="tipoNotificacion">
+            <div class="toast-content">
+                <span class="material-symbols-rounded">
+                    {{ tipoNotificacion === 'error' ? 'error' : tipoNotificacion === 'warning' ? 'warning' : tipoNotificacion === 'success' ? 'check_circle' : 'info' }}
+                </span>
+                <div class="toast-message">
+                    <h4>{{ tituloNotificacion }}</h4>
+                    <p>{{ mensajeNotificacion }}</p>
+                </div>
+                <button class="toast-close" @click="cerrarNotificacion">×</button>
+            </div>
+        </div>
+    </transition>
 </template>
 
 
@@ -347,6 +363,31 @@ const jornadas = ref([]);
 const plantillas = ref([]);
 const estadosContrato = ref([]);
 const tiposDocumento = ref([]);
+
+// Estado para notificaciones toast
+const mostrarNotificacion = ref(false);
+const tipoNotificacion = ref('info'); // 'success', 'error', 'warning', 'info'
+const tituloNotificacion = ref('');
+const mensajeNotificacion = ref('');
+
+// Función para mostrar notificación
+const mostrarNotif = (tipo, titulo, mensaje, duracion = 5000) => {
+    tipoNotificacion.value = tipo;
+    tituloNotificacion.value = titulo;
+    mensajeNotificacion.value = mensaje;
+    mostrarNotificacion.value = true;
+
+    if (duracion > 0) {
+        setTimeout(() => {
+            mostrarNotificacion.value = false;
+        }, duracion);
+    }
+};
+
+// Función para cerrar notificación manualmente
+const cerrarNotificacion = () => {
+    mostrarNotificacion.value = false;
+};
 
 // Filtrar puestos según área seleccionada
 const puestosHastaJefeArea = computed(() => {
@@ -505,7 +546,7 @@ const cargarDatosAspirante = async () => {
                   if (!fotoUrl.value) fotoUrl.value = datos.foto_url || null;
 
                   formData.value.tipoContrato = datos.tipo_contrato || '';
-                  formData.value.modalidad = datos.modalidad || '';
+                  formData.value.modalidad = datos.modalidad || 'Presencial';
 
                   if (datos.fecha_disponible) {
                       formData.value.fechaInicio = formatearFechaInput(datos.fecha_disponible);
@@ -565,7 +606,7 @@ const cargarDatosEmpleadoRenovacion = async () => {
 
         // Contrato
         formData.value.tipoContrato = datos.tipo_contrato || '';
-        formData.value.modalidad = datos.modalidad || '';
+        formData.value.modalidad = datos.modalidad || 'Presencial';
         formData.value.sueldoMensual = datos.salario_mensual || '';
 
         if (datos.fecha_inicio) {
@@ -666,12 +707,10 @@ const limpiarNumero = (campo) => {
       const fi = parseFechaLocal(formData.value.fechaInicio);
   
       if (fi < hoyDate || fi > fechaMax) {
-          alert('La fecha de inicio debe ser a partir de hoy y no mayor a tres meses.');
+          mostrarNotif('error', '⚠️ Fecha Inválida', 'La fecha de inicio debe ser a partir de hoy y no mayor a tres meses.');
           formData.value.fechaInicio = '';
-        return;
-    }
-
-    if (formData.value.fechaTermino) {
+          return;
+      }    if (formData.value.fechaTermino) {
         validarFechaTermino();
     }
 };
@@ -683,7 +722,7 @@ const validarFechaTermino = () => {
     }
 
     if (!formData.value.fechaInicio) {
-        alert('Primero selecciona la fecha de inicio.');
+        mostrarNotif('warning', '⚠️ Atención', 'Primero selecciona la fecha de inicio.');
         formData.value.fechaTermino = '';
         return;
     }
@@ -697,7 +736,9 @@ const validarFechaTermino = () => {
     minFin.setMonth(minFin.getMonth() + 1);
 
     if (ft < minFin) {
-        alert(
+        mostrarNotif(
+            'error',
+            '⚠️ Fecha Inválida',
             'La fecha de término debe ser al menos un mes después de la fecha de inicio.'
         );
         formData.value.fechaTermino = '';
@@ -832,7 +873,7 @@ const generarAcuerdoConfidencialidad = () => {
     const area = areas.value.find(a => a.id === formData.value.area)?.nombre || '';
     
     if (!nombreCompleto || nombreCompleto === '') {
-        alert('Por favor completa el nombre del aspirante/empleado antes de generar el acuerdo.');
+        mostrarNotif('warning', '⚠️ Datos Incompletos', 'Por favor completa el nombre del aspirante/empleado antes de generar el acuerdo.');
         return;
     }
 
@@ -959,7 +1000,7 @@ const descargarAcuerdo = () => {
     link.download = nombreArchivo;
     link.click();
     
-    alert('Acuerdo descargado. Ahora puedes subirlo en el campo "Subir documento (PDF)".');
+    mostrarNotif('success', '✅ Acuerdo Descargado', 'Acuerdo descargado. Ahora puedes subirlo en el campo "Subir documento (PDF)".');
 };
 
 const cerrarModalAcuerdo = () => {
@@ -1121,11 +1162,13 @@ const generarPdfContrato = async () => {
     pdf.setFont('helvetica', 'normal');
     
     let textoModalidad = '';
-    if (formData.value.modalidad === 'Presencial') {
+    const modalidadActual = formData.value.modalidad || 'Presencial';
+    
+    if (modalidadActual === 'Presencial') {
         textoModalidad = 'La modalidad de trabajo será PRESENCIAL, por lo que EL TRABAJADOR deberá desempeñar sus funciones en las instalaciones de EL EMPLEADOR ubicadas en Morelos, México.';
-    } else if (formData.value.modalidad === 'Remota') {
+    } else if (modalidadActual === 'Remota') {
         textoModalidad = 'La modalidad de trabajo será REMOTA, permitiendo a EL TRABAJADOR desempeñar sus funciones desde un lugar distinto a las instalaciones de EL EMPLEADOR, debiendo contar con los equipos y conectividad necesarios.';
-    } else if (formData.value.modalidad === 'Híbrida') {
+    } else if (modalidadActual === 'Híbrida') {
         textoModalidad = 'La modalidad de trabajo será HÍBRIDA, combinando días de trabajo presencial en las instalaciones de EL EMPLEADOR y días de trabajo remoto, conforme al calendario que establezca el área correspondiente.';
     }
     
@@ -1213,9 +1256,12 @@ const mostrarVistaPrevia = async () => {
     const errores = obtenerErroresValidacion();
 
     if (errores.length > 0) {
-        alert(
-            'No se puede generar la vista previa por los siguientes motivos:\n\n- ' +
-            errores.join('\n- ')
+        const mensajeErrores = '\n\n' + errores.map(e => `• ${e}`).join('\n');
+        mostrarNotif(
+            'error',
+            '❌ Formulario Incompleto',
+            'No se puede generar la vista previa por los siguientes motivos:' + mensajeErrores,
+            10000
         );
         return;
     }
@@ -1228,7 +1274,7 @@ const mostrarVistaPrevia = async () => {
         mostrarModalContrato.value = true;
     } catch (error) {
         console.error('Error al generar vista previa del contrato:', error);
-        alert('Error al generar la vista previa del contrato.');
+        mostrarNotif('error', '❌ Error', 'Error al generar la vista previa del contrato.');
     }
 };
 
@@ -1267,9 +1313,12 @@ const confirmarGuardarContrato = async () => {
     const errores = obtenerErroresValidacion();
 
     if (errores.length > 0) {
-        alert(
-            'No se puede guardar el contrato por los siguientes motivos:\n\n- ' +
-            errores.join('\n- ')
+        const mensajeErrores = '\n\n' + errores.map(e => `• ${e}`).join('\n');
+        mostrarNotif(
+            'error',
+            '❌ Formulario Incompleto',
+            'No se puede guardar el contrato por los siguientes motivos:' + mensajeErrores,
+            10000
         );
         return;
     }
@@ -1283,7 +1332,7 @@ const confirmarGuardarContrato = async () => {
         null;
 
     if (!personaId) {
-        alert('No se encontró el identificador de la persona.');
+        mostrarNotif('error', '❌ Error', 'No se encontró el identificador de la persona.');
         console.error('Sin persona_id ni id en props:', props.datosAspirante, props.datosEmpleado);
         return;
     }
@@ -1384,7 +1433,7 @@ const confirmarGuardarContrato = async () => {
             // Mostrar el PDF generado (URL firmada 7 días)
             await abrirPdfDesdeS3(archivoContrato);
 
-            alert('Contrato renovado correctamente.');
+            mostrarNotif('success', '✅ Éxito', 'Contrato renovado correctamente.', 4000);
             actualizarEstadoInicial();
             emit('volver-inicio');
             return;
@@ -1439,14 +1488,16 @@ const confirmarGuardarContrato = async () => {
         // Mostrar el PDF generado (URL firmada 7 días)
         await abrirPdfDesdeS3(archivoContrato);
 
-        alert('Contrato guardado correctamente. El aspirante ahora es empleado.');
+        mostrarNotif('success', '✅ Contrato Guardado', 'Contrato guardado correctamente. El aspirante ahora es empleado.', 4000);
         actualizarEstadoInicial();
         emit('volver-inicio');
     } catch (error) {
         console.error('Error al guardar contrato:', error.response?.data || error);
-        alert(
-            `Ocurrió un error al guardar el contrato: ${error.response?.data?.error || error.message
-            }`
+        mostrarNotif(
+            'error',
+            '❌ Error al Guardar',
+            `Ocurrió un error al guardar el contrato: ${error.response?.data?.error || error.message}`,
+            6000
         );
     }
 };
@@ -1475,7 +1526,7 @@ const enviarLimpiar = () => {
     archivoPdf.value = null;
 
     console.log('Formulario limpiado');
-    alert('Formulario limpiado correctamente');
+    mostrarNotif('info', 'ℹ️ Formulario Limpiado', 'Formulario limpiado correctamente', 3000);
 
     actualizarEstadoInicial();
 };
@@ -2026,5 +2077,120 @@ onMounted(async () => {
         width: 100%;
         justify-content: center;
     }
+}
+
+/* Toast Notification Styles */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 320px;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  overflow: hidden;
+  border-left: 4px solid;
+}
+
+.toast-notification.error {
+  border-left-color: #e74c3c;
+}
+
+.toast-notification.success {
+  border-left-color: #27ae60;
+}
+
+.toast-notification.warning {
+  border-left-color: #f39c12;
+}
+
+.toast-notification.info {
+  border-left-color: #3498db;
+}
+
+.toast-content {
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.toast-content .material-symbols-rounded {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-notification.error .material-symbols-rounded {
+  color: #e74c3c;
+}
+
+.toast-notification.success .material-symbols-rounded {
+  color: #27ae60;
+}
+
+.toast-notification.warning .material-symbols-rounded {
+  color: #f39c12;
+}
+
+.toast-notification.info .material-symbols-rounded {
+  color: #3498db;
+}
+
+.toast-message {
+  flex: 1;
+}
+
+.toast-message h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.toast-message p {
+  margin: 0;
+  font-size: 14px;
+  color: #5a6c7d;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #95a5a6;
+  cursor: pointer;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: #7f8c8d;
+}
+
+/* Slide Fade Transition */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
 }
 </style>
