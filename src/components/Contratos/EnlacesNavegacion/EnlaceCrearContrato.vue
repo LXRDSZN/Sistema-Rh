@@ -735,6 +735,25 @@ const limpiarNumero = (campo) => {
     if (partes.length > 2) {
         valor = partes[0] + '.' + partes.slice(1).join('');
     }
+    
+    // Validar formato numeric(10,2): máximo 8 dígitos antes del punto y 2 después
+    if (valor.includes('.')) {
+        const [entero, decimal] = valor.split('.');
+        // Limitar parte entera a 8 dígitos (10 total - 2 decimales)
+        if (entero.length > 8) {
+            valor = entero.substring(0, 8) + '.' + decimal;
+        }
+        // Limitar decimales a 2 dígitos
+        if (decimal && decimal.length > 2) {
+            valor = entero + '.' + decimal.substring(0, 2);
+        }
+    } else {
+        // Sin punto decimal, limitar a 8 dígitos
+        if (valor.length > 8) {
+            valor = valor.substring(0, 8);
+        }
+    }
+    
     formData.value[campo] = valor;
 };
 
