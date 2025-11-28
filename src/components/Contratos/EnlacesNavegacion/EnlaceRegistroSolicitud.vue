@@ -253,37 +253,37 @@
           <div class="form-group">
             <label>CURP</label>
             <div class="file-input">
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('curpFile', $event)" />
+              <input type="file" accept="application/pdf" @change="manejarArchivo('curpFile', $event)" />
               <span v-if="formulario.curpFile">✓</span>
             </div>
-            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <small class="file-hint">PDF - Máx 5MB</small>
             <span v-if="erroresArchivos.curpFile" class="error">{{ erroresArchivos.curpFile }}</span>
           </div>
           <div class="form-group">
             <label>INE</label>
             <div class="file-input">
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('ineFile', $event)" />
+              <input type="file" accept="application/pdf" @change="manejarArchivo('ineFile', $event)" />
               <span v-if="formulario.ineFile">✓</span>
             </div>
-            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <small class="file-hint">PDF - Máx 5MB</small>
             <span v-if="erroresArchivos.ineFile" class="error">{{ erroresArchivos.ineFile }}</span>
           </div>
           <div class="form-group">
             <label>Comprobante Domicilio</label>
             <div class="file-input">
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="manejarArchivo('domicilioFile', $event)" />
+              <input type="file" accept="application/pdf" @change="manejarArchivo('domicilioFile', $event)" />
               <span v-if="formulario.domicilioFile">✓</span>
             </div>
-            <small class="file-hint">PDF, JPG, PNG - Máx 5MB</small>
+            <small class="file-hint">PDF - Máx 5MB</small>
             <span v-if="erroresArchivos.domicilioFile" class="error">{{ erroresArchivos.domicilioFile }}</span>
           </div>
           <div class="form-group">
             <label>CV</label>
             <div class="file-input">
-              <input type="file" accept=".pdf,.doc,.docx" @change="manejarArchivo('cvFile', $event)" />
+              <input type="file" accept="application/pdf" @change="manejarArchivo('cvFile', $event)" />
               <span v-if="formulario.cvFile">✓</span>
             </div>
-            <small class="file-hint">PDF, DOC, DOCX - Máx 10MB</small>
+            <small class="file-hint">PDF - Máx 10MB</small>
             <span v-if="erroresArchivos.cvFile" class="error">{{ erroresArchivos.cvFile }}</span>
           </div>
         </div>
@@ -654,10 +654,10 @@ const manejarArchivo = (campo, event) => {
   
   // Definir límites de peso y formatos permitidos
   const configArchivos = {
-    curpFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
-    ineFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
-    domicilioFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf', 'jpg', 'jpeg', 'png'] },
-    cvFile: { maxSize: 10 * 1024 * 1024, formatos: ['pdf', 'doc', 'docx'] }
+    curpFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf'] },
+    ineFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf'] },
+    domicilioFile: { maxSize: 5 * 1024 * 1024, formatos: ['pdf'] },
+    cvFile: { maxSize: 10 * 1024 * 1024, formatos: ['pdf'] }
   };
   
   const config = configArchivos[campo];

@@ -218,6 +218,13 @@ const handleSubirDocumento = async (doc) => {
             console.log('Archivo seleccionado:', file);
             if (!file) return;
 
+            // Validar que sea un archivo PDF
+            const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            if (!isPDF) {
+                alert('⚠️ Solo se permiten archivos PDF. Por favor selecciona un archivo con extensión .pdf');
+                return;
+            }
+
             // 1) Subir a S3
             const respSubir = await subirArchivo(file);
             console.log('Respuesta subirArchivo:', respSubir);
