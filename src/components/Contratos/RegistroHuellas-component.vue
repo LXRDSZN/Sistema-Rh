@@ -106,7 +106,7 @@
             <td class="number-cell">{{ index + 1 }}</td>
             <td>
               <img 
-                :src="contrato.avatar || '/default-avatar.png'" 
+                :src="contrato.avatar || defaultUserImage" 
                 :alt="contrato.nombre_completo"
                 class="avatar"
               />
@@ -201,6 +201,7 @@ import {
   deleteFingerprint,
   clearAllFingerprints
 } from '@/services/huellasService.js';
+import defaultUserImage from '@/assets/default-user.png';
 
 const { isSidebarOpen } = useSidebar();
 
