@@ -552,7 +552,8 @@ const validarCampo = (campo, valor) => {
 // Listener para validar en tiempo real
   const handleInputCURP = (event) => {
   let valor = event.target.value.toUpperCase();
-  // Limitar a 18 caracteres
+  // Eliminar espacios y limitar a 18 caracteres
+  valor = valor.replace(/\s/g, '');
   if (valor.length > 18) valor = valor.substring(0, 18);
   formulario.value.curp = valor;
   validarCampo('curp', valor);
@@ -560,7 +561,8 @@ const validarCampo = (campo, valor) => {
 
 const handleInputRFC = (event) => {
   let valor = event.target.value.toUpperCase();
-  // Limitar a 13 caracteres
+  // Eliminar espacios y limitar a 13 caracteres
+  valor = valor.replace(/\s/g, '');
   if (valor.length > 13) valor = valor.substring(0, 13);
   formulario.value.rfc = valor;
   validarCampo('rfc', valor);
@@ -568,7 +570,7 @@ const handleInputRFC = (event) => {
 
 const handleInputNSS = (event) => {
   let valor = event.target.value;
-  // Solo permitir números y limitar a 11
+  // Solo permitir números, eliminar espacios y limitar a 11
   const soloNumeros = valor.replace(/[^0-9]/g, '').substring(0, 11);
   formulario.value.nss = soloNumeros;
   validarCampo('nss', soloNumeros);
@@ -637,6 +639,26 @@ onMounted(() => {
 const manejarFoto = (event) => {
   const archivo = event.target.files[0];
   if (archivo) {
+    // Validar que sea una imagen (jpg, jpeg, png)
+    const formatosPermitidos = ['image/jpeg', 'image/jpg', 'image/png'];
+    const extensionesPermitidas = ['jpg', 'jpeg', 'png'];
+    const extension = archivo.name.split('.').pop().toLowerCase();
+    
+    if (!formatosPermitidos.includes(archivo.type) || !extensionesPermitidas.includes(extension)) {
+      mostrarNotif('error', '❌ Formato No Válido', 'Solo se permiten imágenes en formato JPG, JPEG o PNG', 5000);
+      event.target.value = ''; // Limpiar el input
+      return;
+    }
+    
+    // Validar tamaño (máximo 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (archivo.size > maxSize) {
+      const sizeMB = (archivo.size / (1024 * 1024)).toFixed(2);
+      mostrarNotif('error', '❌ Archivo Muy Pesado', `La imagen pesa ${sizeMB}MB. El tamaño máximo permitido es 5MB`, 5000);
+      event.target.value = '';
+      return;
+    }
+    
     formulario.value.fotoFile = archivo;
     const reader = new FileReader();
     reader.onload = (e) => {
