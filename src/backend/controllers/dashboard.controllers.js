@@ -50,12 +50,20 @@ export const getDashboardStats = async (req, res) => {
     const totalEmpleadosMesPasado = parseInt(totalEmpleadosMesPasadoResult.rows[0].total);
 
     // 3. Usuarios con sesión activa en el sistema (conectados ahora)
-    const sesionesActivasResult = await db.query(
-      `SELECT COUNT(DISTINCT sa.usuario_id) as total 
-       FROM sesiones_activas sa
-       WHERE sa.expiracion > NOW()`
-    );
-    const sesionesActivas = parseInt(sesionesActivasResult.rows[0].total);
+    let sesionesActivas = 0;
+    try {
+      const sesionesActivasResult = await db.query(
+        `SELECT COUNT(DISTINCT usuario_id) as total 
+         FROM sesiones_activas
+         WHERE expiracion > NOW()`
+      );
+      sesionesActivas = parseInt(sesionesActivasResult.rows[0]?.total || 0);
+      console.log('✅ Sesiones activas encontradas:', sesionesActivas);
+    } catch (sessionError) {
+      console.error('⚠️ Error al consultar sesiones activas (tabla puede no existir):', sessionError.message);
+      // Si la tabla no existe, usar 0
+      sesionesActivas = 0;
+    }
 
     // 4. Calcular porcentajes
     // Porcentaje de crecimiento: comparar total actual con total del mes pasado

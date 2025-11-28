@@ -1,5 +1,5 @@
 <script setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import axios from 'axios'
   import * as incidenciasService from '@/services/incidenciasService'
   import * as empleadosService from '@/services/empleadosService'
@@ -34,6 +34,16 @@
       console.log('Empleado seleccionado:', empleado)
     }
     return empleado
+  })
+
+  // Watch para precargar el área cuando se selecciona un empleado
+  watch(empleadoSeleccionado, (empleado) => {
+    if (empleado && empleado.area_id) {
+      area.value = empleado.area_id
+      console.log('Área precargada:', empleado.area_id)
+    } else {
+      area.value = ''
+    }
   })
 
   // Obtener URL de la foto
@@ -93,15 +103,30 @@
     const file = event.target.files[0]
     if (file) {
       // Validar tipo de archivo
-      const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword']
+      const tiposPermitidos = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ]
       if (!tiposPermitidos.includes(file.type)) {
-        alert('Solo se permiten archivos: PDF, JPG, PNG, DOC')
+        alert('Solo se permiten archivos: PDF, JPG, PNG, DOC, DOCX')
+        // Resetear el input
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
         return
       }
       
       // Validar tamaño (máx 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('El archivo no debe superar 5MB')
+        // Resetear el input
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
         return
       }
       
@@ -246,8 +271,8 @@
         </div>
 
         <div class="form-group">
-          <label>Área (Opcional)</label>
-          <select v-model="area" class="input">
+          <label>Área</label>
+          <select v-model="area" class="input" :disabled="empleadoSeleccionado && empleadoSeleccionado.area_id">
             <option value="">Selecciona un área</option>
             <option v-for="a in areas" :key="a.id" :value="a.id">
               {{ a.codigo }} - {{ a.nombre }}
@@ -278,7 +303,7 @@
 
         <div class="form-group">
           <label>Subir documento (Opcional).</label>
-          <input type="file" ref="fileInput" @change="handleFile" style="display:none" />
+          <input type="file" ref="fileInput" @change="handleFile" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" />
           <button type="button" class="upload-btn" @click="triggerFile" :disabled="isLoading">
             <span class="material-symbols-rounded">upload_file</span>
             {{ fileName }}

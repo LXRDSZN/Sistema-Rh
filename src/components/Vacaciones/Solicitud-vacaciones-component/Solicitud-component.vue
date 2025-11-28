@@ -79,7 +79,7 @@
                     </svg>
                     <span class="upload-text">{{ fileName || 'Agregar' }}</span>
                   </label>
-                  <input id="fileInput" ref="fileInput" class="file-input" type="file" @change="onFileChange" aria-label="Subir Archivo" />
+                  <input id="fileInput" ref="fileInput" class="file-input" type="file" accept=".pdf" @change="onFileChange" aria-label="Subir Archivo" />
                 </div>
                 <div class="upload-hint">Subir Archivo</div>
               </div>
@@ -220,6 +220,17 @@ export default {
     onFileChange(e) {
       const f = e.target.files && e.target.files[0];
       if (f) {
+        // Validar que sea PDF
+        if (f.type !== 'application/pdf') {
+          this.note = 'Solo se permiten archivos PDF';
+          this.file = null;
+          this.fileName = '';
+          // Resetear el input
+          if (this.$refs.fileInput) {
+            this.$refs.fileInput.value = '';
+          }
+          return;
+        }
         this.file = f;
         this.fileName = f.name;
       } else {
