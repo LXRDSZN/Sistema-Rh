@@ -820,6 +820,7 @@ router.post('/contratos/aspirante', verificarToken, async (req, res) => {
         salario_mensual,
         fecha_inicio,
         fecha_fin,
+        fecha_creacion,
         estado_id,
         archivo_id,
         tipo_contrato,
@@ -828,7 +829,10 @@ router.post('/contratos/aspirante', verificarToken, async (req, res) => {
       )
       VALUES (
         uuid_generate_v4(),
-        $1, $2, $3, $4, $5, $6, $7,
+        $1, $2, $3, $4, $5, 
+        ($6::date AT TIME ZONE 'America/Mexico_City')::date,
+        ($7::date AT TIME ZONE 'America/Mexico_City')::date,
+        TIMEZONE('America/Mexico_City', NOW()),
         (SELECT id FROM estado_contrato WHERE nombre ILIKE 'ACTIVO'),
         $8, $9, $10, $11
       )
