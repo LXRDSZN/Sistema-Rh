@@ -76,9 +76,12 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Proyecto (en caso de aplicar)</label>
+                        <label>
+                            Proyecto {{ formData.tipoContrato === 'Por Proyecto' ? '' : '(en caso de aplicar)' }}
+                            <span v-if="formData.tipoContrato === 'Por Proyecto'" class="campo-obligatorio">*</span>
+                        </label>
                         <input type="text" v-model="formData.proyecto" placeholder="Nombre del proyecto"
-                            class="form-input" />
+                            class="form-input" :disabled="formData.tipoContrato !== 'Por Proyecto'" />
                     </div>
                     <div class="form-group">
                         <label>Sueldo Mensual</label>
@@ -846,6 +849,12 @@ const obtenerErroresValidacion = () => {
     if (!formData.value.tipoContrato) {
         errores.push('Debes seleccionar el tipo de contrato.');
     }
+    
+    // Validar que el proyecto sea obligatorio si el tipo de contrato es "Por Proyecto"
+    if (formData.value.tipoContrato === 'Por Proyecto' && !formData.value.proyecto) {
+        errores.push('Debes especificar el nombre del proyecto para contratos por proyecto.');
+    }
+    
     if (!formData.value.fechaInicio) {
         errores.push('Debes indicar la fecha de inicio del contrato.');
     }
