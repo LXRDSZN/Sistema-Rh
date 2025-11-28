@@ -33,7 +33,7 @@ router.get('/aspirantes/:personaId/datos-personales', async (req, res) => {
           ec.nombre AS estado_civil,
           p.foto_url,
           p.etapa,              -- estado de proceso
-          p.fecha_registro,
+          TO_CHAR(DATE(p.fecha_registro), 'DD/MM/YYYY') as fecha_registro,
           ip.curp,
           ip.rfc,
           ip.nss,

@@ -161,7 +161,7 @@ export function useValidacionesSolicitud() {
   const validarModalidad = (valor) => {
     if (!valor) return { valido: true, error: '' };
     
-    const modalidadesPermitidas = ['Remoto', 'Híbrido', 'Presencial'];
+    const modalidadesPermitidas = ['Híbrida', 'Remota', 'Presencial'];
     
     if (!modalidadesPermitidas.includes(valor)) {
       return { 

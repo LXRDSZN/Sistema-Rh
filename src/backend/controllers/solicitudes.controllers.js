@@ -107,14 +107,14 @@ export const crearSolicitud = async (req, res) => {
       VALUES (
         uuid_generate_v4(),
         'Aspirante',
-        $1, $2, $3, $4, $5, $6, $7, $8, 'Registro', 'ACTIVO', NOW()
+        $1, $2, $3, $4::date, $5, $6, $7, $8, 'Registro', 'ACTIVO', (NOW() AT TIME ZONE 'America/Mexico_City')
       )
       RETURNING id`,
       [
         nombres,
         apellidoPaterno,
         apellidoMaterno || '',
-        new Date(fechaNacimiento),
+        fechaNacimiento,
         sexoId,
         estadoCivilId,
         nacionalidadId,
@@ -198,7 +198,7 @@ export const crearSolicitud = async (req, res) => {
     if (areaId || puestoId) {
       await client.query(
         `INSERT INTO aspiracion_laboral (id, persona_id, area_id, puesto_id, jornada_id, tipo_contrato, modalidad, pretension_salarial, fecha_disponible)
-         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8)`,
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8::date)`,
         [
           personaId,
           areaId || null,
@@ -207,7 +207,7 @@ export const crearSolicitud = async (req, res) => {
           tipoContrato || null,
           modalidad || null,
           pretensionSalarial ? parseFloat(pretensionSalarial) : null,
-          fechaDisponible ? new Date(fechaDisponible) : null
+          fechaDisponible || null
         ]
       );
     }
@@ -379,7 +379,7 @@ export const obtenerSolicitudes = async (req, res) => {
         p.nombre,
         p.apellido_paterno,
         p.apellido_materno,
-        p.fecha_registro,
+        TO_CHAR(DATE(p.fecha_registro), 'DD/MM/YYYY') as fecha_registro,
         p.etapa,
         c.correo,
         c.telefono,
