@@ -50,21 +50,23 @@
                         </button>
 
                         <!-- Eliminar -->
-                        <!-- Eliminar -->
-                        <button class="btn-accion delete" title="Eliminar" @click="emit('eliminar-documento', doc)"
-                            :disabled="!doc.documento_persona_id">
+                        <button class="btn-accion delete" title="Eliminar" 
+                            @click="handleEliminar(doc)"
+                            :class="{ 'disabled': !doc.documento_persona_id }">
                             <span class="material-symbols-rounded">delete</span>
                         </button>
 
                         <!-- Ver (abre en nueva pestaña) -->
-                        <button class="btn-accion view" title="Ver" @click="emit('ver-documento', doc)"
-                            :disabled="!doc.archivo_id">
+                        <button class="btn-accion view" title="Ver" 
+                            @click="handleVer(doc)"
+                            :class="{ 'disabled': !doc.archivo_id }">
                             <span class="material-symbols-rounded">visibility</span>
                         </button>
 
                         <!-- Descargar (solo descarga, no abrir) -->
-                        <button class="btn-accion download" title="Descargar" @click="emit('descargar-documento', doc)"
-                            :disabled="!doc.archivo_id">
+                        <button class="btn-accion download" title="Descargar" 
+                            @click="handleDescargar(doc)"
+                            :class="{ 'disabled': !doc.archivo_id }">
                             <span class="material-symbols-rounded">download</span>
                         </button>
                     </div>
@@ -92,6 +94,30 @@ const emit = defineEmits([
     'ver-documento',
     'descargar-documento'
 ]);
+
+const handleEliminar = (doc) => {
+    if (!doc.documento_persona_id) {
+        alert('⚠️ Este documento no tiene archivo subido. No hay nada que eliminar.');
+        return;
+    }
+    emit('eliminar-documento', doc);
+};
+
+const handleVer = (doc) => {
+    if (!doc.archivo_id) {
+        alert('⚠️ No hay archivo subido para este documento');
+        return;
+    }
+    emit('ver-documento', doc);
+};
+
+const handleDescargar = (doc) => {
+    if (!doc.archivo_id) {
+        alert('⚠️ No hay archivo subido para descargar');
+        return;
+    }
+    emit('descargar-documento', doc);
+};
 
 const formatearFecha = (fecha) => {
     if (!fecha) return '—';
@@ -251,6 +277,20 @@ const formatearFecha = (fecha) => {
 
 .btn-accion.download:hover .material-symbols-rounded {
     color: white;
+}
+
+.btn-accion.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-accion.disabled:hover {
+    background-color: white;
+    border-color: #ddd;
+}
+
+.btn-accion.disabled:hover .material-symbols-rounded {
+    color: #666;
 }
 
 @media (max-width: 768px) {

@@ -279,7 +279,7 @@ const handleEliminarDocumento = async (doc) => {
 
     if (!doc.documento_persona_id) {
         console.warn('No hay documento_persona_id; no hay nada que eliminar para este tipo.');
-        alert('Este tipo de documento todavía no tiene archivo asociado.');
+        alert('⚠️ Este documento no tiene archivo subido. No hay nada que eliminar.');
         return;
     }
 
@@ -325,6 +325,12 @@ const handleVerDocumento = async (doc) => {
     console.log('--- handleVerDocumento INICIO ---');
     console.log('Doc recibido en ver:', JSON.parse(JSON.stringify(doc)));
 
+    // Validar que exista archivo antes de intentar verlo
+    if (!doc.archivo_id) {
+        alert('⚠️ No hay archivo subido para este documento');
+        return;
+    }
+
     try {
         const key = extraerS3KeyDeDocumento(doc);
         console.log('Key extraída para ver:', key);
@@ -357,6 +363,12 @@ const handleVerDocumento = async (doc) => {
 const handleDescargarDocumento = async (doc) => {
     console.log('--- handleDescargarDocumento INICIO ---');
     console.log('Doc recibido en descargar:', JSON.parse(JSON.stringify(doc)));
+
+    // Validar que exista archivo antes de intentar descargarlo
+    if (!doc.archivo_id) {
+        alert('⚠️ No hay archivo subido para descargar');
+        return;
+    }
 
     try {
         const key = extraerS3KeyDeDocumento(doc);
