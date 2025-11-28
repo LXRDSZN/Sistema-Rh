@@ -46,6 +46,21 @@
                     <p>Error al cargar los datos del empleado</p>
                 </div>
             </div>
+
+            <!-- Sistema de Notificaciones Toast -->
+            <transition name="slide-fade">
+                <div v-if="mostrarNotificacion" class="toast-notification" :class="tipoNotificacion">
+                    <div class="toast-content">
+                        <div class="toast-header">
+                            <h4>{{ tituloNotificacion }}</h4>
+                            <button @click="cerrarNotificacion" class="toast-close">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
+                        </div>
+                        <p>{{ mensajeNotificacion }}</p>
+                    </div>
+                </div>
+            </transition>
         </div>
     </div>
 </template>
@@ -88,6 +103,12 @@ const activeTab = ref('contratoActual');
 const loading = ref(false);
 const empleadoCompleto = ref(null);
 const documentos = ref([]);
+
+// Sistema de notificaciones toast
+const mostrarNotificacion = ref(false);
+const tipoNotificacion = ref('success');
+const tituloNotificacion = ref('');
+const mensajeNotificacion = ref('');
 
 // 🔹 personaId centralizado (sirve para consultas de documentos)
 const personaId = computed(() =>
@@ -183,6 +204,20 @@ const cargarDocumentos = async () => {
     }
 };
 
+// Funciones del sistema de notificaciones toast
+const mostrarNotif = (tipo, titulo, mensaje, duracion = 5000) => {
+    tipoNotificacion.value = tipo;
+    tituloNotificacion.value = titulo;
+    mensajeNotificacion.value = mensaje;
+    mostrarNotificacion.value = true;
+    if (duracion > 0) {
+        setTimeout(() => mostrarNotificacion.value = false, duracion);
+    }
+};
+
+const cerrarNotificacion = () => {
+    mostrarNotificacion.value = false;
+};
 
 // Cuando el usuario entra a la pestaña "documentos", cargamos la info
 watch(
@@ -203,7 +238,7 @@ const handleSubirDocumento = async (doc) => {
 
     const idPersona = personaId.value;
     if (!idPersona) {
-        alert('No se encontró la persona del empleado para asociar el documento.');
+        mostrarNotif('error', 'Error', 'No se encontró la persona del empleado para asociar el documento.', 4000);
         return;
     }
 
@@ -221,7 +256,7 @@ const handleSubirDocumento = async (doc) => {
             // Validar que sea un archivo PDF
             const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
             if (!isPDF) {
-                alert('⚠️ Solo se permiten archivos PDF. Por favor selecciona un archivo con extensión .pdf');
+                mostrarNotif('warning', 'Archivo no válido', 'Solo se permiten archivos PDF. Por favor selecciona un archivo con extensión .pdf', 4000);
                 return;
             }
 
@@ -230,7 +265,7 @@ const handleSubirDocumento = async (doc) => {
             console.log('Respuesta subirArchivo:', respSubir);
 
             if (!respSubir?.ok || !respSubir.archivo) {
-                alert('Error al subir archivo');
+                mostrarNotif('error', 'Error de subida', 'Error al subir archivo', 3000);
                 return;
             }
 
@@ -248,7 +283,7 @@ const handleSubirDocumento = async (doc) => {
                     archivoId
                 );
                 console.log('Respuesta actualizarDocumentoAspirante:', respAct);
-                alert('Documento actualizado correctamente');
+                mostrarNotif('success', 'Actualizado', 'Documento actualizado correctamente', 3000);
             } else {
                 // 3) Primera subida: crear documento_persona
                 console.log(
@@ -266,7 +301,7 @@ const handleSubirDocumento = async (doc) => {
                 const respAsociar = await asociarDocumentoPersona(payloadAsociar);
                 console.log('Respuesta asociarDocumentoPersona:', respAsociar);
 
-                alert('Documento subido correctamente');
+                mostrarNotif('success', 'Subido', 'Documento subido correctamente', 3000);
             }
 
             // 4) Refrescar lista
@@ -276,7 +311,7 @@ const handleSubirDocumento = async (doc) => {
         };
     } catch (error) {
         console.error('Error al subir/actualizar documento:', error);
-        alert('Error al subir/actualizar documento');
+        mostrarNotif('error', 'Error', 'Error al subir/actualizar documento', 4000);
     }
 };
 
@@ -286,7 +321,7 @@ const handleEliminarDocumento = async (doc) => {
 
     if (!doc.documento_persona_id) {
         console.warn('No hay documento_persona_id; no hay nada que eliminar para este tipo.');
-        alert('⚠️ Este documento no tiene archivo subido. No hay nada que eliminar.');
+        mostrarNotif('warning', 'Sin archivo', 'Este documento no tiene archivo subido. No hay nada que eliminar.', 4000);
         return;
     }
 
@@ -303,7 +338,7 @@ const handleEliminarDocumento = async (doc) => {
     try {
         const idPersona = personaId.value;
         if (!idPersona) {
-            alert('No se encontró la persona del empleado para eliminar el documento.');
+            mostrarNotif('error', 'Error', 'No se encontró la persona del empleado para eliminar el documento.', 4000);
             return;
         }
 
@@ -317,14 +352,14 @@ const handleEliminarDocumento = async (doc) => {
         const resp = await eliminarDocumentoPersona(idPersona, doc.documento_persona_id);
         console.log('Respuesta eliminarDocumentoPersona (front):', resp);
 
-        alert('Documento eliminado');
+        mostrarNotif('success', 'Eliminado', 'Documento eliminado', 3000);
 
         await cargarDocumentos();
 
         console.log('--- handleEliminarDocumento FIN ---');
     } catch (error) {
         console.error('Error al eliminar documento:', error);
-        alert('No se pudo eliminar el documento');
+        mostrarNotif('error', 'Error', 'No se pudo eliminar el documento', 4000);
     }
 };
 
@@ -334,7 +369,7 @@ const handleVerDocumento = async (doc) => {
 
     // Validar que exista archivo antes de intentar verlo
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para este documento');
+        mostrarNotif('warning', 'Sin archivo', 'No hay archivo subido para este documento', 3000);
         return;
     }
 
@@ -344,7 +379,7 @@ const handleVerDocumento = async (doc) => {
 
         if (!key) {
             console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
-            alert('Este documento no tiene archivo asociado');
+            mostrarNotif('info', 'Sin archivo', 'Este documento no tiene archivo asociado', 3000);
             return;
         }
 
@@ -353,7 +388,7 @@ const handleVerDocumento = async (doc) => {
 
         if (!url) {
             console.warn('obtenerUrlFirmada devolvió URL vacía');
-            alert('No se pudo obtener la URL del documento');
+            mostrarNotif('error', 'Error de URL', 'No se pudo obtener la URL del documento', 4000);
             return;
         }
 
@@ -363,7 +398,7 @@ const handleVerDocumento = async (doc) => {
         console.log('--- handleVerDocumento FIN ---');
     } catch (error) {
         console.error('Error al ver documento:', error);
-        alert('No se pudo abrir el documento');
+        mostrarNotif('error', 'Error', 'No se pudo abrir el documento', 4000);
     }
 };
 
@@ -373,7 +408,7 @@ const handleDescargarDocumento = async (doc) => {
 
     // Validar que exista archivo antes de intentar descargarlo
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para descargar');
+        mostrarNotif('warning', 'Sin archivo', 'No hay archivo subido para descargar', 3000);
         return;
     }
 
@@ -383,7 +418,7 @@ const handleDescargarDocumento = async (doc) => {
 
         if (!key) {
             console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
-            alert('Este documento no tiene archivo para descargar');
+            mostrarNotif('info', 'Sin archivo', 'Este documento no tiene archivo para descargar', 3000);
             return;
         }
 
@@ -393,7 +428,7 @@ const handleDescargarDocumento = async (doc) => {
         console.log('--- handleDescargarDocumento FIN ---');
     } catch (error) {
         console.error('Error al descargar documento:', error);
-        alert('No se pudo descargar el documento');
+        mostrarNotif('error', 'Error de descarga', 'No se pudo descargar el documento', 4000);
     }
 };
 
@@ -496,7 +531,7 @@ const verContratoActual = async () => {
 
         const persona = personaId.value;
         if (!persona) {
-            alert('No se encontró personaId del empleado.');
+            mostrarNotif('error', 'Error', 'No se encontró personaId del empleado.', 4000);
             return;
         }
 
@@ -504,7 +539,7 @@ const verContratoActual = async () => {
         window.open(url, '_blank');
     } catch (error) {
         console.error('Error al abrir contrato actual:', error.response || error);
-        alert('No se pudo abrir el contrato actual.');
+        mostrarNotif('error', 'Error', 'No se pudo abrir el contrato actual.', 4000);
     }
 };
 
@@ -608,5 +643,103 @@ const toggleBeneficio = (beneficio) => {
 .error p {
     font-size: 1.1rem;
     color: #dc3545;
+}
+
+/* Sistema de Notificaciones Toast */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 400px;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toast-notification.success {
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+}
+
+.toast-notification.error {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+.toast-notification.warning {
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
+}
+
+.toast-notification.info {
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+}
+
+.toast-content {
+    padding: 16px;
+}
+
+.toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.toast-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 12px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+.toast-close .material-symbols-rounded {
+    font-size: 20px;
+}
+
+.toast-content p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.95;
+}
+
+/* Animación slide-fade */
+.slide-fade-enter-active {
+    transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+    transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+.slide-fade-leave-to {
+    transform: translateY(-10px);
+    opacity: 0;
 }
 </style>

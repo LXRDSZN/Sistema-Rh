@@ -38,7 +38,8 @@
 
             <DocumentacionTab v-if="tabActual === 'documentacion'" :aspirante="aspirante" :documentos="documentos"
                 @subir-documento="handleSubirDocumento" @eliminar-documento="handleEliminarDocumento"
-                @ver-documento="handleVerDocumento" @descargar-documento="handleDescargarDocumento" />
+                @ver-documento="handleVerDocumento" @descargar-documento="handleDescargarDocumento"
+                @mostrar-notificacion="handleMostrarNotificacion" />
 
             <!-- Notificación de Contratación Lista (permanece visible al cambiar de pestaña) -->
             <transition name="slide-fade">
@@ -52,6 +53,21 @@
                         <button class="btn-cerrar-notificacion" @click="cerrarNotificacionContratacion">
                             <span class="material-symbols-rounded">close</span>
                         </button>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- Sistema de Notificaciones Toast -->
+            <transition name="slide-fade">
+                <div v-if="mostrarNotificacion" class="toast-notification" :class="tipoNotificacion">
+                    <div class="toast-content">
+                        <div class="toast-header">
+                            <h4>{{ tituloNotificacion }}</h4>
+                            <button @click="cerrarNotificacion" class="toast-close">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
+                        </div>
+                        <p>{{ mensajeNotificacion }}</p>
                     </div>
                 </div>
             </transition>
@@ -103,6 +119,12 @@ const aspirante = ref(null);
 const cvUrl = ref(null);
 const aspiracionLaboral = ref(null);
 const cargando = ref(false);
+
+// Sistema de notificaciones toast
+const mostrarNotificacion = ref(false);
+const tipoNotificacion = ref('success');
+const tituloNotificacion = ref('');
+const mensajeNotificacion = ref('');
 const error = ref(null);
 const documentos = ref([]);
 const CODIGOS_DOCS_ADJUNTOS = ['CURP', 'INE', 'COMPROB_DOM', 'CV'];
@@ -251,6 +273,21 @@ const cerrarNotificacionContratacion = () => {
     mostrarNotificacionContratacion.value = false;
 };
 
+// Funciones del sistema de notificaciones toast
+const mostrarNotif = (tipo, titulo, mensaje, duracion = 5000) => {
+    tipoNotificacion.value = tipo;
+    tituloNotificacion.value = titulo;
+    mensajeNotificacion.value = mensaje;
+    mostrarNotificacion.value = true;
+    if (duracion > 0) {
+        setTimeout(() => mostrarNotificacion.value = false, duracion);
+    }
+};
+
+const cerrarNotificacion = () => {
+    mostrarNotificacion.value = false;
+};
+
 const nombreCompletoAspirante = computed(() => {
     if (!aspirante.value) return '';
     // El campo 'nombre' ya contiene el nombre completo
@@ -310,7 +347,7 @@ const handleSubirDocumento = async (doc) => {
             // Validar que sea un archivo PDF
             const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
             if (!isPDF) {
-                alert('⚠️ Solo se permiten archivos PDF. Por favor selecciona un archivo con extensión .pdf');
+                mostrarNotif('error', '❌ Formato No Válido', 'Solo se permiten archivos PDF. Por favor selecciona un archivo con extensión .pdf', 5000);
                 return;
             }
 
@@ -319,7 +356,7 @@ const handleSubirDocumento = async (doc) => {
             console.log('Respuesta subirArchivo:', respSubir);
 
             if (!respSubir?.ok || !respSubir.archivo) {
-                alert('Error al subir archivo');
+                mostrarNotif('error', '❌ Error de Carga', 'Error al subir archivo', 4000);
                 return;
             }
 
@@ -337,7 +374,7 @@ const handleSubirDocumento = async (doc) => {
                     archivoId
                 );
                 console.log('Respuesta actualizarDocumentoAspirante:', respAct);
-                alert('Documento actualizado correctamente');
+                mostrarNotif('success', '✅ Documento Actualizado', 'Documento actualizado correctamente', 3000);
             } else {
                 // 3) Si NO existe -> crear documento_persona (POST que ya tenías)
                 console.log(
@@ -355,7 +392,7 @@ const handleSubirDocumento = async (doc) => {
                 const respAsociar = await asociarDocumentoPersona(payloadAsociar);
                 console.log('Respuesta asociarDocumentoPersona:', respAsociar);
 
-                alert('Documento subido correctamente');
+                mostrarNotif('success', '✅ Documento Subido', 'Documento subido correctamente', 3000);
             }
 
             // 4) Refrescar lista
@@ -381,7 +418,7 @@ const handleSubirDocumento = async (doc) => {
         };
     } catch (error) {
         console.error('Error al subir/actualizar documento:', error);
-        alert('Error al subir/actualizar documento');
+        mostrarNotif('error', '❌ Error al Procesar', 'Error al subir/actualizar documento', 4000);
     }
 };
 
@@ -395,7 +432,7 @@ const handleEliminarDocumento = async (doc) => {
         console.warn(
             'No hay documento_persona_id; no hay nada que eliminar para este tipo.'
         );
-        alert('⚠️ Este documento no tiene archivo subido. No hay nada que eliminar.');
+        mostrarNotif('warning', '⚠️ Sin Archivo', 'Este documento no tiene archivo subido. No hay nada que eliminar.', 4000);
         return;
     }
 
@@ -423,7 +460,7 @@ const handleEliminarDocumento = async (doc) => {
         );
         console.log('Respuesta eliminarDocumentoPersona (front):', resp);
 
-        alert('Documento eliminado');
+        mostrarNotif('success', '✅ Documento Eliminado', 'Documento eliminado correctamente', 3000);
 
         console.log(
             'Refrescando documentos de persona después de eliminar:',
@@ -451,7 +488,7 @@ const handleEliminarDocumento = async (doc) => {
         console.log('--- handleEliminarDocumento FIN ---');
     } catch (error) {
         console.error('Error al eliminar documento:', error);
-        alert('No se pudo eliminar el documento');
+        mostrarNotif('error', '❌ Error al Eliminar', 'No se pudo eliminar el documento', 4000);
     }
 };
 
@@ -468,7 +505,7 @@ const handleVerDocumento = async (doc) => {
 
     // Validar que exista archivo antes de intentar verlo
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para este documento');
+        mostrarNotif('warning', '⚠️ Sin Archivo', 'No hay archivo subido para este documento', 4000);
         return;
     }
 
@@ -478,7 +515,7 @@ const handleVerDocumento = async (doc) => {
 
         if (!key) {
             console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
-            alert('Este documento no tiene archivo asociado');
+            mostrarNotif('warning', '⚠️ Sin Archivo', 'Este documento no tiene archivo asociado', 4000);
             return;
         }
 
@@ -487,7 +524,7 @@ const handleVerDocumento = async (doc) => {
 
         if (!url) {
             console.warn('obtenerUrlFirmada devolvió URL vacía');
-            alert('No se pudo obtener la URL del documento');
+            mostrarNotif('error', '❌ Error de URL', 'No se pudo obtener la URL del documento', 4000);
             return;
         }
 
@@ -497,7 +534,7 @@ const handleVerDocumento = async (doc) => {
         console.log('--- handleVerDocumento FIN ---');
     } catch (error) {
         console.error('Error al ver documento:', error);
-        alert('No se pudo abrir el documento');
+        mostrarNotif('error', '❌ Error al Abrir', 'No se pudo abrir el documento', 4000);
     }
 };
 
@@ -508,7 +545,7 @@ const handleDescargarDocumento = async (doc) => {
 
     // Validar que exista archivo antes de intentar descargarlo
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para descargar');
+        mostrarNotif('warning', '⚠️ Sin Archivo', 'No hay archivo subido para descargar', 4000);
         return;
     }
 
@@ -518,7 +555,7 @@ const handleDescargarDocumento = async (doc) => {
 
         if (!key) {
             console.warn('extraerS3KeyDeDocumento devolvió null/undefined');
-            alert('Este documento no tiene archivo para descargar');
+            mostrarNotif('warning', '⚠️ Sin Archivo', 'Este documento no tiene archivo para descargar', 4000);
             return;
         }
 
@@ -528,13 +565,18 @@ const handleDescargarDocumento = async (doc) => {
         console.log('--- handleDescargarDocumento FIN ---');
     } catch (error) {
         console.error('Error al descargar documento:', error);
-        alert('No se pudo descargar el documento');
+        mostrarNotif('error', '❌ Error al Descargar', 'No se pudo descargar el documento', 4000);
     }
 };
 
-
-
-
+const handleMostrarNotificacion = (notificacion) => {
+    mostrarNotif(
+        notificacion.tipo,
+        notificacion.titulo,
+        notificacion.mensaje,
+        notificacion.duracion || 3000
+    );
+};
 
 // Cargar datos al montar
 onMounted(() => {
@@ -703,6 +745,85 @@ onMounted(() => {
 
 .btn-cerrar-notificacion .material-symbols-rounded {
     font-size: 20px;
+}
+
+/* Sistema de Notificaciones Toast */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 400px;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toast-notification.success {
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+}
+
+.toast-notification.error {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+.toast-notification.warning {
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
+}
+
+.toast-notification.info {
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+}
+
+.toast-content {
+    padding: 16px;
+}
+
+.toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.toast-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 12px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+.toast-close .material-symbols-rounded {
+    font-size: 20px;
+}
+
+.toast-content p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.95;
 }
 
 /* Animación slide-fade */

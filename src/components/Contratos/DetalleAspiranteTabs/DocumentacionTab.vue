@@ -92,12 +92,18 @@ const emit = defineEmits([
     'subir-documento',
     'eliminar-documento',
     'ver-documento',
-    'descargar-documento'
+    'descargar-documento',
+    'mostrar-notificacion'
 ]);
 
 const handleEliminar = (doc) => {
     if (!doc.documento_persona_id) {
-        alert('⚠️ Este documento no tiene archivo subido. No hay nada que eliminar.');
+        emit('mostrar-notificacion', {
+            tipo: 'warning',
+            titulo: 'Sin archivo',
+            mensaje: 'Este documento no tiene archivo subido. No hay nada que eliminar.',
+            duracion: 4000
+        });
         return;
     }
     emit('eliminar-documento', doc);
@@ -105,7 +111,12 @@ const handleEliminar = (doc) => {
 
 const handleVer = (doc) => {
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para este documento');
+        emit('mostrar-notificacion', {
+            tipo: 'warning',
+            titulo: 'Sin archivo',
+            mensaje: 'No hay archivo subido para este documento',
+            duracion: 3000
+        });
         return;
     }
     emit('ver-documento', doc);
@@ -113,7 +124,12 @@ const handleVer = (doc) => {
 
 const handleDescargar = (doc) => {
     if (!doc.archivo_id) {
-        alert('⚠️ No hay archivo subido para descargar');
+        emit('mostrar-notificacion', {
+            tipo: 'warning',
+            titulo: 'Sin archivo',
+            mensaje: 'No hay archivo subido para descargar',
+            duracion: 3000
+        });
         return;
     }
     emit('descargar-documento', doc);
