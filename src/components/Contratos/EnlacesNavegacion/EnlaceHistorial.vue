@@ -150,7 +150,7 @@ const formatDate = (date) => {
 
 // ✅ Filtrado computado
 const contratosFiltrados = computed(() => {
-    let resultado = contratos.value;
+    let resultado = [...contratos.value]; // Crear copia para no mutar el original
 
     // Filtro por búsqueda
     if (searchQuery.value) {
@@ -170,7 +170,8 @@ const contratosFiltrados = computed(() => {
         resultado = resultado.filter(c => c.area_id === filtros.value.area);
     }
 
-    // Ordenar por nombre
+    // Ordenar (prioridad: nombre > fecha)
+    // Si hay filtro de nombre, ordenar por nombre
     if (filtros.value.nombre === 'asc') {
         resultado.sort((a, b) =>
             a.nombre_empleado.localeCompare(b.nombre_empleado)
@@ -179,10 +180,9 @@ const contratosFiltrados = computed(() => {
         resultado.sort((a, b) =>
             b.nombre_empleado.localeCompare(a.nombre_empleado)
         );
-    }
-
-    // Ordenar por fecha
-    if (filtros.value.fecha === 'reciente') {
+    } 
+    // Si no hay filtro de nombre pero sí de fecha, ordenar por fecha
+    else if (filtros.value.fecha === 'reciente') {
         resultado.sort((a, b) =>
             new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
         );
