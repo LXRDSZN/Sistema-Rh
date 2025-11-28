@@ -82,7 +82,7 @@ import DemographicsChart from './DashboardCharts/DemographicsChart.vue';
 const router = useRouter();
 const { userName, userEmail, userRole, totalPermissions, logout, verifySession } = useAuth();
 const { stats, empleadosPorArea, estadisticasEdadGenero, areaColors, loadDashboardStats } = useDashboardData();
-const { newUser, isRegistering, showRegisterModal, empleadosSinCorreo, isLoadingEmpleados, handleRegisterUser, loadEmpleadosSinCorreo } = useUserRegistration();
+const { newUser, isRegistering, showRegisterModal, empleadosSinCorreo, isLoadingEmpleados, handleRegisterUser, loadEmpleadosSinCorreo, resetForm } = useUserRegistration();
 
 // Verificar sesión al cargar el dashboard
 onMounted(async () => {
@@ -97,6 +97,7 @@ onMounted(async () => {
 
 // Cargar empleados cuando se abre el modal
 const openRegisterModal = async () => {
+  resetForm(); // Limpiar formulario antes de abrir el modal
   showRegisterModal.value = true;
   await loadEmpleadosSinCorreo();
 };

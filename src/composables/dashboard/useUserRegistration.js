@@ -88,6 +88,10 @@ export function useUserRegistration() {
         newUser.value.fecha_nacimiento = empleado.fecha_nacimiento || '';
         newUser.value.sexo = empleado.sexo || '';
         
+        // Limpiar explícitamente email y password
+        newUser.value.email = '';
+        newUser.value.password = '';
+        
         // Datos del contrato
         newUser.value.contrato_id = empleado.contrato_id || '';
         newUser.value.area = empleado.area || '';
