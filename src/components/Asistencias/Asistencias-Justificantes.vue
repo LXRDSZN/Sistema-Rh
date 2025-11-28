@@ -125,7 +125,7 @@
                 ref="fileInput" 
                 @change="manejarArchivoSeleccionado" 
                 class="file-input-hidden"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                accept=".pdf"
               />
             </div>
             <!-- Vista previa del archivo -->
@@ -763,17 +763,20 @@ const manejarArchivoSeleccionado = (event) => {
   try {
     const archivo = event.target.files?.[0]
     if (archivo) {
-      nombreArchivo.value = archivo.name
-      archivoPrevisualizacion.value = archivo
-      
-      // Validar tipo de archivo
-      const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 
-                              'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      // Validar que sea PDF
+      const tiposPermitidos = ['application/pdf']
       if (!tiposPermitidos.includes(archivo.type)) {
-        mostrarMensaje('Tipo de archivo no permitido', 'error')
+        mostrarMensaje('Solo se permiten archivos PDF', 'error')
         limpiarArchivo()
+        // Resetear el input para permitir seleccionar el mismo archivo después
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
         return
       }
+      
+      nombreArchivo.value = archivo.name
+      archivoPrevisualizacion.value = archivo
       
       // Validar tamaño (max 5MB)
       if (archivo.size > 5 * 1024 * 1024) {
