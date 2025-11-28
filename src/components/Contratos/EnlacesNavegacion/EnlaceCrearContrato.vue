@@ -36,13 +36,17 @@
                         </label>
                         <div class="inline-fields">
                             <input type="text" :value="formData.nombre"
-                                @input="limpiarYFormatearNombre('nombre', $event)" placeholder="Nombre"
+                                @input="limpiarYFormatearNombre('nombre', $event)"
+                                @keydown="validarTeclaLetra"
+                                placeholder="Nombre"
                                 class="form-input" :disabled="esRenovacionEmpleado" />
                             <input type="text" :value="formData.apellidoPaterno"
                                 @input="limpiarYFormatearNombre('apellidoPaterno', $event)"
+                                @keydown="validarTeclaLetra"
                                 placeholder="Apellido Paterno" class="form-input" :disabled="esRenovacionEmpleado" />
                             <input type="text" :value="formData.apellidoMaterno"
                                 @input="limpiarYFormatearNombre('apellidoMaterno', $event)"
+                                @keydown="validarTeclaLetra"
                                 placeholder="Apellido Materno" class="form-input" :disabled="esRenovacionEmpleado" />
                         </div>
                     </div>
@@ -675,19 +679,49 @@ const cargarCatalogos = async () => {
 };
 
 // ===== VALIDACIONES =====
+const validarTeclaLetra = (event) => {
+    const key = event.key;
+    
+    // Permitir teclas especiales de navegación y edición
+    const teclasPermitidas = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+                              'Home', 'End', 'Tab', 'Enter', 'Escape'];
+    
+    if (teclasPermitidas.includes(key)) {
+        return; // Permitir estas teclas
+    }
+    
+    // Permitir Ctrl/Cmd + teclas (copiar, pegar, etc.)
+    if (event.ctrlKey || event.metaKey) {
+        return;
+    }
+    
+    // Solo permitir letras (incluyendo acentos y ñ) y espacios
+    const regexLetra = /^[a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s]$/;
+    
+    if (!regexLetra.test(key)) {
+        event.preventDefault(); // Bloquear la tecla
+    }
+};
+
 const limpiarYFormatearNombre = (campo, event) => {
     // Si es renovación, no debe poder editar
     if (esRenovacionEmpleado.value) return;
 
     let valor = event.target.value || '';
-    // Solo letras y espacios
-    valor = valor.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, '');
+    // Permitir solo letras (incluyendo acentos, ñ, diéresis) y espacios
+    valor = valor.replace(/[^a-záéíóúàèìòùâêîôûäëïöüñA-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÑ\s]/g, '');
     valor = valor.replace(/\s+/g, ' ');
     valor = valor.replace(/^\s+/, '');
-    valor = valor.replace(/\b\w+/g, (palabra) => {
+    
+    // Capitalizar correctamente palabras con acentos
+    // Dividir por espacios y capitalizar cada palabra
+    const palabras = valor.split(' ');
+    const palabrasCapitalizadas = palabras.map(palabra => {
+        if (palabra.length === 0) return palabra;
         return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
     });
-    formData.value[campo] = valor;
+    
+    formData.value[campo] = palabrasCapitalizadas.join(' ');
 };
 
 const limpiarNumero = (campo) => {
