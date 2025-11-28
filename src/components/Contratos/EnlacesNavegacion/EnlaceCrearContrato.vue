@@ -193,7 +193,7 @@
                                 Generar Acuerdo
                             </button>
                         </div>
-                        <p class="file-hint aviso-acuerdo">
+                        <p v-if="!formData.documento" class="file-hint aviso-acuerdo">
                             Descarga el Acuerdo de Confidencialidad para habilitar la carga y poder subirlo.
                         </p>
                         <p v-if="formData.documento" class="file-name">
@@ -1091,6 +1091,9 @@ const descargarAcuerdo = () => {
     acuerdoGenerado.value = true;
     
     mostrarNotif('success', '✅ Acuerdo Descargado', 'Acuerdo descargado. Ahora puedes subirlo en el campo "Subir documento (PDF)".');
+    
+    // Cerrar el modal automáticamente después de descargar
+    cerrarModalAcuerdo();
 };
 
 const cerrarModalAcuerdo = () => {
@@ -1861,6 +1864,11 @@ onMounted(async () => {
 }
 .aviso-acuerdo {
     color: #d35400;
+    font-weight: 600;
+}
+
+.aviso-adjuntado {
+    color: #27ae60;
     font-weight: 600;
 }
 
