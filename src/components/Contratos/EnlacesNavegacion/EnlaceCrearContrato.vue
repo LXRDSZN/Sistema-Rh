@@ -185,13 +185,17 @@
                     <div class="form-group">
                         <label>Subir documento (PDF)</label>
                         <div class="upload-group">
-                            <input type="file" accept="application/pdf" class="form-input" @change="onFileChange" />
+                            <input type="file" accept="application/pdf" class="form-input" @change="onFileChange"
+                                :disabled="!acuerdoGenerado" />
                             <button type="button" class="btn-generar-acuerdo" @click="generarAcuerdoConfidencialidad" 
                                 title="Generar Acuerdo de Confidencialidad">
                                 <span class="material-symbols-rounded">description</span>
                                 Generar Acuerdo
                             </button>
                         </div>
+                        <p class="file-hint aviso-acuerdo">
+                            Descarga el Acuerdo de Confidencialidad para habilitar la carga y poder subirlo.
+                        </p>
                         <p v-if="formData.documento" class="file-name">
                             Archivo seleccionado: {{ formData.documento }}
                         </p>
@@ -446,6 +450,7 @@ const formatRoleName = (role) => {
 
 const fotoUrl = ref(null);
 const archivoPdf = ref(null); // aquí guardamos el File
+const acuerdoGenerado = ref(false);
 
 // ===== FECHAS - DECLARAR FUNCIONES PRIMERO =====
 const obtenerHoy = () => {
@@ -884,6 +889,12 @@ const obtenerErroresValidacion = () => {
 
 // ===== FILE INPUT =====
 const onFileChange = (event) => {
+    if (!acuerdoGenerado.value) {
+        mostrarNotif('warning', '⚠️ Genera el acuerdo', 'Primero genera el Acuerdo de Confidencialidad antes de intentar subirlo.');
+        event.target.value = '';
+        return;
+    }
+
     const file = event.target.files?.[0] || null;
     
     if (file) {
@@ -925,6 +936,9 @@ const pdfContratoPreviewUrl = ref(null);
 let pdfContratoBlobActual = null;
 
 const generarAcuerdoConfidencialidad = () => {
+    // Al generar uno nuevo, se debe volver a descargar para habilitar el upload
+    acuerdoGenerado.value = false;
+
     // Obtener datos del formulario
     const nombreCompleto = `${formData.value.nombre} ${formData.value.apellidoPaterno} ${formData.value.apellidoMaterno}`.trim();
     const puestoObj = puestos.value.find(p => p.id === formData.value.puesto);
@@ -1058,6 +1072,7 @@ const descargarAcuerdo = () => {
     link.href = pdfPreviewUrl.value;
     link.download = nombreArchivo;
     link.click();
+    acuerdoGenerado.value = true;
     
     mostrarNotif('success', '✅ Acuerdo Descargado', 'Acuerdo descargado. Ahora puedes subirlo en el campo "Subir documento (PDF)".');
 };
@@ -1583,6 +1598,7 @@ const enviarLimpiar = () => {
 
     formData.value.documento = '';
     archivoPdf.value = null;
+    acuerdoGenerado.value = false;
 
     console.log('Formulario limpiado');
     mostrarNotif('info', 'ℹ️ Formulario Limpiado', 'Formulario limpiado correctamente', 3000);
@@ -1826,6 +1842,10 @@ onMounted(async () => {
     margin-top: 0.25rem;
     font-size: 0.8rem;
     color: #1a5dc1;
+}
+.aviso-acuerdo {
+    color: #d35400;
+    font-weight: 600;
 }
 
 /* Upload group con botón generar */
