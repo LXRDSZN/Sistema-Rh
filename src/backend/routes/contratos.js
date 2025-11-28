@@ -806,6 +806,20 @@ router.post('/contratos/aspirante', verificarToken, async (req, res) => {
       });
     }
 
+    // Validar que el horario no cruce medianoche
+    if (horaEntrada && horaSalida) {
+      const entrada = horaEntrada.split(':').map(Number);
+      const salida = horaSalida.split(':').map(Number);
+      const minutosEntrada = entrada[0] * 60 + entrada[1];
+      const minutosSalida = salida[0] * 60 + salida[1];
+      
+      if (minutosSalida <= minutosEntrada) {
+        return res.status(400).json({
+          ok: false,
+          error: 'El horario de salida debe ser posterior al horario de entrada. No se permiten turnos que crucen la medianoche.'
+        });
+      }
+    }
 
     await client.query('BEGIN');
 

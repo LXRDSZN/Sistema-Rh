@@ -887,6 +887,18 @@ const obtenerErroresValidacion = () => {
     if (!formData.value.salida) {
         errores.push('Debes capturar la hora de salida.');
     }
+    
+    // Validar que el horario no cruce medianoche
+    if (formData.value.entrada && formData.value.salida) {
+        const [horaEntrada, minEntrada] = formData.value.entrada.split(':').map(Number);
+        const [horaSalida, minSalida] = formData.value.salida.split(':').map(Number);
+        const minutosEntrada = horaEntrada * 60 + minEntrada;
+        const minutosSalida = horaSalida * 60 + minSalida;
+        
+        if (minutosSalida <= minutosEntrada) {
+            errores.push('El horario de salida debe ser posterior al horario de entrada. No se permiten turnos que crucen la medianoche.');
+        }
+    }
 
     // Plantilla y estado
     if (!formData.value.plantillaContrato) {
