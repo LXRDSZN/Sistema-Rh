@@ -557,9 +557,7 @@ const cargarDatosAspirante = async () => {
                   formData.value.tipoContrato = datos.tipo_contrato || '';
                   formData.value.modalidad = datos.modalidad || 'Presencial';
 
-                  if (datos.fecha_disponible) {
-                      formData.value.fechaInicio = formatearFechaInput(datos.fecha_disponible);
-                  }
+                  // No pre-cargar fechaInicio, dejar vacía para que el usuario seleccione
               }
           } catch (error) {
               console.warn('No se pudo cargar aspiración laboral del aspirante:', error);
@@ -618,9 +616,8 @@ const cargarDatosEmpleadoRenovacion = async () => {
         formData.value.modalidad = datos.modalidad || 'Presencial';
         formData.value.sueldoMensual = datos.salario_mensual || '';
 
-        if (datos.fecha_inicio) {
-            formData.value.fechaInicio = formatearFechaInput(datos.fecha_inicio);
-        }
+        // No pre-cargar fechaInicio, dejar vacía para que el usuario seleccione
+        
         if (datos.fecha_fin) {
             formData.value.fechaTermino = formatearFechaInput(datos.fecha_fin);
         }
