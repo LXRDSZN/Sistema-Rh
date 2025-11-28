@@ -55,8 +55,18 @@ export const login = async (req, res) => {
       });
     }
 
-    // Verificar contraseña en texto plano
-    const passwordMatch = contrasena === user.password_hash;
+    // Verificar contraseña
+    // Si la contraseña está hasheada con bcrypt, usar bcrypt.compare
+    // Si está en texto plano (sistema antiguo), comparar directamente
+    let passwordMatch = false;
+    
+    if (user.password_hash.startsWith('$2')) {
+      // La contraseña está hasheada con bcrypt
+      passwordMatch = await bcrypt.compare(contrasena, user.password_hash);
+    } else {
+      // La contraseña está en texto plano (sistema antiguo)
+      passwordMatch = contrasena === user.password_hash;
+    }
 
     if (!passwordMatch) {
       return res.status(401).json({ 
