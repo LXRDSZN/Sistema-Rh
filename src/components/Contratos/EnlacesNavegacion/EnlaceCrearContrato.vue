@@ -885,6 +885,31 @@ const obtenerErroresValidacion = () => {
 // ===== FILE INPUT =====
 const onFileChange = (event) => {
     const file = event.target.files?.[0] || null;
+    
+    if (file) {
+        // Validar que sea un archivo PDF
+        const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        
+        if (!isPDF) {
+            mostrarNotif('error', '❌ Formato No Válido', 'Solo se permiten archivos PDF para el acuerdo de confidencialidad.', 5000);
+            event.target.value = ''; // Limpiar el input
+            archivoPdf.value = null;
+            formData.value.documento = '';
+            return;
+        }
+        
+        // Validar tamaño (máximo 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            mostrarNotif('error', '❌ Archivo Muy Pesado', `El archivo pesa ${sizeMB}MB. El tamaño máximo permitido es 10MB.`, 5000);
+            event.target.value = '';
+            archivoPdf.value = null;
+            formData.value.documento = '';
+            return;
+        }
+    }
+    
     archivoPdf.value = file;
     formData.value.documento = file ? file.name : '';
 };
